@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.sdlc.pro</groupId>
+        <artifactId>spring-lens</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>spring-lens-autoconfigure</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Spring Lens Autoconfigure</name>
+    <description>
+        Auto-configuration module for Spring Lens. Reads LensProperties,
+        evaluates @Conditional annotations, and registers all beans from
+        spring-lens-core into the Spring application context automatically.
+        This module contains ZERO business logic. It only wires
+        beans together. All logic lives in spring-lens-core.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.sdlc.pro</groupId>
+            <artifactId>spring-lens-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${spring-boot.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>include-generated-metadata</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>
+                                ${project.build.outputDirectory}/META-INF
+                            </outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>
+                                        ${project.build.directory}/generated-sources/annotations/META-INF
+                                    </directory>
+                                    <includes>
+                                        <include>spring-configuration-metadata.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <!-- Boot 3.x auto-config registration -->
+                    <include>
+                        META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+                    </include>
+                    <!-- Boot 2.x backwards compatibility -->
+                    <include>META-INF/spring.factories</include>
+                    <!-- IDE property hints (hand-authored additions
+                         merged with processor-generated file) -->
+                    <include>META-INF/spring-configuration-metadata.json</include>
+                    <!-- Any other resources (e.g. default banner) -->
+                    <include>**/*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+</project>
