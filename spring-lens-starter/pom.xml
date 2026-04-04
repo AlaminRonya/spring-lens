@@ -16,7 +16,7 @@
     <artifactId>spring-lens-starter</artifactId>
     <packaging>jar</packaging>
 
-    <name>Spring Lens Starter</name>
+    <name>spring-lens-starter</name>
     <description>
         Starter module for Spring Lens. The one dependency users add to their Spring Boot project.
     </description>
@@ -26,12 +26,18 @@
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-core</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.sdlc.pro</groupId>
+            <artifactId>spring-lens-storage</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sdlc.pro</groupId>
+            <artifactId>spring-lens-web</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-autoconfigure</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
