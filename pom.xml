@@ -23,7 +23,7 @@
         <spring-boot.version>3.2.0</spring-boot.version>
     </properties>
 
-    <name>Spring Lens</name>
+    <name>spring-lens</name>
     <description>
         Spring Lens is a real-time observability and debugging tool for Spring Boot applications
         that helps developers understand what’s happening inside their system.
@@ -46,8 +46,11 @@
 
     <modules>
         <module>spring-lens-core</module>
-<!--        <module>spring-lens-autoconfigure</module>-->
-<!--        <module>spring-lens-starter</module>-->
+        <module>spring-lens-storage</module>
+        <module>spring-lens-web</module>
+        <module>spring-lens-autoconfigure</module>
+        <module>spring-lens-ui</module>
+        <module>spring-lens-spring-boot-starter</module>
     </modules>
 
     <dependencyManagement>
@@ -58,13 +61,28 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.sdlc.pro</groupId>
+                <artifactId>spring-lens-storage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sdlc.pro</groupId>
+                <artifactId>spring-lens-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>spring-lens-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>spring-lens-starter</artifactId>
+                <artifactId>spring-lens-ui</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>spring-lens-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

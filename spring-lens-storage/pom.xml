@@ -16,16 +16,12 @@
     <artifactId>spring-lens-storage</artifactId>
     <packaging>jar</packaging>
 
-    <name>spring-lens-storage</name>
+    <name>Spring Lens Storage</name>
     <description>
         Persistence module for spring lens.
     </description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-core</artifactId>

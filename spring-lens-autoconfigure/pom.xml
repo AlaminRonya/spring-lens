@@ -16,7 +16,7 @@
     <artifactId>spring-lens-autoconfigure</artifactId>
     <packaging>jar</packaging>
 
-    <name>spring-lens-autoconfigure</name>
+    <name>Spring Lens Autoconfigure</name>
     <description>
         Auto-configuration module for Spring Lens. Reads LensProperties,
         evaluates @Conditional annotations, and registers all beans from
@@ -33,10 +33,12 @@
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-storage</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-web</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

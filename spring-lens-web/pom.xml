@@ -16,16 +16,12 @@
     <artifactId>spring-lens-web</artifactId>
     <packaging>jar</packaging>
 
-    <name>spring-lens-web</name>
+    <name>Spring Lens Web</name>
     <description>
         Web module for spring lens to expose the REST endpoints
     </description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-core</artifactId>

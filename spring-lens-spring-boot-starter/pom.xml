@@ -13,10 +13,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-lens-starter</artifactId>
+    <artifactId>spring-lens-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
 
-    <name>spring-lens-starter</name>
+    <name>Spring Lens Spring Boot Starter</name>
     <description>
         Starter module for Spring Lens. The one dependency users add to their Spring Boot project.
     </description>
@@ -33,6 +33,10 @@
         <dependency>
             <groupId>com.sdlc.pro</groupId>
             <artifactId>spring-lens-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sdlc.pro</groupId>
+            <artifactId>spring-lens-ui</artifactId>
         </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
