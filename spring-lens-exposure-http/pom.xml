@@ -13,12 +13,12 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-lens-web</artifactId>
+    <artifactId>spring-lens-exposure-http</artifactId>
     <packaging>jar</packaging>
 
-    <name>Spring Lens Web</name>
+    <name>Spring Lens Exposure HTTP</name>
     <description>
-        Web module for spring lens to expose the REST endpoints
+        Exposure HTTP module for spring lens to expose the REST endpoints
     </description>
 
     <dependencies>
