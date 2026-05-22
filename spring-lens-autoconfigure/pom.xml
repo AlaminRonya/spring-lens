@@ -41,7 +41,7 @@
         </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
-            <artifactId>spring-lens-web</artifactId>
+            <artifactId>spring-lens-exposure-http</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
