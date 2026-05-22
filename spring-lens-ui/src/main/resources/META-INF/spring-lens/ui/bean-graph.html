@@ -1,0 +1,113 @@
+<div class="app-container">
+    <!-- Top Toolbar -->
+    <header class="toolbar">
+        <div class="toolbar-left">
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="search-input" placeholder="Search bean..." />
+                <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
+            </div>
+
+            <button class="btn" id="btn-expand" title="Expand All"><i data-lucide="zoom-in"></i> Expand All</button>
+            <button class="btn" id="btn-collapse" title="Collapse All"><i data-lucide="minus-square"></i> Collapse All</button>
+            <button class="btn" id="btn-reset" title="Reset View"><i data-lucide="focus"></i> Reset</button>
+            <div class="layout-toggle">
+                <button class="btn" id="btn-tb" title="Top → Bottom"> <i data-lucide="circle-arrow-down"></i> Top → Bottom</button>
+                <button class="btn" id="btn-lr" title="Left → Right"><i data-lucide="circle-arrow-right"></i> Left → Right</button>
+            </div>
+
+            <button class="btn" id="btn-highlight-path" title="Toggle Path Highlighting"><i data-lucide="wand"></i>Highlight Path</button>
+        </div>
+
+        <div class="toolbar-right">
+            <div class="stat">
+                <span class="dot blue"></span>
+                <span>Beans: <strong id="beans-count">0</strong></span>
+            </div>
+            <div class="stat">
+                <span class="line grey"></span>
+                <span>Dependencies: <strong id="deps-count">0</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Main Graph Area -->
+        <div id="beanGraph">
+            <svg id="tree-svg"></svg>
+        </div>
+
+        <!-- Navigation Controls floating in bottom-left -->
+        <div class="nav-controls">
+            <button class="nav-btn" id="btn-pan-mode" title="Fit View"><i data-lucide="focus"></i></button>
+            <button class="nav-btn" id="btn-control-zoom-in" title="Zoom In"><i data-lucide="zoom-in"></i></button>
+            <button class="nav-btn" id="btn-control-zoom-out" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
+            <button class="nav-btn" id="btn-control-fit" title="Toggle Fullscreen"><i data-lucide="move-diagonal"></i></button>
+        </div>
+
+        <!-- Legend Panel in bottom-right -->
+        <div class="legend-panel">
+            <div class="legend-item">
+                <span class="dot blue"></span>
+                <span>Root Bean</span>
+            </div>
+            <div class="legend-item">
+                <span class="dot green"></span>
+                <span>Intermediate Bean</span>
+            </div>
+            <div class="legend-item">
+                <span class="dot yellow"></span>
+                <span>Leaf Bean</span>
+            </div>
+            <div class="legend-item">
+                <span class="dot purple"></span>
+                <span>Adapter Bean</span>
+            </div>
+        </div>
+
+        <!-- Details Sidebar on the Right -->
+        <aside class="graph-sidebar" id="details-sidebar" style="display: none;">
+            <div class="sidebar-header">
+                <h3>Bean Details</h3>
+                <button class="close-btn" id="btn-close-sidebar"><i data-lucide="x"></i></button>
+            </div>
+            <div class="sidebar-content">
+                <div class="detail-row">
+                    <div class="detail-label">Name</div>
+                    <div class="detail-value name" id="detail-bean-name">-</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Type</div>
+                    <div class="detail-value" id="detail-bean-type">-</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Scope</div>
+                    <span class="badge" id="detail-bean-scope">-</span>
+                </div>
+
+                <!-- Dependencies Accordion -->
+                <div class="accordion">
+                    <div class="accordion-header" id="accordion-deps-header">
+                        <span>Dependencies (<span id="detail-deps-count">0</span>)</span>
+                        <i data-lucide="arrow-right" style="width: 14px; height: 14px; transition: transform 0.2s;"></i>
+                    </div>
+                    <div class="accordion-body" id="accordion-deps-body" style="display: none;">
+                        <!-- List of dependencies will go here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Dependents Accordion -->
+                <div class="accordion">
+                    <div class="accordion-header" id="accordion-dependents-header">
+                        <span>Dependents (<span id="detail-dependents-count">0</span>)</span>
+                        <i data-lucide="arrow-right" style="width: 14px; height: 14px; transition: transform 0.2s;"></i>
+                    </div>
+                    <div class="accordion-body" id="accordion-dependents-body" style="display: none;">
+                        <!-- List of dependents will go here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
