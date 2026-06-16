@@ -24,3 +24,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+#tip {
+    display: none;
+}
+#tip.show {
+    display: block;
+}
