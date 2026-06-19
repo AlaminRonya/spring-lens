@@ -1,0 +1,142 @@
+<div class="flex flex-col h-full w-full max-w-full overflow-hidden p-6 gap-4">
+    <!-- Top Toolbar -->
+    <header class="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Search Box -->
+            <div class="relative flex items-center">
+                <span class="material-symbols-outlined absolute left-3 text-gray-400 text-[18px]">search</span>
+                <input type="text" id="search-input" placeholder="Search bean..." class="pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-48 focus:w-64" />
+                <div id="search-suggestions" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 text-xs hidden"></div>
+            </div>
+
+            <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all cursor-pointer" id="btn-expand" title="Expand All">
+                <span class="material-symbols-outlined text-[18px]">zoom_in</span> Expand All
+            </button>
+            <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all cursor-pointer" id="btn-collapse" title="Collapse All">
+                <span class="material-symbols-outlined text-[18px]">zoom_out</span> Collapse All
+            </button>
+            <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all cursor-pointer" id="btn-reset" title="Reset View">
+                <span class="material-symbols-outlined text-[18px]">center_focus_strong</span> Reset
+            </button>
+            
+            <!-- Layout Toggle group -->
+            <div class="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
+                <button class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 bg-white text-gray-800 shadow-sm" id="btn-tb" title="Top → Bottom"> 
+                    <span class="material-symbols-outlined text-[18px]">south</span> Top → Bottom
+                </button>
+                <button class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 text-gray-500 hover:text-gray-800" id="btn-lr" title="Left → Right">
+                    <span class="material-symbols-outlined text-[18px]">east</span> Left → Right
+                </button>
+            </div>
+
+            <button class="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all cursor-pointer" id="btn-highlight-path" title="Toggle Path Highlighting">
+                <span class="material-symbols-outlined text-[18px]">insights</span> Highlight Path
+            </button>
+        </div>
+
+        <!-- Toolbar Right Statuses -->
+        <div class="flex items-center gap-4 text-xs font-medium text-gray-600">
+            <div class="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                <span>Beans: <strong id="beans-count" class="font-bold">0</strong></span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1 rounded-full border border-gray-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                <span>Dependencies: <strong id="deps-count" class="font-bold">0</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="relative flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm min-h-[500px]">
+        <!-- Main Graph Area -->
+        <div id="beanGraph" class="w-full h-full min-h-[500px]">
+            <svg id="tree-svg" class="w-full h-full min-h-[500px]"></svg>
+        </div>
+
+        <!-- Navigation Controls floating in bottom-left -->
+        <div class="absolute bottom-4 left-4 flex flex-col gap-1 bg-white border border-gray-200 rounded-lg p-1.5 shadow-md z-10">
+            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer" id="btn-pan-mode" title="Fit View">
+                <span class="material-symbols-outlined text-[18px]">fit_screen</span>
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer" id="btn-control-zoom-in" title="Zoom In">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer" id="btn-control-zoom-out" title="Zoom Out">
+                <span class="material-symbols-outlined text-[18px]">remove</span>
+            </button>
+            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer" id="btn-control-fit" title="Toggle Fullscreen">
+                <span class="material-symbols-outlined text-[18px]">aspect_ratio</span>
+            </button>
+        </div>
+
+        <!-- Legend Panel in bottom-right -->
+        <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl p-3 shadow-md z-10 flex flex-col gap-2 text-[11px] text-gray-600 w-36">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <span>Root Bean</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                <span>Intermediate</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span>Leaf Bean</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                <span>Adapter Bean</span>
+            </div>
+        </div>
+
+        <!-- Details Sidebar on the Right -->
+        <aside class="absolute top-0 right-0 bottom-0 w-80 bg-white border-l border-gray-200 shadow-xl z-20 flex flex-col" id="details-sidebar" style="display: none;">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-bold text-sm text-gray-800">Bean Details</h3>
+                <button class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center" id="btn-close-sidebar">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                <div class="pb-3 border-b border-gray-50">
+                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Name</div>
+                    <div class="text-xs font-bold text-gray-800 break-all font-mono" id="detail-bean-name">-</div>
+                </div>
+                <div class="pb-3 border-b border-gray-50">
+                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Type</div>
+                    <div class="text-xs font-medium text-gray-600 break-all font-mono" id="detail-bean-type">-</div>
+                </div>
+                <div class="pb-3 border-b border-gray-50">
+                    <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Scope</div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block" id="detail-bean-scope">-</span>
+                </div>
+
+                <!-- Dependencies Accordion -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="accordion-header w-full px-3 py-2 bg-gray-50 flex items-center justify-between text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer" id="accordion-deps-header">
+                        <span>Dependencies (<span id="detail-deps-count">0</span>)</span>
+                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200">chevron_right</span>
+                    </div>
+                    <div class="accordion-body p-2 max-h-48 overflow-y-auto custom-scrollbar bg-white divide-y divide-gray-50 text-[11px]" id="accordion-deps-body" style="display: none;">
+                        <!-- List of dependencies will go here dynamically -->
+                    </div>
+                </div>
+
+                <!-- Dependents Accordion -->
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="accordion-header w-full px-3 py-2 bg-gray-50 flex items-center justify-between text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer" id="accordion-dependents-header">
+                        <span>Dependents (<span id="detail-dependents-count">0</span>)</span>
+                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200">chevron_right</span>
+                    </div>
+                    <div class="accordion-body p-2 max-h-48 overflow-y-auto custom-scrollbar bg-white divide-y divide-gray-50 text-[11px]" id="accordion-dependents-body" style="display: none;">
+                        <!-- List of dependents will go here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+</div>
