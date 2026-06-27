@@ -1,6 +1,6 @@
 package com.sdlcpro.springlens.storage.bean.definition;
 
-import com.sdlcpro.springlens.annotation.SpringLenInternalComponent;
+import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.listener.bean.definition.BeanDefinitionInfoCollectListener;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfoRepository;
@@ -15,7 +15,7 @@ import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfoRepository
  *
  * @since 1.0.0
  */
-@SpringLenInternalComponent
+@SpringLensInternalComponent
 public class BeanDefinitionInfoPersistenceHandler implements BeanDefinitionInfoCollectListener {
 
     private final BeanDefinitionInfoRepository beanDefinitionInfoRepository;
