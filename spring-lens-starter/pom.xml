@@ -13,10 +13,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-lens-spring-boot-starter</artifactId>
+    <artifactId>spring-lens-starter</artifactId>
     <packaging>jar</packaging>
 
-    <name>Spring Lens Spring Boot Starter</name>
+    <name>Spring Lens Starter</name>
     <description>
         Starter module for Spring Lens. The one dependency users add to their Spring Boot project.
     </description>

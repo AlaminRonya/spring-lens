@@ -139,7 +139,7 @@ Simply add the dependency:
 
 <dependency>
     <groupId>com.sdlc.pro</groupId>
-    <artifactId>spring-lens-spring-boot-starter</artifactId>
+    <artifactId>spring-lens-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 

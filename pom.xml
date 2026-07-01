@@ -51,7 +51,7 @@
         <module>spring-lens-exposure-http</module>
         <module>spring-lens-autoconfigure</module>
         <module>spring-lens-ui</module>
-        <module>spring-lens-spring-boot-starter</module>
+        <module>spring-lens-starter</module>
     </modules>
 
     <dependencyManagement>
