@@ -13,8 +13,9 @@
         <module name="spring-lens-storage" />
         <module name="spring-lens-ui" />
         <module name="spring-lens-autoconfigure" />
-        <module name="spring-lens-exposure-http" />
         <module name="spring-lens-spring-boot-starter" />
+        <module name="spring-lens-exposure-http" />
+        <module name="spring-lens-starter" />
         <module name="spring-lens-core" />
       </profile>
     </annotationProcessing>
@@ -27,6 +28,7 @@
       <module name="spring-lens-exposure-http" options="-parameters" />
       <module name="spring-lens-insight" options="-parameters" />
       <module name="spring-lens-spring-boot-starter" options="-parameters" />
+      <module name="spring-lens-starter" options="-parameters" />
       <module name="spring-lens-storage" options="-parameters" />
       <module name="spring-lens-ui" options="-parameters" />
     </option>
