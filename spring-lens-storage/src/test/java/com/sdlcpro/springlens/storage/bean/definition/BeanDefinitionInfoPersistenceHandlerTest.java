@@ -2,7 +2,7 @@ package com.sdlcpro.springlens.storage.bean.definition;
 
 import com.sdlcpro.springlens.model.bean.BeanRole;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
-import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfoRepository;
+import com.sdlcpro.springlens.repository.bean.definition.BeanDefinitionInfoRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

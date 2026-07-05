@@ -14,7 +14,7 @@ public class BeanInstanceInfoPersistenceHandlerTest {
     void shouldSaveBeanInstanceInfoOnce(){
         BeanInstanceInfoRepository repository=mock(BeanInstanceInfoRepository.class);
         BeanInstanceInfoPersistenceHandler handler = new BeanInstanceInfoPersistenceHandler(repository);
-        BeanInstanceInfo info = new BeanInstanceInfo();
+        BeanInstanceInfo info = mock(BeanInstanceInfo.class);
         handler.onBeanInstanceInfoCollect(info);
         verify(repository,times(1)).save(info);
     }
