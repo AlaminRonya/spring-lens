@@ -14,10 +14,12 @@
         <module name="spring-lens-ui" />
         <module name="spring-lens-autoconfigure" />
         <module name="spring-lens-exposure-http" />
-        <module name="spring-lens-spring-boot-starter" />
         <module name="spring-lens-core" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="spring-lens-spring-boot-starter" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">

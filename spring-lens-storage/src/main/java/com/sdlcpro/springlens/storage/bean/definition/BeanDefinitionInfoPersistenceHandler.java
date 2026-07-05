@@ -3,7 +3,7 @@ package com.sdlcpro.springlens.storage.bean.definition;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.listener.bean.definition.BeanDefinitionInfoCollectListener;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
-import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfoRepository;
+import com.sdlcpro.springlens.repository.bean.definition.BeanDefinitionInfoRepository;
 
 /**
  * Persistence handler that bridges metadata collection and storage for
