@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.repository.bean.definition;
+package com.sdlcpro.springlens.repository.bean;
 
 import com.sdlcpro.springlens.model.bean.BeanInfoCompositeKey;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;

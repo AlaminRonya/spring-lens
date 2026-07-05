@@ -3,7 +3,7 @@ package com.sdlcpro.springlens.storage.bean.instance;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.listener.bean.instance.BeanInstanceInfoCollectListener;
 import com.sdlcpro.springlens.model.bean.instance.BeanInstanceInfo;
-import com.sdlcpro.springlens.repository.bean.instance.BeanInstanceInfoRepository;
+import com.sdlcpro.springlens.repository.bean.BeanInstanceInfoRepository;
 
 /**
  * Persistence handler that bridges bean instance telemetry collection and storage.

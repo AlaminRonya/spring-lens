@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.Test;
 
 import com.sdlcpro.springlens.model.bean.instance.BeanInstanceInfo;
-import com.sdlcpro.springlens.repository.bean.instance.BeanInstanceInfoRepository;
+import com.sdlcpro.springlens.repository.bean.BeanInstanceInfoRepository;
 
 public class BeanInstanceInfoPersistenceHandlerTest {
     @Test
