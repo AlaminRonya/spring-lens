@@ -6,7 +6,7 @@ import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.query.Filter;
 import com.sdlcpro.springlens.query.PageRequest;
 import com.sdlcpro.springlens.query.PageResponse;
-import com.sdlcpro.springlens.repository.bean.definition.BeanDefinitionInfoRepository;
+import com.sdlcpro.springlens.repository.bean.BeanDefinitionInfoRepository;
 
 import java.util.Collections;
 import java.util.List;
