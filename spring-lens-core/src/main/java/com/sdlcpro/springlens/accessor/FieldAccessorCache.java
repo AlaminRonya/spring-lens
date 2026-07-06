@@ -1,5 +1,12 @@
 package com.sdlcpro.springlens.accessor;
 
+import com.sdlcpro.springlens.exception.AccessorCreationException;
+import com.sdlcpro.springlens.exception.FieldAccessException;
+import com.sdlcpro.springlens.exception.FieldNotFoundException;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -25,7 +32,7 @@ public final class FieldAccessorCache {
     private static final Map<Class<?>, Map<String, Function<Object, Object>>> CACHE = new ConcurrentHashMap<>();
 
     private FieldAccessorCache() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+        throw new UnsupportedOperationException("FieldAccessorCache is an utility class and cannot be instantiated");
     }
 
     /**
@@ -38,8 +45,70 @@ public final class FieldAccessorCache {
      *         of {@code rootType}
      */
     public static Function<Object, Object> getAccessor(Class<?> rootType, String fieldPath) {
-        // TODO: provide proper implementation later
-        return null;
+        if (rootType == null) {
+            throw new IllegalArgumentException("The value of rootType must not be null");
+        }
+
+        if (fieldPath == null || fieldPath.isBlank()) {
+            throw new IllegalArgumentException("The value of fieldPath must not be blank");
+        }
+
+        return CACHE
+                .computeIfAbsent(rootType, k -> new ConcurrentHashMap<>())
+                .computeIfAbsent(fieldPath, path -> createAccessor(rootType, path));
+    }
+
+    private static Function<Object, Object> createAccessor(Class<?> rootType, String fieldPath) {
+        try {
+            String[] parts = fieldPath.split("\\.");
+            MethodHandle[] handles = new MethodHandle[parts.length];
+
+            Class<?> currentType = rootType;
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+            for (int i = 0; i < parts.length; i++) {
+                String fieldName = parts[i];
+                Field field = findField(currentType, fieldName);
+                field.setAccessible(true);
+                handles[i] = lookup.unreflectGetter(field);
+                currentType = field.getType();
+            }
+
+            return target -> {
+                Object current = target;
+                try {
+                    for (MethodHandle handle : handles) {
+                        if (current == null) {
+                            return null;
+                        }
+                        current = handle.invoke(current);
+                    }
+
+                    return current;
+                } catch (ClassCastException e) {
+                    throw new FieldAccessException("Target object type does not match accessor for path '" + fieldPath + "'", e);
+                } catch (Throwable e) {
+                    throw new FieldAccessException("Failed to access field path '" + fieldPath + "'", e);
+                }
+            };
+
+        } catch (IllegalAccessException e) {
+            throw new AccessorCreationException("Failed to create accessor for field path '" + fieldPath + "'", e);
+        }
+    }
+
+    private static Field findField(Class<?> type, String fieldName) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getDeclaredField(fieldName);
+
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+
+        throw new FieldNotFoundException(type, fieldName);
     }
 
     /**
