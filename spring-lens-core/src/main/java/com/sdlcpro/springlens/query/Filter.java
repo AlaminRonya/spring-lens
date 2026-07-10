@@ -1,7 +1,7 @@
 package com.sdlcpro.springlens.query;
 
-public sealed interface Filter permits Filter.UnFilter, CompositeFilter, ConditionalFilter {
-    Filter UNFILTERED = new UnFilter();
+public sealed interface Filter permits UnFilter, CompositeFilter, ConditionalFilter {
 
-    final class UnFilter implements Filter {}
+    Filter UNFILTERED = UnFilter.getInstance();
+
 }

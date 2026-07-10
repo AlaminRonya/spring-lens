@@ -1,19 +1,16 @@
 package com.sdlcpro.springlens.query;
 
+import com.sdlcpro.springlens.util.Preconditions;
+
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
-public record CompositeFilter(LogicalOperator operator, List<Filter> filters) implements Filter {
+record CompositeFilter(LogicalOperator operator, List<Filter> filters) implements Filter {
 
     public CompositeFilter {
-        // TODO: replace by the spring-lens provided Preconditions.notNull() instead of Objects.requireNonNull()
-        Objects.requireNonNull(operator);
-        Objects.requireNonNull(filters);
-
-        if (filters.size() < 2) {
-            throw new IllegalArgumentException("Filters length must be at least 2");
-        }
+        Preconditions.notNull(operator,"LogicalOperator must not be null");
+        Preconditions.notNull(filters,"List<Filter> must not be null");
+        Preconditions.isTrue(filters.size() >= 2, "The length of List<Filter> must be at least 2");
     }
 
     public static CompositeFilter of(LogicalOperator operator, List<Filter> filters) {

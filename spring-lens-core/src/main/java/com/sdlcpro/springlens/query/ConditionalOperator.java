@@ -9,7 +9,7 @@ package com.sdlcpro.springlens.query;
  * supplied value, enabling the query engine to build flexible filtering
  * criteria for both database-backed and in-memory query execution.</p>
  */
-public enum ConditionalOperator {
+enum ConditionalOperator {
     EQUALS,
     EQUALS_IGNORE_CASE,
     NOT_EQUALS,

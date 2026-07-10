@@ -1,13 +1,12 @@
 package com.sdlcpro.springlens.query;
 
-import java.util.Objects;
+import com.sdlcpro.springlens.util.Preconditions;
 
-public record ConditionalFilter(String property, ConditionalOperator operator, Object value) implements Filter {
+record ConditionalFilter(String property, ConditionalOperator operator, Object value) implements Filter {
 
     public ConditionalFilter {
-        // TODO: replace by the spring-lens provided Preconditions.notNull() instead of Objects.requireNonNull()
-        Objects.requireNonNull(property);
-        Objects.requireNonNull(operator);
+        Preconditions.notNull(property, "The value of property must not be null");
+        Preconditions.notNull(operator, "The value of operator must not be null");
     }
 
     public static ConditionalFilter of(String property, ConditionalOperator operator, Object value) {
