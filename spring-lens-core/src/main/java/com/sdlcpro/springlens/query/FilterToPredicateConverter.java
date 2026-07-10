@@ -1,6 +1,7 @@
 package com.sdlcpro.springlens.query;
 
 import com.sdlcpro.springlens.accessor.FieldAccessorCache;
+import com.sdlcpro.springlens.util.Preconditions;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -237,6 +238,7 @@ final class FilterToPredicateConverter<T> {
     }
 
     private static boolean evalForArray(Collection<?> source, Object target) {
+        Preconditions.requiredArray(target.getClass().isArray(), "Target object must a type of Array");
         int len = Array.getLength(target);
         for (int i = 0; i < len; i++) {
             if (!source.contains(Array.get(target, i))) {
