@@ -67,6 +67,12 @@ public final class Preconditions {
         return object;
     }
 
+    public static void requiredArray(Object object, String message) {
+        if (object == null || !object.getClass().isArray()) {
+            throw new IllegalArgumentException(message != null ? message : "Object must a type of Array");
+        }
+    }
+
     // --- hasLength ---
     public static void hasLength(String text, String message) {
         if (text == null || text.isBlank()) throw new IllegalArgumentException(message != null ? message : "Text must not be empty");
