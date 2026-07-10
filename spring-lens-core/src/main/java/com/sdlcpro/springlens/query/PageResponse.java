@@ -1,8 +1,9 @@
 package com.sdlcpro.springlens.query;
 
+import com.sdlcpro.springlens.util.Preconditions;
+
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 public class PageResponse<T> implements Serializable {
     private final List<T> content;
@@ -10,14 +11,9 @@ public class PageResponse<T> implements Serializable {
     private final long totalElements;
 
     public PageResponse(List<T> content, PageRequest pageRequest, long totalElements) {
-        // TODO: replace by the spring-lens provided Preconditions.notNull() instead of Objects.requireNonNull()
-        Objects.requireNonNull(content, "Content must not be null");
-        Objects.requireNonNull(pageRequest, "PageRequest must not be null");
-
-        if (content.size() > totalElements) {
-            throw new IllegalArgumentException("The value of total must be greater than content size");
-        }
-
+        Preconditions.notNull(content, "The content must not be null");
+        Preconditions.notNull(pageRequest, "PageRequest must not be null");
+        Preconditions.isTrue(content.size() <= totalElements, "The content size must not be greater than totalElements");
         this.content = content;
         this.pageRequest = pageRequest;
         this.totalElements = totalElements;

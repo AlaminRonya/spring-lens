@@ -1,8 +1,10 @@
 package com.sdlcpro.springlens.query;
 
+import com.sdlcpro.springlens.util.Preconditions;
+
 import java.util.Arrays;
 
-public class Sort {
+public final class Sort {
     private static final Sort UNSORTED = new Sort();
 
     private final String property;
@@ -14,11 +16,7 @@ public class Sort {
     }
 
     private Sort(String property, Direction direction) {
-        // TODO: replace by the spring-lens provided Preconditions.notBlank()
-        if (property == null || property.isBlank()) {
-            throw new IllegalArgumentException("You have to provide property to sort by");
-        }
-
+        Preconditions.hasText(property, "The value of sort property must not be blank");
         this.property = property;
         this.direction = direction;
     }
