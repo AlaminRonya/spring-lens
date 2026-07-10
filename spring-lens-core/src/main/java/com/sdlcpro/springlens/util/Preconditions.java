@@ -75,7 +75,8 @@ public final class Preconditions {
 
     // --- hasLength ---
     public static void hasLength(String text, String message) {
-        if (text == null || text.isBlank()) throw new IllegalArgumentException(message != null ? message : "Text must not be empty");
+        if (text == null || text.isBlank())
+            throw new IllegalArgumentException(message != null ? message : "Text must not be empty");
     }
 
     public static void hasLength(String text, Supplier<String> message) {
@@ -84,7 +85,8 @@ public final class Preconditions {
 
     // --- hasText ---
     public static void hasText(String text, String message) {
-        if (text == null || text.isBlank()) throw new IllegalArgumentException(message != null ? message : "Text must not be blank");
+        if (text == null || text.isBlank())
+            throw new IllegalArgumentException(message != null ? message : "Text must not be blank");
     }
 
     public static void hasText(String text, Supplier<String> message) {
@@ -104,7 +106,8 @@ public final class Preconditions {
 
     // --- notEmpty (Array, Collection, Map) ---
     public static void notEmpty(Object[] array, String message) {
-        if (array == null || array.length == 0) throw new IllegalArgumentException(message != null ? message : "Array must not be empty");
+        if (array == null || array.length == 0)
+            throw new IllegalArgumentException(message != null ? message : "Array must not be empty");
     }
 
     public static void notEmpty(Object[] array, Supplier<String> message) {
@@ -112,7 +115,8 @@ public final class Preconditions {
     }
 
     public static void notEmpty(Collection<?> collection, String message) {
-        if (collection == null || collection.isEmpty()) throw new IllegalArgumentException(message != null ? message : "Collection must not be empty");
+        if (collection == null || collection.isEmpty())
+            throw new IllegalArgumentException(message != null ? message : "Collection must not be empty");
     }
 
     public static void notEmpty(Collection<?> collection, Supplier<String> message) {
@@ -120,7 +124,8 @@ public final class Preconditions {
     }
 
     public static void notEmpty(Map<?, ?> map, String message) {
-        if (map == null || map.isEmpty()) throw new IllegalArgumentException(message != null ? message : "Map must not be empty");
+        if (map == null || map.isEmpty())
+            throw new IllegalArgumentException(message != null ? message : "Map must not be empty");
     }
 
     public static void notEmpty(Map<?, ?> map, Supplier<String> message) {
@@ -129,11 +134,13 @@ public final class Preconditions {
 
     // --- noNullElements ---
     public static void noNullElements(Object[] array, String message) {
-        if (array != null) for (Object e : array) if (e == null) throw new IllegalArgumentException(messageOrDefault(message));
+        if (array != null)
+            for (Object e : array) if (e == null) throw new IllegalArgumentException(messageOrDefault(message));
     }
 
     public static void noNullElements(Object[] array, Supplier<String> message) {
-        if (array != null) for (Object e : array) if (e == null) throw new IllegalArgumentException(nullSafeMessage(message));
+        if (array != null)
+            for (Object e : array) if (e == null) throw new IllegalArgumentException(nullSafeMessage(message));
     }
 
     public static void noNullElements(Collection<?> collection, String message) {
@@ -167,11 +174,13 @@ public final class Preconditions {
     }
 
     public static void isAssignable(Class<?> superType, Class<?> subType, String message) {
-        if (superType == null || !superType.isAssignableFrom(subType)) throw new IllegalArgumentException(messageOrDefault(message));
+        if (superType == null || !superType.isAssignableFrom(subType))
+            throw new IllegalArgumentException(messageOrDefault(message));
     }
 
     public static void isAssignable(Class<?> superType, Class<?> subType, Supplier<String> message) {
-        if (superType == null || !superType.isAssignableFrom(subType)) throw new IllegalArgumentException(nullSafeMessage(message));
+        if (superType == null || !superType.isAssignableFrom(subType))
+            throw new IllegalArgumentException(nullSafeMessage(message));
     }
 
     public static void isAssignable(Class<?> superType, Class<?> subType) {
