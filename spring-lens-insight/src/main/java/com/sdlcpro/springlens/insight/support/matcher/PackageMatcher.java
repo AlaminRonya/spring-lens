@@ -13,12 +13,15 @@ public final class PackageMatcher<T extends ClassNameProvider> implements Matche
     private final Set<String> packagePatterns;
 
     public PackageMatcher(Set<String> packagePatterns) {
-        this.packagePatterns = packagePatterns;
+        this.packagePatterns = packagePatterns != null
+                ? Set.copyOf(packagePatterns)
+                : Set.of();
     }
 
     @Override
     public boolean matches(T context) {
-        return !CollectionUtils.isEmpty(this.packagePatterns)
+        return context != null
+                && !this.packagePatterns.isEmpty()
                 && this.packagePatterns.stream()
                 .anyMatch(pattern -> pattern != null && PACKAGE_MATCHER.match(pattern, context.getClassName()));
     }
