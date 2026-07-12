@@ -47,7 +47,7 @@ public record EndpointInfo(
 
         Preconditions.hasText(
                 path,
-                "EndpointInfo path must not be blank"
+                "EndpointInfo path must not be null"
         );
 
         Preconditions.notEmpty(
