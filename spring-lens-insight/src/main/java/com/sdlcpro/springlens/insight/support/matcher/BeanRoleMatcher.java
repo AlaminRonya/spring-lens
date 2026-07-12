@@ -19,7 +19,7 @@ public class BeanRoleMatcher<T extends BeanRoleProvider> implements Matcher<T> {
     @Override
     public boolean matches(T context) {
         return context != null
-                && !CollectionUtils.isEmpty(this.beanRoles)
+                && !this.beanRoles.isEmpty()
                 && this.beanRoles.contains(context.getBeanRole());
     }
 }
