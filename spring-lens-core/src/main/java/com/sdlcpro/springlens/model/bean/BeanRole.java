@@ -1,7 +1,5 @@
 package com.sdlcpro.springlens.model.bean;
 
-import java.util.Arrays;
-
 public enum BeanRole {
     UNKNOWN(-1),
     ROLE_APPLICATION(0),
@@ -24,14 +22,17 @@ public enum BeanRole {
         return this.value;
     }
 
-    public static BeanRole from(int value){
+    public static BeanRole from(int value) {
         if (value < 0 || value > 2) {
             return UNKNOWN;
         }
 
-        return Arrays.stream(VALUES)
-                .filter(r -> r.value == value)
-                .findFirst()
-                .orElse(UNKNOWN);
+        for (BeanRole role : VALUES) {
+            if (role.value == value) {
+                return role;
+            }
+        }
+
+        return UNKNOWN;
     }
 }
