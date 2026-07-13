@@ -63,7 +63,7 @@ public enum HttpRequestMethod {
     private final String value;
 
     static  {
-        VALUES = HttpRequestMethod.values();
+        VALUES = values();
     }
 
     HttpRequestMethod(String value) {
