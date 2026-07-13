@@ -45,7 +45,7 @@ public record EndpointInfo(
                 "EndpointInfo id must be positive value"
         );
 
-        Preconditions.hasText(
+        Preconditions.notNull(
                 path,
                 "EndpointInfo path must not be null"
         );
@@ -80,5 +80,4 @@ public record EndpointInfo(
         produces = produces == null ? Set.of() : Set.copyOf(produces);
         methodParameters = methodParameters == null ? List.of() : List.copyOf(methodParameters);
     }
-
 }
