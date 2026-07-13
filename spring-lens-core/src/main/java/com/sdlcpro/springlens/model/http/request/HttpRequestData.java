@@ -12,15 +12,14 @@ import java.util.stream.Collectors;
  * Immutable snapshot of an inbound HTTP request captured at the
  * interceptor boundary, used as the source data for trace recording.
  * <p>
- * Multi-value query parameter arrays are defensively copied both at
- * construction time and on every read via {@link #parameters()}, so that
- * neither the caller supplying the original map nor a caller mutating the
- * returned map's array values can affect this record's internal state.
+ * Multi-value query parameter list are defensively copied
+ * to prevent the mutating the original '{@link #parameters}'
+ * when supply to the caller the original map
  */
 public record HttpRequestData(
         HttpRequestMethod method,
         String uri,
-        Map<String, String[]> parameters,
+        Map<String, List<String>> parameters,
         String protocol,
         String contentType,
         int contentSize,
@@ -33,22 +32,15 @@ public record HttpRequestData(
         Preconditions.notNull(uri, "URI must not be null");
         Preconditions.notNull(protocol, "Protocol must not be null");
 
-        parameters = cloneParameters(parameters);
+        parameters = parameters == null ? Map.of() : parameters.entrySet()
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue() == null ? List.of() : List.copyOf(entry.getValue())
+                ));
+
+
         requestHeaders = requestHeaders == null ? List.of() : List.copyOf(requestHeaders);
-    }
-
-    @Override
-    public Map<String, String[]> parameters() {
-        return cloneParameters(parameters);
-    }
-
-    private static Map<String, String[]> cloneParameters(Map<String, String[]> source) {
-        if (source == null) {
-            return Map.of();
-        }
-        return Map.copyOf(source.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> entry.getValue() == null ? new String[0] : entry.getValue().clone())));
     }
 
     /**

@@ -11,12 +11,14 @@ package com.sdlcpro.springlens.model.http;
  * Unknown or unsupported status codes are safely mapped to {@link #UNKNOWN}.
  */
 public enum HttpResponseStatus {
-
     UNKNOWN(-1),
 
     CONTINUE(100),
     SWITCHING_PROTOCOLS(101),
     PROCESSING(102),
+    EARLY_HINTS(103),
+    @Deprecated
+    CHECKPOINT(103),
 
     OK(200),
     CREATED(201),
@@ -25,12 +27,18 @@ public enum HttpResponseStatus {
     NO_CONTENT(204),
     RESET_CONTENT(205),
     PARTIAL_CONTENT(206),
+    MULTI_STATUS(207),
+    ALREADY_REPORTED(208),
+    IM_USED(226),
 
     MULTIPLE_CHOICES(300),
     MOVED_PERMANENTLY(301),
     FOUND(302),
+    @Deprecated
+    MOVED_TEMPORARILY(302),
     SEE_OTHER(303),
     NOT_MODIFIED(304),
+    USE_PROXY(305),
     TEMPORARY_REDIRECT(307),
     PERMANENT_REDIRECT(308),
 
@@ -48,10 +56,21 @@ public enum HttpResponseStatus {
     LENGTH_REQUIRED(411),
     PRECONDITION_FAILED(412),
     PAYLOAD_TOO_LARGE(413),
+    @Deprecated
+    REQUEST_ENTITY_TOO_LARGE(413),
     URI_TOO_LONG(414),
+    @Deprecated
+    REQUEST_URI_TOO_LONG(414),
     UNSUPPORTED_MEDIA_TYPE(415),
+    REQUESTED_RANGE_NOT_SATISFIABLE(416),
     EXPECTATION_FAILED(417),
+    I_AM_A_TEAPOT(418),
+    INSUFFICIENT_SPACE_ON_RESOURCE(419),
+    METHOD_FAILURE(420),
+    DESTINATION_LOCKED(421),
     UNPROCESSABLE_ENTITY(422),
+    LOCKED(423),
+    FAILED_DEPENDENCY(424),
     TOO_EARLY(425),
     UPGRADE_REQUIRED(426),
     PRECONDITION_REQUIRED(428),
@@ -65,25 +84,22 @@ public enum HttpResponseStatus {
     SERVICE_UNAVAILABLE(503),
     GATEWAY_TIMEOUT(504),
     HTTP_VERSION_NOT_SUPPORTED(505),
+    VARIANT_ALSO_NEGOTIATES(506),
     INSUFFICIENT_STORAGE(507),
     LOOP_DETECTED(508),
+    BANDWIDTH_LIMIT_EXCEEDED(509),
     NOT_EXTENDED(510),
     NETWORK_AUTHENTICATION_REQUIRED(511);
 
     private static final int MAX_CODE = 511;
-
-    private static final HttpResponseStatus[] BY_CODE;
-
-    static {
-        BY_CODE = new HttpResponseStatus[MAX_CODE + 1];
-        for (HttpResponseStatus status : values()) {
-            if (status.code >= 0 && status.code <= MAX_CODE) {
-                BY_CODE[status.code] = status;
-            }
-        }
-    }
+    private static final HttpResponseStatus[] VALUES;
 
     private final int code;
+
+    static {
+        VALUES = values();
+    }
+
 
     HttpResponseStatus(int code) {
         this.code = code;
@@ -93,11 +109,6 @@ public enum HttpResponseStatus {
      * Returns the corresponding {@code HttpResponseStatus} for the supplied
      * numeric status code.
      * <p>
-     * Resolution is performed in constant time via a pre-built lookup array,
-     * with an early range check ({@code code < 0 || code > 511}) so that
-     * out-of-range values fast-fail to {@link #UNKNOWN} without touching the
-     * array. If the supplied code falls within range but has no mapped
-     * constant, {@link #UNKNOWN} is also returned.
      *
      * @param code the HTTP response status code to resolve
      * @return the matching {@code HttpResponseStatus}, or {@link #UNKNOWN}
@@ -108,8 +119,13 @@ public enum HttpResponseStatus {
             return UNKNOWN;
         }
 
-        HttpResponseStatus status = BY_CODE[code];
-        return status != null ? status : UNKNOWN;
+        for (HttpResponseStatus status : VALUES) {
+            if (status.code == code) {
+                return status;
+            }
+        }
+
+        return UNKNOWN;
     }
 
     /**
