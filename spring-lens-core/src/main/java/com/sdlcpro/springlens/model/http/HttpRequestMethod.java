@@ -58,7 +58,13 @@ public enum HttpRequestMethod {
      */
     UNDEFINED("UNDEFINED");
 
+    private static final HttpRequestMethod[] VALUES;
+
     private final String value;
+
+    static  {
+        VALUES = HttpRequestMethod.values();
+    }
 
     HttpRequestMethod(String value) {
         this.value = value;
@@ -84,7 +90,7 @@ public enum HttpRequestMethod {
 
         String normalized = value.trim().toUpperCase(Locale.ROOT);
 
-        return Arrays.stream(values())
+        return Arrays.stream(VALUES)
                 .filter(method -> method.value.equals(normalized))
                 .findFirst()
                 .orElse(UNDEFINED);
