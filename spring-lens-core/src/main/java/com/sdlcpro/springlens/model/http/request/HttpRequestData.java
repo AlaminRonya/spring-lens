@@ -32,14 +32,13 @@ public record HttpRequestData(
         Preconditions.notNull(uri, "URI must not be null");
         Preconditions.notNull(protocol, "Protocol must not be null");
 
-        parameters = parameters == null ? Map.of() : Map.copyOf(
-                parameters.entrySet().stream().collect(Collectors.toMap(
+        parameters = parameters == null ? Map.of() : parameters.entrySet()
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(
                         Map.Entry::getKey,
-                        entry -> entry.getValue() == null
-                                ? List.of()
-                                : List.copyOf(entry.getValue())
-                ))
-        );
+                        entry -> entry.getValue() == null ? List.of() : List.copyOf(entry.getValue())
+                ));
+
 
         requestHeaders = requestHeaders == null ? List.of() : List.copyOf(requestHeaders);
     }
