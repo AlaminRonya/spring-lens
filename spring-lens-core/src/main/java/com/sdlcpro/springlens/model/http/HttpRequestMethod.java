@@ -1,6 +1,5 @@
 package com.sdlcpro.springlens.model.http;
 
-import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -62,7 +61,7 @@ public enum HttpRequestMethod {
 
     private final String value;
 
-    static  {
+    static {
         VALUES = values();
     }
 
@@ -89,11 +88,13 @@ public enum HttpRequestMethod {
         }
 
         String normalized = value.trim().toUpperCase(Locale.ROOT);
+        for (HttpRequestMethod method : VALUES) {
+            if (method.value.equals(normalized)) {
+                return method;
+            }
+        }
 
-        return Arrays.stream(VALUES)
-                .filter(method -> method.value.equals(normalized))
-                .findFirst()
-                .orElse(UNDEFINED);
+        return UNDEFINED;
     }
 
     /**
