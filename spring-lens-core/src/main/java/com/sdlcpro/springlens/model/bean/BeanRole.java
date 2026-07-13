@@ -25,6 +25,10 @@ public enum BeanRole {
     }
 
     public static BeanRole from(int value){
+        if (value < 0 || value > 2) {
+            return UNKNOWN;
+        }
+
         return Arrays.stream(VALUES)
                 .filter(r -> r.value == value)
                 .findFirst()
