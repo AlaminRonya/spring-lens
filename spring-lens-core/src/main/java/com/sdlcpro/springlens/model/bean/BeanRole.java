@@ -8,7 +8,13 @@ public enum BeanRole {
     ROLE_SUPPORT(1),
     ROLE_INFRASTRUCTURE(2);
 
+    private static final BeanRole[] VALUES;
+
     private final int value;
+
+    static {
+        VALUES = values();
+    }
 
     BeanRole(int value) {
         this.value = value;
@@ -19,7 +25,7 @@ public enum BeanRole {
     }
 
     public static BeanRole from(int value){
-        return Arrays.stream(BeanRole.values())
+        return Arrays.stream(VALUES)
                 .filter(r -> r.value == value)
                 .findFirst()
                 .orElse(UNKNOWN);
