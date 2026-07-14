@@ -26,8 +26,8 @@ public record BeanDefinitionInfo(
 ) {
 
     public BeanDefinitionInfo {
-        Preconditions.notNull(contextId, "Context id must not be null");
-        Preconditions.notNull(beanName, "Bean name must not be null");
+        Preconditions.notNull(contextId, "The value of contextId must not be null");
+        Preconditions.notNull(beanName, "The value of beanName must not be null");
         aliases = aliases == null ? List.of() : List.copyOf(aliases);
         dependencies = dependencies == null ? List.of() : List.copyOf(dependencies);
         dependents = dependents == null ? List.of() : List.copyOf(dependents);
