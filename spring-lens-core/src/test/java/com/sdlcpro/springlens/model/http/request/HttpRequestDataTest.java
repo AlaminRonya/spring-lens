@@ -1,6 +1,8 @@
 package com.sdlcpro.springlens.model.http.request;
 
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
+import com.sdlcpro.springlens.model.http.request.HttpHeader;
+import com.sdlcpro.springlens.model.http.request.HttpRequestData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +25,7 @@ class HttpRequestDataTest {
                 "application/json",
                 contentSize,
                 "127.0.0.1",
-                List.of(new Header("Content-Type", List.of("application/json"))),
+                List.of(new HttpHeader("Content-Type", List.of("application/json"))),
                 requestBody);
     }
 
