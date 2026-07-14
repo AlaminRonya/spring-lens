@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.model.http;
+package com.sdlcpro.springlens.model.http.request;
 
 /**
  * Represents the HTTP response status codes recognized by Spring Lens.

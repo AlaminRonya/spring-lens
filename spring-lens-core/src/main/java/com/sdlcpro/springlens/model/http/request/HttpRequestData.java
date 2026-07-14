@@ -24,24 +24,24 @@ public final class HttpRequestData {
     private final String contentType;
     private final int contentSize;
     private final String clientIpAddress;
-    private final List<Header> requestHeaders;
+    private final List<HttpHeader> requestHeaders;
     private final String requestBody;
     private final boolean bodyTruncated;
 
     public HttpRequestData(
             HttpRequestMethod method, String uri, Map<String, List<String>> parameters, String protocol,
-            String contentType, int contentSize, String clientIpAddress, List<Header> requestHeaders,
-            String requestBody)
-    {
+            String contentType, int contentSize, String clientIpAddress, List<HttpHeader> requestHeaders,
+            String requestBody) {
         this.method = Preconditions.requireNonNull(method, "HttpRequestMethod must not be null");
-        this.uri = Preconditions.requireNonNull(uri, "URI must not be null");;
-        this.protocol = Preconditions.requireNonNull(protocol, "Protocol must not be null");;
+        this.uri = Preconditions.requireNonNull(uri, "URI must not be null");
+        this.protocol = Preconditions.requireNonNull(protocol, "Protocol must not be null");
+
         this.contentType = contentType;
         this.contentSize = contentSize;
         this.clientIpAddress = clientIpAddress;
         this.requestBody = requestBody;
 
-        this.requestHeaders = requestHeaders == null ? List.of() : List.copyOf(requestHeaders);;
+        this.requestHeaders = requestHeaders == null ? List.of() : List.copyOf(requestHeaders);
         this.parameters = parameters == null ? Map.of() : parameters.entrySet()
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(
@@ -82,7 +82,7 @@ public final class HttpRequestData {
         return clientIpAddress;
     }
 
-    public List<Header> getRequestHeaders() {
+    public List<HttpHeader> getRequestHeaders() {
         return requestHeaders;
     }
 
