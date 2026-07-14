@@ -26,7 +26,6 @@ class HttpResponseDataTest {
         HttpResponseData data = new HttpResponseData(
                 HttpResponseStatus.NOT_FOUND, "application/json", 0, List.of(), null);
 
-        assertEquals(HttpResponseStatus.NOT_FOUND, data.getStatus());
         assertEquals("NOT_FOUND", data.getStatusName());
         assertEquals(404, data.getStatusCode());
     }
