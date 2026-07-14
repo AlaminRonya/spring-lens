@@ -1,8 +1,8 @@
 package com.sdlcpro.springlens.model.http.request;
 
-import com.sdlcpro.springlens.model.http.HttpResponseStatus;
-import com.sdlcpro.springlens.model.http.request.Header;
+import com.sdlcpro.springlens.model.http.request.HttpHeader;
 import com.sdlcpro.springlens.model.http.request.HttpResponseData;
+import com.sdlcpro.springlens.model.http.request.HttpResponseStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -43,8 +43,8 @@ class HttpResponseDataTest {
     @Test
     @DisplayName("should reject response headers list containing null elements")
     void rejectsNullElementInResponseHeaders() {
-        List<Header> headers = new ArrayList<>();
-        headers.add(new Header("Content-Type", List.of("application/json")));
+        List<HttpHeader> headers = new ArrayList<>();
+        headers.add(new HttpHeader("Content-Type", List.of("application/json")));
         headers.add(null);
 
         assertThrows(IllegalArgumentException.class, () ->
@@ -56,22 +56,22 @@ class HttpResponseDataTest {
     void responseHeadersListIsImmutable() {
         HttpResponseData data = new HttpResponseData(
                 HttpResponseStatus.OK, "application/json", 0,
-                List.of(new Header("Content-Type", List.of("application/json"))), null);
+                List.of(new HttpHeader("Content-Type", List.of("application/json"))), null);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> data.getResponseHeaders().add(new Header("X-Extra", List.of("value"))));
+                () -> data.getResponseHeaders().add(new HttpHeader("X-Extra", List.of("value"))));
     }
 
     @Test
     @DisplayName("should not be affected by mutating the original headers list after construction")
     void isNotAffectedByMutatingOriginalListAfterConstruction() {
-        List<Header> original = new ArrayList<>();
-        original.add(new Header("Content-Type", List.of("application/json")));
+        List<HttpHeader> original = new ArrayList<>();
+        original.add(new HttpHeader("Content-Type", List.of("application/json")));
 
         HttpResponseData data = new HttpResponseData(
                 HttpResponseStatus.OK, "application/json", 0, original, null);
 
-        original.add(new Header("X-Extra", List.of("leaked")));
+        original.add(new HttpHeader("X-Extra", List.of("leaked")));
 
         assertEquals(1, data.getResponseHeaders().size());
     }
