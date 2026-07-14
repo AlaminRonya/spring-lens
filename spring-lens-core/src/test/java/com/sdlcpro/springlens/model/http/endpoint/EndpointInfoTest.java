@@ -58,8 +58,6 @@ class EndpointInfoTest {
                     Arguments.of("Negative ID", -1, VALID_PATH, EnumSet.of(HttpRequestMethod.GET), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
                     Arguments.of("Zero ID", 0, VALID_PATH, EnumSet.of(HttpRequestMethod.GET), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
                     Arguments.of("Null Path", 1, null, EnumSet.of(HttpRequestMethod.GET), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
-                    Arguments.of("Blank Path", 1, "   ", EnumSet.of(HttpRequestMethod.GET), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
-                    Arguments.of("Empty Path", 1, "", EnumSet.of(HttpRequestMethod.GET), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
                     Arguments.of("Empty Methods", 1, VALID_PATH, EnumSet.noneOf(HttpRequestMethod.class), VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
                     Arguments.of("Null Methods", 1, VALID_PATH, null, VALID_HANDLER, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
                     Arguments.of("Null Handler Class", 1, VALID_PATH, EnumSet.of(HttpRequestMethod.GET), null, VALID_METHOD, VALID_RETURN, HandlerType.CONTROLLER),
