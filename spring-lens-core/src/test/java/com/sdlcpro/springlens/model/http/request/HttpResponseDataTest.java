@@ -1,7 +1,8 @@
-package com.sdlcpro.springlens.model.http.response;
+package com.sdlcpro.springlens.model.http.request;
 
 import com.sdlcpro.springlens.model.http.HttpResponseStatus;
 import com.sdlcpro.springlens.model.http.request.Header;
+import com.sdlcpro.springlens.model.http.request.HttpResponseData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
