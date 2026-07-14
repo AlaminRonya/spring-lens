@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class HttpRequestDataTest {
 
-    private HttpRequestData sample(Map<String, String[]> parameters, String requestBody, int contentSize) {
+    private HttpRequestData sample(Map<String, List<String>> parameters, String requestBody, int contentSize) {
         return new HttpRequestData(
                 HttpRequestMethod.GET,
                 "/api/orders",
@@ -40,26 +41,23 @@ class HttpRequestDataTest {
     @Test
     @DisplayName("should not be affected by mutating the original parameters map after construction")
     void isNotAffectedByMutatingOriginalMapAfterConstruction() {
-        Map<String, String[]> original = new HashMap<>();
-        original.put("page", new String[] { "1" });
+        Map<String, List<String>> original = new HashMap<>();
+        original.put("page", new ArrayList<>(List.of("1")));
 
         HttpRequestData data = sample(original, null, 0);
-        original.get("page")[0] = "999";
-        original.put("extra", new String[] { "leaked" });
+        original.get("page").set(0, "999");
+        original.put("extra", List.of("leaked"));
 
-        assertEquals("1", data.parameters().get("page")[0]);
-        assertFalse(data.parameters().containsKey("extra"));
+        assertEquals("1", data.getParameters().get("page").get(0));
+        assertFalse(data.getParameters().containsKey("extra"));
     }
 
     @Test
-    @DisplayName("should not expose internal state through the returned parameters map")
+    @DisplayName("should not mutated internal state through the returned parameters map")
     void doesNotExposeInternalStateThroughAccessor() {
-        Map<String, String[]> original = Map.of("page", new String[] { "1" });
+        Map<String, List<String>> original = Map.of("page", List.of("1"));
         HttpRequestData data = sample(original, null, 0);
-
-        data.parameters().get("page")[0] = "mutated";
-
-        assertEquals("1", data.parameters().get("page")[0]);
+        assertThrows(UnsupportedOperationException.class, () -> data.getParameters().get("page").set(0, "mutated"));
     }
 
     @Test
