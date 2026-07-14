@@ -1,5 +1,6 @@
-package com.sdlcpro.springlens.model.http;
+package com.sdlcpro.springlens.model.http.request;
 
+import com.sdlcpro.springlens.model.http.request.HttpResponseStatus;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -1,10 +1,6 @@
 package com.sdlcpro.springlens.model.http.request;
 
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
-import com.sdlcpro.springlens.model.http.HttpResponseStatus;
-import com.sdlcpro.springlens.model.http.request.HttpRequestData;
-import com.sdlcpro.springlens.model.http.request.HttpRequestInfo;
-import com.sdlcpro.springlens.model.http.request.HttpResponseData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

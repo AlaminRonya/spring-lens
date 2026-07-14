@@ -1,7 +1,5 @@
 package com.sdlcpro.springlens.model.http.request;
 
-import com.sdlcpro.springlens.model.http.HttpResponseStatus;
-import com.sdlcpro.springlens.model.http.request.Header;
 import com.sdlcpro.springlens.util.Preconditions;
 
 import java.nio.charset.StandardCharsets;
@@ -17,16 +15,15 @@ import java.util.List;
  * on every {@link #isBodyTruncated()} call.
  */
 public final class HttpResponseData {
-
     private final HttpResponseStatus status;
     private final String contentType;
     private final int contentSize;
-    private final List<Header> responseHeaders;
+    private final List<HttpHeader> responseHeaders;
     private final String responseBody;
     private final boolean bodyTruncated;
 
     public HttpResponseData(HttpResponseStatus status, String contentType, int contentSize,
-            List<Header> responseHeaders, String responseBody) {
+                            List<HttpHeader> responseHeaders, String responseBody) {
         this.status = Preconditions.requireNonNull(status, "HttpResponseStatus must not be null");
         this.contentType = contentType;
         this.contentSize = contentSize;
@@ -60,7 +57,7 @@ public final class HttpResponseData {
         return this.contentSize;
     }
 
-    public List<Header> getResponseHeaders() {
+    public List<HttpHeader> getResponseHeaders() {
         return this.responseHeaders;
     }
 

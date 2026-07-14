@@ -8,9 +8,9 @@ import java.util.List;
  * Represents a single HTTP header entry captured during request/response
  * interception, preserving its canonical name and all associated values.
  */
-public record Header(String name, List<String> values) {
+public record HttpHeader(String name, List<String> values) {
 
-    public Header {
+    public HttpHeader {
         Preconditions.hasText(name, "Header name must not be blank");
 
         if (values != null) {
