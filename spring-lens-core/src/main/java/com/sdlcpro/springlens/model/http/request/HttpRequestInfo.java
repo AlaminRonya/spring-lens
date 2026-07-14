@@ -1,7 +1,7 @@
-package com.sdlcpro.springlens.model.http;
+package com.sdlcpro.springlens.model.http.request;
 
 import com.sdlcpro.springlens.model.http.request.HttpRequestData;
-import com.sdlcpro.springlens.model.http.response.HttpResponseData;
+import com.sdlcpro.springlens.model.http.request.HttpResponseData;
 import com.sdlcpro.springlens.util.Preconditions;
 
 import java.time.Instant;
