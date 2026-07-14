@@ -44,10 +44,6 @@ public final class HttpResponseData {
                 : this.responseBody.getBytes(StandardCharsets.UTF_8).length < this.contentSize;
     }
 
-    public HttpResponseStatus getStatus() {
-        return this.status;
-    }
-
     public String getStatusName() {
         return this.status.name();
     }
