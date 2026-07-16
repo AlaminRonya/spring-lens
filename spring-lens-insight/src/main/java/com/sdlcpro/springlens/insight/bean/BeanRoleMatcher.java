@@ -1,9 +1,7 @@
-package com.sdlcpro.springlens.insight.support.matcher;
+package com.sdlcpro.springlens.insight.bean;
 
-import com.sdlcpro.springlens.insight.bean.BeanRoleProvider;
 import com.sdlcpro.springlens.matcher.Matcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
-import org.springframework.util.CollectionUtils;
 
 import java.util.EnumSet;
 
