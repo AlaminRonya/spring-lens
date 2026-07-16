@@ -1,6 +1,5 @@
 package com.sdlcpro.springlens.insight.bean;
 
-import com.sdlcpro.springlens.insight.support.matcher.BeanRoleMatcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
 
 import java.util.EnumSet;
