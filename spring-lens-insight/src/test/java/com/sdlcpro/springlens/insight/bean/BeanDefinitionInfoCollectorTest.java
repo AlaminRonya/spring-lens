@@ -53,6 +53,10 @@ class BeanDefinitionInfoCollectorTest {
         assertThat(captor.getAllValues())
                 .extracting(BeanDefinitionInfo::type)
                 .anyMatch(t -> t != null && t.contains("SampleAppBean"));
+        assertThat(captor.getAllValues())
+                .filteredOn(info -> info.type() != null && info.type().contains("SampleAppBean"))
+                .extracting(BeanDefinitionInfo::scope)
+                .containsExactly("singleton");
         ctx.close();
     }
 
@@ -87,6 +91,22 @@ class BeanDefinitionInfoCollectorTest {
 
         verify(repository, never()).save(org.mockito.ArgumentMatchers.argThat(
                 info -> info.type() != null && info.type().contains("LensInternalBean")));
+        ctx.close();
+    }
+
+    @Test
+    void doesNotThrowWhenClassNameUnresolvedWithExcludePackages() {
+        GenericApplicationContext ctx = new GenericApplicationContext();
+        ctx.setId("no-type-ctx");
+        RootBeanDefinition bd = new RootBeanDefinition();
+        bd.setAbstract(true);
+        ctx.registerBeanDefinition("abstractBean", bd);
+        ctx.refresh();
+
+        BeanInfoCollectorSettings settings =
+                new BeanInfoCollectorSettings(true, true, Set.of("com.example.**"), Set.of());
+        new BeanDefinitionInfoCollector(ctx, settings, repository).afterSingletonsInstantiated();
+
         ctx.close();
     }
 
