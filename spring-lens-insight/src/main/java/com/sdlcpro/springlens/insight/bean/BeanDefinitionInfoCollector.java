@@ -80,7 +80,7 @@ public final class BeanDefinitionInfoCollector implements SmartInitializingSingl
         if (!settings.includeToolInternal() && isToolInternal(collectionContext)) {
             return true;
         }
-        if (packageMatcher.matches(collectionContext)) {
+        if (collectionContext.getClassName() != null && packageMatcher.matches(collectionContext)) {
             return true;
         }
         return classNameMatcher.matches(collectionContext);
@@ -120,7 +120,7 @@ public final class BeanDefinitionInfoCollector implements SmartInitializingSingl
                 collectionContext.getClassName(),
                 definition.getResourceDescription(),
                 definition.getDescription(),
-                definition.getScope() != null ? definition.getScope() : ConfigurableBeanFactory.SCOPE_SINGLETON,
+                normalizeScope(definition.getScope()),
                 lazyInit(definition),
                 definition.isPrimary(),
                 definition.isAutowireCandidate(),
@@ -148,6 +148,12 @@ public final class BeanDefinitionInfoCollector implements SmartInitializingSingl
 
     private static String destroyMethodName(BeanDefinition definition) {
         return definition instanceof AbstractBeanDefinition abd ? abd.getDestroyMethodName() : null;
+    }
+
+    private static String normalizeScope(String scope) {
+        return scope != null && !scope.isBlank()
+                ? scope
+                : ConfigurableBeanFactory.SCOPE_SINGLETON;
     }
 
     private static String resolveContextId(ApplicationContext context) {
