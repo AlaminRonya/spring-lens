@@ -1,7 +1,7 @@
 package com.sdlcpro.springlens.insight.bean;
 
+import com.example.testapp.SampleAppBean;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
-import com.sdlcpro.springlens.model.bean.BeanRole;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.repository.bean.BeanDefinitionInfoRepository;
 import org.junit.jupiter.api.Test;
@@ -13,8 +13,6 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Set;
 
@@ -29,10 +27,6 @@ class BeanDefinitionInfoCollectorTest {
     @Mock
     private BeanDefinitionInfoRepository repository;
 
-    @Component
-    static class AppBean {
-    }
-
     @SpringLensInternalComponent
     static class LensInternalBean {
     }
@@ -41,7 +35,7 @@ class BeanDefinitionInfoCollectorTest {
     void collectsApplicationBeanFromContext() {
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.setId("child-ctx");
-        ctx.register(AppBean.class);
+        ctx.register(SampleAppBean.class);
         ctx.refresh();
 
         BeanInfoCollectorSettings settings =
@@ -55,11 +49,10 @@ class BeanDefinitionInfoCollectorTest {
         verify(repository, atLeastOnce()).save(captor.capture());
         assertThat(captor.getAllValues())
                 .extracting(BeanDefinitionInfo::beanName)
-                .anyMatch(name -> name.contains("AppBean") || name.equals("beanDefinitionInfoCollectorTest.AppBean"));
-        // bean name may be fully qualified short form from annotation config — assert type instead:
+                .anyMatch(name -> name.contains("SampleAppBean") || name.equals("sampleAppBean"));
         assertThat(captor.getAllValues())
                 .extracting(BeanDefinitionInfo::type)
-                .anyMatch(t -> t != null && t.contains("AppBean"));
+                .anyMatch(t -> t != null && t.contains("SampleAppBean"));
         ctx.close();
     }
 
@@ -106,7 +99,7 @@ class BeanDefinitionInfoCollectorTest {
 
         GenericApplicationContext child = new GenericApplicationContext(parent);
         child.setId("child-ctx");
-        child.registerBeanDefinition("childBean", new RootBeanDefinition(Integer.class));
+        child.registerBeanDefinition("childBean", new RootBeanDefinition(Object.class));
         child.refresh();
 
         BeanInfoCollectorSettings settings =
