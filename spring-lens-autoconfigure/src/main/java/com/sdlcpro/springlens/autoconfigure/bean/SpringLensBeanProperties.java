@@ -10,12 +10,21 @@ import java.util.Set;
 @ConfigurationProperties(prefix = "spring.lens.bean")
 public class SpringLensBeanProperties {
     
+    private boolean enabled = true;
     private final Definition definition = new Definition();
     private final Instance instance = new Instance();
     private final Include include = new Include();
     private final Exclude exclude = new Exclude();
 
     // Getter methods of definition, instance, include, exclude
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public Definition getDefinition() {
         return definition;
