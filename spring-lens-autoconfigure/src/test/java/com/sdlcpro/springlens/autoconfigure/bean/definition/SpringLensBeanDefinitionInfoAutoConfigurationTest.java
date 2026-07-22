@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.autoconfigure.bean;
+package com.sdlcpro.springlens.autoconfigure.bean.definition;
 
 import com.sdlcpro.springlens.insight.bean.BeanDefinitionInfoCollector;
 import com.sdlcpro.springlens.repository.bean.BeanDefinitionInfoRepository;
@@ -8,10 +8,10 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SpringLensBeanAutoConfigurationTest {
+class SpringLensBeanDefinitionInfoAutoConfigurationTest {
 
     private final WebApplicationContextRunner runner = new WebApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(SpringLensBeanAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(SpringLensBeanDefinitionInfoAutoConfiguration.class));
 
     @Test
     void registersFeatureBeansByDefault() {
@@ -24,7 +24,7 @@ class SpringLensBeanAutoConfigurationTest {
 
     @Test
     void disablesWhenPropertyFalse() {
-        runner.withPropertyValues("spring.lens.bean.enabled=false")
+        runner.withPropertyValues("spring.lens.bean.definition.enabled=false")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(BeanDefinitionInfoRepository.class);
                     assertThat(context).doesNotHaveBean(BeanDefinitionInfoCollector.class);
