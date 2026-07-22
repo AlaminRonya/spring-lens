@@ -16,10 +16,116 @@
     background: #cbd5e1;
 }
 
+html,
+body,
+aside,
+main,
+header,
+button,
+input,
+select,
+textarea,
+table,
+tr,
+td,
+th,
+div {
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.theme-toggle {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    color: #64748b;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid #6b46c1;
+    outline-offset: 2px;
+}
+
+html.dark body,
+html.dark #main-content {
+    background-color: #111827 !important;
+    color: #e5e7eb;
+}
+
+html.dark aside,
+html.dark .bg-white,
+html.dark .bg-white\/90,
+html.dark .bg-white\/95 {
+    background-color: #1f2937 !important;
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-100 {
+    background-color: #111827 !important;
+}
+
+html.dark .border-gray-50,
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+    border-color: #374151 !important;
+}
+
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+    color: #f3f4f6 !important;
+}
+
+html.dark .text-gray-500,
+html.dark .text-gray-400,
+html.dark .text-gray-300 {
+    color: #cbd5e1 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea,
+html.dark .theme-toggle {
+    background-color: #1f2937 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+    background-color: #374151 !important;
+}
+
+html.dark .hover\:text-gray-800:hover,
+html.dark .hover\:text-gray-700:hover,
+html.dark .hover\:text-gray-600:hover {
+    color: #ffffff !important;
+}
+
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4b5563;
+}
+
+html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
 /* Hide scrollbar for clean look in some areas if needed */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
 .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -28,6 +134,7 @@
 #tip {
     display: none;
 }
+
 #tip.show {
     display: block;
 }

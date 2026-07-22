@@ -5,8 +5,11 @@ import BeanDefinitions from './src/assets/bean-definitions.js';
 import RequestDefinitions from './src/assets/request-definitions.js';
 import Dashboard from './src/assets/dashboard.js';
 import RequestEndpoints from './src/assets/request-endpoints.js';
+import ThemeToggle from './src/assets/theme-toggle.js';
 
 $(document).ready(() => {
+    new ThemeToggle().init();
+
     const dataLoader = new BeanDataLoader();
     const beanGraph = new BeanGraph(dataLoader);
     const beanDefinitions = new BeanDefinitions(dataLoader);
