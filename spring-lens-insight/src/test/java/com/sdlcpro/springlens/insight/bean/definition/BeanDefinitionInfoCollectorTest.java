@@ -1,7 +1,8 @@
-package com.sdlcpro.springlens.insight.bean;
+package com.sdlcpro.springlens.insight.bean.definition;
 
 import com.example.testapp.SampleAppBean;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
+import com.sdlcpro.springlens.insight.bean.BeanInfoCollectorSettings;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.repository.bean.BeanDefinitionInfoRepository;
 import org.junit.jupiter.api.Test;

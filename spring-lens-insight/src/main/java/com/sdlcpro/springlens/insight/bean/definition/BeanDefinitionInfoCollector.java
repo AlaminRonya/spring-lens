@@ -1,6 +1,9 @@
-package com.sdlcpro.springlens.insight.bean;
+package com.sdlcpro.springlens.insight.bean.definition;
 
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
+import com.sdlcpro.springlens.insight.bean.BeanInfoCollectionContext;
+import com.sdlcpro.springlens.insight.bean.BeanInfoCollectorSettings;
+import com.sdlcpro.springlens.insight.bean.InfraBeanRoleMatcher;
 import com.sdlcpro.springlens.insight.support.matcher.ClassNameMatcher;
 import com.sdlcpro.springlens.insight.support.matcher.PackageMatcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
@@ -23,6 +26,7 @@ import java.util.List;
  * Collects {@link BeanDefinitionInfo} from the ApplicationContext hierarchy after singletons start.
  * ConditionEvaluationReport enrichment is deferred until BeanConditionInfo exists.
  */
+@SpringLensInternalComponent
 public final class BeanDefinitionInfoCollector implements SmartInitializingSingleton {
 
     private static final String LENS_PACKAGE_PREFIX = "com.sdlcpro.springlens";
