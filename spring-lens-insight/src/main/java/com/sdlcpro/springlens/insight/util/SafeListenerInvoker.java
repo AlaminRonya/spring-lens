@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.insight.support;
+package com.sdlcpro.springlens.insight.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,7 @@ public final class SafeListenerInvoker {
     private static final Logger logger = LoggerFactory.getLogger(SafeListenerInvoker.class);
 
     private SafeListenerInvoker() {
-        throw new UnsupportedOperationException("SafeListenerInvoker is an utility support class and cannot be instantiated");
+        throw new UnsupportedOperationException("SafeListenerInvoker is an utility class and cannot be instantiated");
     }
 
     public static <L> void invoke(ObjectProvider<L> provider, Consumer<L> consumer) {
