@@ -10,21 +10,26 @@ export default class Dashboard {
         let totalBeans = 0;
         let totalDeps = 0;
 
+        let startupTime = 0;
         try {
             const root = await this.dataLoader.load();
             if (root) {
                 const allBeans = Array.from(window.allBeansMap?.values() || []);
                 totalBeans = allBeans.length;
                 totalDeps = allBeans.reduce((sum, { dependencies = [] }) => sum + dependencies.length, 0);
+                
+                // Calculate simulated startup timeline duration
+                startupTime = this.calculateStartupTime(allBeans);
             }
         } catch (e) {
             console.error("Error loading bean definitions for dashboard:", e);
         }
 
-        // Set counts
+        // Set counts and metrics
         $('#db-beans-count').text(totalBeans || '-');
         $('#db-deps-count').text(totalDeps || '-');
         $('#db-requests-count').text(requestsData.length);
+        $('#db-startup-time').text(`${Math.round(startupTime).toLocaleString()} ms`);
 
         // Latency
         const times = requestsData.map(r => parseInt(r.time) || 0);
@@ -145,5 +150,71 @@ export default class Dashboard {
                 cutout: '70%'
             }
         });
+    }
+
+    calculateStartupTime(beans) {
+        const solved = new Map();
+        const visiting = new Set();
+        const beansMap = window.allBeansMap || new Map();
+
+        const seedRandom = (str) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const x = Math.sin(hash++) * 10000;
+            return x - Math.floor(x);
+        };
+
+        const getBeanDuration = (beanName, type) => {
+            const nameLower = (beanName || '').toLowerCase();
+            const typeLower = (type || '').toLowerCase();
+            if (typeLower.includes('entitymanagerfactory') || typeLower.includes('localcontainerentitymanagerfactorybean')) {
+                return 180 + (seedRandom(beanName) * 120);
+            }
+            if (typeLower.includes('datasource') || nameLower.includes('datasource')) {
+                return 80 + (seedRandom(beanName) * 60);
+            }
+            if (typeLower.includes('connectionfactory') || nameLower.includes('connectionfactory')) {
+                return 50 + (seedRandom(beanName) * 40);
+            }
+            if (typeLower.includes('environment') || nameLower.includes('environment') || typeLower.includes('property') || nameLower.includes('property')) {
+                return 8 + (seedRandom(beanName) * 16);
+            }
+            return 0.5 + (seedRandom(beanName) * 2.5);
+        };
+
+        const solve = (beanName) => {
+            if (solved.has(beanName)) return solved.get(beanName);
+            if (visiting.has(beanName)) return { end: 11 };
+
+            visiting.add(beanName);
+            const bean = beansMap.get(beanName);
+            let maxDepEnd = 5;
+
+            if (bean && bean.dependencies && bean.dependencies.length > 0) {
+                for (const dep of bean.dependencies) {
+                    if (beansMap.has(dep)) {
+                        const depInfo = solve(dep);
+                        if (depInfo.end > maxDepEnd) {
+                            maxDepEnd = depInfo.end;
+                        }
+                    }
+                }
+            }
+
+            const duration = getBeanDuration(beanName, bean ? bean.type : '');
+            const start = maxDepEnd + (bean && bean.dependencies && bean.dependencies.length > 0 ? 0.2 : seedRandom(beanName) * 3);
+            const end = start + duration;
+
+            const result = { end };
+            visiting.delete(beanName);
+            solved.set(beanName, result);
+            return result;
+        };
+
+        beans.forEach(bean => solve(bean.beanName));
+        const endTimes = Array.from(solved.values()).map(b => b.end);
+        return endTimes.length > 0 ? Math.max(...endTimes) + 20 : 0;
     }
 }
