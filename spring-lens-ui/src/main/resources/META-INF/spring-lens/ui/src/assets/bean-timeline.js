@@ -291,15 +291,15 @@ export default class BeanTimeline {
             }
 
             const isSelected = this.selectedBeanName === bean.beanName;
-            const activeRowClass = isSelected ? 'bg-primary-light/40 font-semibold' : '';
+            const activeRowClass = isSelected ? 'bg-primary-light/40 dark:bg-primary/20 font-semibold' : '';
             const activeBorderClass = isSelected ? 'border-l-4 border-primary' : '';
 
             $container.append(`
-                <div class="flex items-center h-12 hover:bg-gray-50/70 transition-colors cursor-pointer time-row ${activeRowClass} ${activeBorderClass}" data-bean-name="${bean.beanName}">
+                <div class="flex items-center h-12 hover:bg-gray-50/70 dark:hover:bg-slate-800/40 transition-colors cursor-pointer time-row ${activeRowClass} ${activeBorderClass}" data-bean-name="${bean.beanName}">
                     <!-- Left side: Bean name info -->
-                    <div class="w-1/3 min-w-[280px] max-w-[360px] pl-5 flex flex-col justify-center min-w-0 pr-4 border-r border-gray-100/50 h-full">
-                        <span class="text-xs font-semibold text-gray-800 truncate" title="${bean.beanName}">${bean.displayName}</span>
-                        <span class="text-[10px] text-gray-400 font-mono truncate mt-0.5" title="${bean.type}">${bean.type}</span>
+                    <div class="w-1/3 min-w-[280px] max-w-[360px] pl-5 flex flex-col justify-center min-w-0 pr-4 border-r border-gray-100/50 dark:border-slate-800/50 h-full">
+                        <span class="text-xs font-semibold text-gray-800 dark:text-white truncate" title="${bean.beanName}">${bean.displayName}</span>
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono truncate mt-0.5" title="${bean.type}">${bean.type}</span>
                     </div>
 
                     <!-- Right side: Gantt Visual Bar -->
@@ -310,7 +310,7 @@ export default class BeanTimeline {
                              ${bean.duration > 25 ? `${Math.round(bean.duration)}ms` : ''}
                         </div>
                         ${bean.duration <= 25 ? `
-                            <span class="absolute text-[9px] font-mono font-bold text-gray-500 transition-all duration-300" style="left: calc(${leftPct}% + ${widthPct}% + 6px);">
+                            <span class="absolute text-[9px] font-mono font-bold text-gray-500 dark:text-gray-400 transition-all duration-300" style="left: calc(${leftPct}% + ${widthPct}% + 6px);">
                                 ${Math.round(bean.duration)}ms
                             </span>
                         ` : ''}
@@ -343,7 +343,7 @@ export default class BeanTimeline {
 
         // Prev page button
         $buttons.append(`
-            <button class="w-7 h-7 flex items-center justify-center rounded text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium btn-prev" ${this.currentPage === 1 ? 'disabled style="opacity: 0.5;"' : ''}>
+            <button class="w-7 h-7 flex items-center justify-center rounded text-xs border border-gray-200 dark:border-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium btn-prev" ${this.currentPage === 1 ? 'disabled style="opacity: 0.5;"' : ''}>
                 <span class="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
         `);
@@ -354,7 +354,7 @@ export default class BeanTimeline {
 
         for (let i = startPage; i <= endPage; i++) {
             const isActive = i === this.currentPage;
-            const activeClass = isActive ? 'text-white bg-primary font-bold' : 'text-gray-600 hover:bg-gray-50 border border-gray-200';
+            const activeClass = isActive ? 'text-white bg-primary font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800';
             $buttons.append(`
                 <button class="w-7 h-7 flex items-center justify-center rounded text-xs btn-page ${activeClass}" data-page="${i}">
                     ${i}
@@ -364,7 +364,7 @@ export default class BeanTimeline {
 
         // Next page button
         $buttons.append(`
-            <button class="w-7 h-7 flex items-center justify-center rounded text-xs border border-gray-200 text-gray-500 hover:bg-gray-50 font-medium btn-next" ${this.currentPage === totalPages ? 'disabled style="opacity: 0.5;"' : ''}>
+            <button class="w-7 h-7 flex items-center justify-center rounded text-xs border border-gray-200 dark:border-slate-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium btn-next" ${this.currentPage === totalPages ? 'disabled style="opacity: 0.5;"' : ''}>
                 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>
         `);
@@ -374,10 +374,10 @@ export default class BeanTimeline {
         this.selectedBeanName = beanName;
 
         // Apply active row styling highlights
-        $('.time-row').removeClass('bg-primary-light/40 border-l-4 border-primary font-semibold');
+        $('.time-row').removeClass('bg-primary-light/40 dark:bg-primary/20 border-l-4 border-primary font-semibold');
         $('.time-row').filter((idx, element) => {
             return $(element).attr('data-bean-name') === beanName;
-        }).addClass('bg-primary-light/40 border-l-4 border-primary font-semibold');
+        }).addClass('bg-primary-light/40 dark:bg-primary/20 border-l-4 border-primary font-semibold');
 
         const bean = this.solvedBeans.find(b => b.beanName === beanName);
         if (!bean) return;
@@ -436,9 +436,9 @@ export default class BeanTimeline {
 
         if (treeNodes.length <= 1) {
             $container.html(`
-                <div class="py-8 text-center text-gray-400">
-                    <span class="material-symbols-outlined text-[24px] mb-1.5 text-gray-300">link_off</span>
-                    <p class="text-[11px]">This bean has no active initialization dependencies.</p>
+                <div class="py-8 text-center text-gray-400 dark:text-gray-500">
+                    <span class="material-symbols-outlined text-[24px] mb-1.5 text-gray-300 dark:text-gray-600">link_off</span>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500">This bean has no active initialization dependencies.</p>
                 </div>
             `);
             return;
@@ -453,20 +453,20 @@ export default class BeanTimeline {
             const indentStyle = `margin-left: ${node.depth * 12}px;`;
             
             // Choose color depending on if it's the target or a dependency
-            const barColor = isOriginal ? 'bg-primary' : 'bg-gray-400/80';
-            const textClass = isOriginal ? 'font-bold text-primary' : 'text-gray-600 font-medium';
+            const barColor = isOriginal ? 'bg-primary' : 'bg-gray-400/80 dark:bg-slate-700/80';
+            const textClass = isOriginal ? 'font-bold text-primary dark:text-purple-300' : 'text-gray-600 dark:text-gray-300 font-medium';
 
             $container.append(`
-                <div class="flex flex-col gap-1 tree-node border-l border-gray-100 pl-2 ml-1" style="${indentStyle}">
+                <div class="flex flex-col gap-1 tree-node border-l border-gray-100 dark:border-slate-800 pl-2 ml-1" style="${indentStyle}">
                     <div class="flex items-center justify-between text-[11px] min-w-0">
                         <span class="truncate pr-2 cursor-pointer hover:underline tree-node-click ${textClass}" data-bean-name="${node.beanName}">
                             ${node.depth > 0 ? '↳ ' : ''}${node.displayName}
                         </span>
-                        <span class="font-mono text-[10px] text-gray-400 flex-shrink-0">${Math.round(node.duration)}ms</span>
+                        <span class="font-mono text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">${Math.round(node.duration)}ms</span>
                     </div>
                     
                     <!-- Dependency Micro-Timeline Bar -->
-                    <div class="h-2 w-full bg-gray-100 rounded-full relative overflow-hidden">
+                    <div class="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full relative overflow-hidden">
                         <div class="absolute h-full rounded-full ${barColor}" 
                              style="left: ${leftPct}%; width: ${Math.max(widthPct, 1.5)}%;">
                         </div>

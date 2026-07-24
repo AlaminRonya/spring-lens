@@ -1,13 +1,13 @@
 <!-- Topbar -->
-<header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
+<header class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px] transition-colors duration-300">
     <div>
-        <h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
-        <div class="text-xs text-gray-500 font-medium flex items-center gap-1">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
             SpringLens <span class="material-symbols-outlined text-[14px]">chevron_right</span> Overview
         </div>
     </div>
     <div class="flex items-center gap-3">
-        <button id="btn-refresh-dashboard" class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 bg-white shadow-sm transition-colors">
+        <button id="btn-refresh-dashboard" class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
         </button>
     </div>
@@ -48,43 +48,43 @@
     <!-- KPI Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Beans count -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:shadow-slate-950/40 transition-all flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <span class="material-symbols-outlined text-[28px]">view_in_ar</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Total Beans</span>
-                <span class="text-2xl font-bold text-gray-800" id="db-beans-count">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 block uppercase tracking-wider">Total Beans</span>
+                <span class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="db-beans-count">-</span>
             </div>
         </div>
         <!-- Dependencies count -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-success-light text-success flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:shadow-slate-950/40 transition-all flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-success-light dark:bg-success/15 text-success flex items-center justify-center">
                 <span class="material-symbols-outlined text-[28px]">hub</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Dependencies</span>
-                <span class="text-2xl font-bold text-gray-800" id="db-deps-count">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 block uppercase tracking-wider">Dependencies</span>
+                <span class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="db-deps-count">-</span>
             </div>
         </div>
         <!-- Requests count -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-info/10 text-info flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:shadow-slate-950/40 transition-all flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-info/10 dark:bg-info/15 text-info flex items-center justify-center">
                 <span class="material-symbols-outlined text-[28px]">swap_calls</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">HTTP Requests</span>
-                <span class="text-2xl font-bold text-gray-800" id="db-requests-count">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 block uppercase tracking-wider">HTTP Requests</span>
+                <span class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="db-requests-count">-</span>
             </div>
         </div>
         <!-- Avg time -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-warning/10 text-warning flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md dark:hover:shadow-slate-950/40 transition-all flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-warning/10 dark:bg-warning/15 text-warning flex items-center justify-center">
                 <span class="material-symbols-outlined text-[28px]">speed</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Avg Latency</span>
-                <span class="text-2xl font-bold text-gray-800" id="db-avg-time">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-500 block uppercase tracking-wider">Avg Latency</span>
+                <span class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="db-avg-time">-</span>
             </div>
         </div>
     </div>
@@ -92,9 +92,9 @@
     <!-- Visualizations & Recent requests -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <!-- HTTP request statistics chart -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm xl:col-span-1 flex flex-col">
-            <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[18px] text-gray-500">donut_large</span> Request Status Breakdown
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm xl:col-span-1 flex flex-col transition-colors duration-300">
+            <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px] text-gray-500 dark:text-gray-400">donut_large</span> Request Status Breakdown
             </h3>
             <div class="flex-1 flex items-center justify-center relative min-h-[220px]">
                 <canvas id="dbRequestChart" class="max-w-[200px] max-h-[200px]"></canvas>
@@ -102,19 +102,19 @@
         </div>
 
         <!-- Recent activity table -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm xl:col-span-2 flex flex-col overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm xl:col-span-2 flex flex-col overflow-hidden transition-colors duration-300">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[18px] text-gray-500">history</span> Recent HTTP Activity
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px] text-gray-500 dark:text-gray-400">history</span> Recent HTTP Activity
                 </h3>
-                <a href="#/request" class="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5">
+                <a href="#/request" class="text-xs font-semibold text-primary dark:text-purple-400 hover:underline flex items-center gap-0.5">
                     View All <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
                 </a>
             </div>
             <div class="flex-1 overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                        <tr class="border-b border-gray-100 dark:border-slate-800 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/50 dark:bg-slate-800/50">
                             <th class="px-6 py-3">Method</th>
                             <th class="px-6 py-3">URL</th>
                             <th class="px-6 py-3">Status</th>
@@ -123,7 +123,7 @@
                             <th class="px-6 py-3">Time</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100" id="db-recent-requests">
+                    <tbody class="divide-y divide-gray-100 dark:divide-slate-800" id="db-recent-requests">
                         <!-- Dynamic rows here -->
                     </tbody>
                 </table>

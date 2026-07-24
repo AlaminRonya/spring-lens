@@ -62,6 +62,13 @@ $(document).ready(() => {
     // Start Route
     appRouter.init();
 
+    // Theme toggle interaction handler
+    $('#theme-toggle').on('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: isDark ? 'dark' : 'light' } }));
+    });
+
     /* ── Resize ── */
     let resizeTimer;
     $(window).on('resize', () => {
