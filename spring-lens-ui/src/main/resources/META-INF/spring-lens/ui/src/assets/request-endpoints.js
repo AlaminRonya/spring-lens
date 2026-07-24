@@ -99,15 +99,15 @@ export default class RequestEndpoints {
                                 'bg-red-50 text-red-600 border-red-200';
 
             return `
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td class="px-6 py-3.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${methodColor}">${ep.method}</span>
                     </td>
-                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 truncate max-w-[300px]" title="${ep.path}">${ep.path}</td>
-                    <td class="px-6 py-3.5 text-center text-xs font-semibold text-gray-800">${ep.hits}</td>
-                    <td class="px-6 py-3.5 text-center text-xs text-gray-600">${ep.avgTime} ms</td>
-                    <td class="px-6 py-3.5 text-center text-xs text-gray-600">${ep.maxTime} ms</td>
-                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500">${ep.service}</td>
+                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 dark:text-gray-100 truncate max-w-[300px]" title="${ep.path}">${ep.path}</td>
+                    <td class="px-6 py-3.5 text-center text-xs font-semibold text-gray-800 dark:text-gray-100">${ep.hits}</td>
+                    <td class="px-6 py-3.5 text-center text-xs text-gray-600 dark:text-gray-200">${ep.avgTime} ms</td>
+                    <td class="px-6 py-3.5 text-center text-xs text-gray-600 dark:text-gray-200">${ep.maxTime} ms</td>
+                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500 dark:text-gray-300">${ep.service}</td>
                 </tr>
             `;
         }).join('');

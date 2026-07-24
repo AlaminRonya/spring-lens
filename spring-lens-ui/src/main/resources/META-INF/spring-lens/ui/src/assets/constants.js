@@ -60,7 +60,7 @@ export const TEMPLATES = {
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold inline-block border ${STATUS_PILL_STYLES[statusColor]}">${status}</span>
             </td>
             <td class="px-5 py-3 text-gray-600 dark:text-gray-300">${time}</td>
-            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400">${ip}</td>
+            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-300">${ip}</td>
             <td class="px-5 py-3 text-gray-600 dark:text-gray-300">${timestamp}</td>
             <td class="px-5 py-3 text-right">
                 <button class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-md text-xs font-semibold transition-colors cursor-pointer btn-request-view animate-none" data-id="${reqId}">
@@ -79,14 +79,14 @@ export const TEMPLATES = {
                     <span class="font-medium text-gray-800 dark:text-gray-100 truncate max-w-[150px]" title="${displayName}">${displayName}</span>
                 </div>
             </td>
-            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[200px]" title="${type}">${type || 'N/A'}</td>
+            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-300 truncate max-w-[200px]" title="${type}">${type || 'N/A'}</td>
             <td class="px-5 py-3">
                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border" style="background-color: ${scopeStyle.bg}; color: ${scopeStyle.fg}; border-color: ${scopeStyle.border};">${displayScope}</span>
             </td>
             <td class="px-5 py-3 text-gray-600 dark:text-gray-300">${displayRole}</td>
             <td class="px-5 py-3 text-center">${primaryIcon}</td>
             <td class="px-5 py-3 text-center">${lazyIcon}</td>
-            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400">${contextId || 'N/A'}</td>
+            <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-300">${contextId || 'N/A'}</td>
             <td class="px-5 py-3 text-right">
                 <button class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-md text-xs font-semibold transition-colors cursor-pointer btn-bean-view animate-none" data-bean-name="${beanName}">
                     View
@@ -121,17 +121,17 @@ export const TEMPLATES = {
     `,
     contextListItem: ({ ctxId, colorClass, pct }) => `
         <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-600 w-16 truncate" title="${ctxId}">${ctxId}</span>
-            <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <span class="text-xs text-gray-600 dark:text-gray-200 w-16 truncate" title="${ctxId}">${ctxId}</span>
+            <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div class="h-full ${colorClass} rounded-full" style="width: ${pct}%"></div>
             </div>
-            <span class="text-[10px] text-gray-400 font-semibold w-8 text-right">${pct}%</span>
+            <span class="text-[10px] text-gray-400 dark:text-gray-300 font-semibold w-8 text-right">${pct}%</span>
         </div>
     `,
     chartLegendItem: ({ color, lbl, count, pctStr }) => `
         <div class="flex items-center gap-1.5 truncate">
             <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: ${color}"></div>
-            <span class="text-[10px] text-gray-500 truncate" title="${lbl}">${lbl} (${count}) · ${pctStr}</span>
+            <span class="text-[10px] text-gray-500 dark:text-gray-300 truncate" title="${lbl}">${lbl} (${count}) · ${pctStr}</span>
         </div>
     `,
     paginationPrevBtn: ({ isDisabled }) => `

@@ -21,8 +21,8 @@
                 <span class="material-symbols-outlined text-[28px]">api</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Unique Routes</span>
-                <span class="text-2xl font-bold text-gray-800" id="ep-routes-count">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-300 block uppercase tracking-wider">Unique Routes</span>
+                <span class="text-2xl font-bold text-gray-800 dark:text-gray-100" id="ep-routes-count">-</span>
             </div>
         </div>
         <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex items-center gap-4">
@@ -30,8 +30,8 @@
                 <span class="material-symbols-outlined text-[28px]">insights</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Most Active Endpoint</span>
-                <span class="text-lg font-bold text-gray-800 truncate max-w-[200px]" id="ep-active-route" style="display: block;">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-300 block uppercase tracking-wider">Most Active Endpoint</span>
+                <span class="text-lg font-bold text-gray-800 dark:text-gray-100 truncate max-w-[200px]" id="ep-active-route" style="display: block;">-</span>
             </div>
         </div>
         <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex items-center gap-4">
@@ -39,8 +39,8 @@
                 <span class="material-symbols-outlined text-[28px]">hourglass_empty</span>
             </div>
             <div>
-                <span class="text-xs font-medium text-gray-400 block uppercase tracking-wider">Slowest Avg Latency</span>
-                <span class="text-lg font-bold text-gray-800" id="ep-slowest-route">-</span>
+                <span class="text-xs font-medium text-gray-400 dark:text-gray-300 block uppercase tracking-wider">Slowest Avg Latency</span>
+                <span class="text-lg font-bold text-gray-800 dark:text-gray-100" id="ep-slowest-route">-</span>
             </div>
         </div>
     </div>
@@ -60,7 +60,7 @@
         <div class="flex-1 overflow-auto custom-scrollbar">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50 sticky top-0 z-10">
+                    <tr class="border-b border-gray-100 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-700/50 text-[10px] font-bold text-gray-400 dark:text-gray-200 uppercase tracking-wider sticky top-0 z-10">
                         <th class="px-6 py-3.5">Method</th>
                         <th class="px-6 py-3.5">Route</th>
                         <th class="px-6 py-3.5 text-center">Hit Count</th>
@@ -69,7 +69,7 @@
                         <th class="px-6 py-3.5">Service</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100" id="endpointTableBody">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700" id="endpointTableBody">
                     <!-- Dynamic rows here -->
                 </tbody>
             </table>

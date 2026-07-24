@@ -6,7 +6,7 @@
         </div>
     </div>
     <div class="flex items-center gap-3">
-        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 bg-white shadow-sm">
+        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100 rounded-md shadow-sm">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
         </button>
     </div>
@@ -14,16 +14,16 @@
 
 <div class="flex-1 overflow-auto custom-scrollbar p-6 flex flex-col gap-6">
     <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl shadow-sm p-6 flex flex-col gap-4">
-        <h2 class="text-base font-bold text-gray-800">Spring Boot Autoconfiguration Condition Evaluation</h2>
-        <p class="text-sm text-gray-500">View evaluation results of Spring @Conditional annotations such as @ConditionalOnClass, @ConditionalOnMissingBean, and more.</p>
+        <h2 class="text-base font-bold text-gray-800 dark:text-gray-100">Spring Boot Autoconfiguration Condition Evaluation</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-300">View evaluation results of Spring @Conditional annotations such as @ConditionalOnClass, @ConditionalOnMissingBean, and more.</p>
         
         <!-- Search and filters -->
         <div class="flex gap-3 items-center">
             <div class="relative flex-1 max-w-sm">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
-                <input type="text" placeholder="Filter conditions..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-300 text-[18px]">search</span>
+                <input type="text" placeholder="Filter conditions..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 text-gray-800 placeholder:text-gray-400 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
             </div>
-            <select class="text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2 outline-none hover:bg-gray-50 cursor-pointer">
+            <select class="text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-700 rounded-md px-3 py-2 outline-none cursor-pointer">
                 <option>Status: All</option>
                 <option>Matched</option>
                 <option>Not Matched</option>
@@ -31,25 +31,25 @@
         </div>
 
         <!-- Autoconfig list -->
-        <div class="divide-y divide-gray-150 border border-gray-200 rounded-lg overflow-hidden mt-2">
-            <div class="p-4 bg-gray-50/50 flex justify-between items-start gap-4 text-sm">
+        <div class="divide-y divide-gray-150 border border-gray-200 dark:divide-gray-700 dark:border-gray-700 rounded-lg overflow-hidden mt-2">
+            <div class="p-4 bg-gray-50/50 dark:bg-gray-700/50 flex justify-between items-start gap-4 text-sm">
                 <div>
-                    <h3 class="font-bold text-gray-800 font-mono text-xs">DataSourceAutoConfiguration</h3>
-                    <p class="text-xs text-gray-500 mt-1">Matched: @ConditionalOnClass found HikariDataSource.</p>
+                    <h3 class="font-bold text-gray-800 dark:text-gray-100 font-mono text-xs">DataSourceAutoConfiguration</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">Matched: @ConditionalOnClass found HikariDataSource.</p>
                 </div>
                 <span class="px-2 py-0.5 rounded bg-success-light text-success text-[10px] font-bold">MATCHED</span>
             </div>
-            <div class="p-4 bg-gray-50/50 flex justify-between items-start gap-4 text-sm">
+            <div class="p-4 bg-gray-50/50 dark:bg-gray-700/50 flex justify-between items-start gap-4 text-sm">
                 <div>
-                    <h3 class="font-bold text-gray-800 font-mono text-xs">MongoAutoConfiguration</h3>
-                    <p class="text-xs text-gray-500 mt-1">Not Matched: @ConditionalOnClass did not find MongoClient class.</p>
+                    <h3 class="font-bold text-gray-800 dark:text-gray-100 font-mono text-xs">MongoAutoConfiguration</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">Not Matched: @ConditionalOnClass did not find MongoClient class.</p>
                 </div>
                 <span class="px-2 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-bold">NOT MATCHED</span>
             </div>
-            <div class="p-4 bg-gray-50/50 flex justify-between items-start gap-4 text-sm">
+            <div class="p-4 bg-gray-50/50 dark:bg-gray-700/50 flex justify-between items-start gap-4 text-sm">
                 <div>
-                    <h3 class="font-bold text-gray-800 font-mono text-xs">RedisAutoConfiguration</h3>
-                    <p class="text-xs text-gray-500 mt-1">Not Matched: @ConditionalOnClass did not find RedisOperations class.</p>
+                    <h3 class="font-bold text-gray-800 dark:text-gray-100 font-mono text-xs">RedisAutoConfiguration</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">Not Matched: @ConditionalOnClass did not find RedisOperations class.</p>
                 </div>
                 <span class="px-2 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-bold">NOT MATCHED</span>
             </div>
