@@ -37,16 +37,16 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased h-screen flex overflow-hidden">
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased h-screen flex overflow-hidden transition-colors duration-200">
 
 <!-- Sidebar -->
-<aside class="w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0">
+<aside class="w-64 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col h-full flex-shrink-0 transition-colors duration-200">
     <div class="p-5 flex items-center gap-3">
         <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md">
             <span class="material-symbols-outlined text-[20px]">layers</span>
         </div>
-        <h1 class="font-bold text-lg tracking-tight">Spring Lens</h1>
-        <button id="theme-toggle" type="button" class="theme-toggle ml-auto" aria-label="Switch to dark mode"
+        <h1 class="font-bold text-lg tracking-tight dark:text-gray-100">Spring Lens</h1>
+        <button id="theme-toggle" type="button" class="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white dark:focus-visible:ring-offset-gray-800" aria-label="Switch to dark mode"
                 aria-pressed="false" title="Switch to dark mode">
             <span class="material-symbols-outlined theme-toggle-icon" aria-hidden="true">dark_mode</span>
         </button>
@@ -55,12 +55,12 @@
     <div class="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4">
         <nav class="space-y-0.5">
             <a data-page="dashboard" href="#/dashboard"
-               class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link">
+               class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link">
                 <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
             </a>
             <div class="menu-group pt-2">
                 <a data-page="request" href="#/request"
-                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link parent-link">
+                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[20px]">compare_arrows</span> Http Insight
                     </div>
@@ -68,14 +68,14 @@
                 </a>
                 <div class="submenu ml-10 space-y-1 mt-1 hidden">
                     <a data-page="request" href="#/request"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Requests</a>
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Requests</a>
                     <a data-page="request-endpoint" href="#/request-endpoint"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Endpoints</a>
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Endpoints</a>
                 </div>
             </div>
             <div class="menu-group pt-2">
                 <a data-page="definitions" href="#/definitions"
-                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link parent-link">
+                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[20px]">view_in_ar</span> Beans
                     </div>
@@ -83,11 +83,11 @@
                 </a>
                 <div class="submenu ml-10 space-y-1 mt-1 hidden">
                     <a data-page="definitions" href="#/definitions"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Definitions</a>
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Definitions</a>
                     <a data-page="graph" href="#/graph"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Graph</a>
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Graph</a>
                     <a data-page="conditions" href="#/conditions"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Condition
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Condition
                         Reports</a>
                 </div>
             </div>
@@ -97,7 +97,7 @@
 </aside>
 
 <!-- Main Content -->
-<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
 
 </main>
 

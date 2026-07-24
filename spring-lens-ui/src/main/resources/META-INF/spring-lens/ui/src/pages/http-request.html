@@ -1,13 +1,13 @@
 <!-- Topbar -->
-<header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
+<header class="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
     <div>
-        <h1 class="text-xl font-bold text-gray-800">Requests</h1>
-        <div class="text-xs text-gray-500 font-medium flex items-center gap-1">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Requests</h1>
+        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
             SpringLens <span class="material-symbols-outlined text-[14px]">chevron_right</span> Request <span class="material-symbols-outlined text-[14px]">chevron_right</span> Details
         </div>
     </div>
     <div class="flex items-center gap-3">
-        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 bg-white shadow-sm transition-colors cursor-pointer" id="btn-refresh-requests">
+        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100 rounded-md shadow-sm transition-colors cursor-pointer" id="btn-refresh-requests">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
         </button>
     </div>
@@ -19,7 +19,7 @@
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Requests -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-primary-light text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">swap_horiz</span>
@@ -38,7 +38,7 @@
             </div>
 
             <!-- Error Rate -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-red-50 text-red-500 flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">error</span>
@@ -57,7 +57,7 @@
             </div>
 
             <!-- Avg Response Time -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-green-50 text-success flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">schedule</span>
@@ -76,7 +76,7 @@
             </div>
 
             <!-- Slow Requests -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-amber-50 text-warning flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">hourglass_empty</span>
@@ -96,7 +96,7 @@
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
+        <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
             <div class="p-5 border-b border-gray-100">
                 <h2 class="text-base font-bold text-gray-800 mb-4">Request Logs</h2>
                 <div class="flex flex-wrap gap-3 items-center">
