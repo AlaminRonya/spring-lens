@@ -1,9 +1,9 @@
 <!-- Topbar -->
 <header
-    class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
+    class="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
     <div>
-        <h1 class="text-xl font-bold text-gray-800">Beans</h1>
-        <div class="text-xs text-gray-500 font-medium flex items-center gap-1">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Beans</h1>
+        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
             SpringLens <span class="material-symbols-outlined text-[14px]">chevron_right</span> Bean <span
                 class="material-symbols-outlined text-[14px]">chevron_right</span> Definitions
         </div>
@@ -35,26 +35,26 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
             <!-- Total Bean Definitions -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-primary-light text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">view_in_ar</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Total Bean Definitions</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Total Bean Definitions</span>
                 </div>
-                <div class="text-3xl font-bold text-gray-800 mb-1" id="def-total-count">-</div>
+                <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1" id="def-total-count">-</div>
                 <div class="space-y-3 flex-1 flex flex-col justify-center" id="def-context-list">
                     <!-- Dynamic context list -->
                 </div>
             </div>
 
             <!-- Scope Distribution -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-2">
                     <div class="w-6 h-6 rounded bg-green-50 text-success flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">pie_chart</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Scope Distribution</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Scope Distribution</span>
                 </div>
                 <div class="flex-1 flex items-center justify-between">
                     <div class="w-16 h-16 relative flex-shrink-0">
@@ -67,12 +67,12 @@
             </div>
 
             <!-- Role Distribution -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-2">
                     <div class="w-6 h-6 rounded bg-orange-50 text-warning flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">donut_large</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Role Distribution</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Role Distribution</span>
                 </div>
                 <div class="flex-1 flex items-center justify-between">
                     <div class="w-16 h-16 relative flex-shrink-0">
@@ -85,15 +85,15 @@
             </div>
 
             <!-- Lazy Init -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center relative">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col justify-center relative">
                 <div class="flex items-center gap-2 mb-2 absolute top-4 left-4">
                     <div class="w-6 h-6 rounded bg-primary-light text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">bolt</span>
                     </div>
                 </div>
                 <div class="text-center mt-4">
-                    <div class="text-3xl font-bold text-gray-800 mb-2" id="def-lazy-percent">-</div>
-                    <div class="w-16 h-2 bg-gray-100 rounded-full mx-auto overflow-hidden">
+                    <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2" id="def-lazy-percent">-</div>
+                    <div class="w-16 h-2 bg-gray-100 dark:bg-gray-700 rounded-full mx-auto overflow-hidden">
                         <div class="h-full bg-primary rounded-full transition-all duration-500" id="def-lazy-bar"
                             style="width: 0%"></div>
                     </div>
@@ -103,7 +103,7 @@
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
+        <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
             <div class="p-5 border-b border-gray-100">
                 <h2 class="text-base font-bold text-gray-800 mb-4">Bean Definition Table</h2>
                 <div class="flex flex-wrap gap-3 items-center">
@@ -155,18 +155,18 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                        <tr class="border-b border-gray-100">
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Bean Name</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Type</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Scope</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Role</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase text-center">Primary</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase text-center">Lazy</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Context ID</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase w-10">Action</th>
+                        <tr class="border-b border-gray-100 dark:border-gray-700 dark:bg-gray-700/50">
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Bean Name</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Type</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Scope</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Role</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase text-center">Primary</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase text-center">Lazy</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Context ID</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase w-10">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50 text-[13px] text-gray-600" id="beanTableBody">
+                    <tbody class="divide-y divide-gray-50 dark:divide-gray-700 text-[13px] text-gray-600 dark:text-gray-200" id="beanTableBody">
                         <!-- Table rows will be populated by JS -->
                     </tbody>
                 </table>

@@ -74,17 +74,17 @@ export default class Dashboard {
                                 'bg-success-light text-success border-success/15';
 
             const rowHtml = `
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td class="px-6 py-3.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${methodColor}">${req.method}</span>
                     </td>
-                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 truncate max-w-[200px]" title="${req.url}">${req.url}</td>
+                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 dark:text-gray-100 truncate max-w-[200px]" title="${req.url}">${req.url}</td>
                     <td class="px-6 py-3.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${statusColor}">${req.status}</span>
                     </td>
-                    <td class="px-6 py-3.5 text-xs text-gray-600">${req.time}</td>
-                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500">${req.ip}</td>
-                    <td class="px-6 py-3.5 text-xs text-gray-600">${req.timestamp}</td>
+                    <td class="px-6 py-3.5 text-xs text-gray-600 dark:text-gray-200">${req.time}</td>
+                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500 dark:text-gray-300">${req.ip}</td>
+                    <td class="px-6 py-3.5 text-xs text-gray-600 dark:text-gray-200">${req.timestamp}</td>
                 </tr>
             `;
             $tbody.append(rowHtml);

@@ -1,13 +1,13 @@
 <!-- Topbar -->
-<header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
+<header class="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px]">
     <div>
-        <h1 class="text-xl font-bold text-gray-800">Requests</h1>
-        <div class="text-xs text-gray-500 font-medium flex items-center gap-1">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Requests</h1>
+        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
             SpringLens <span class="material-symbols-outlined text-[14px]">chevron_right</span> Request <span class="material-symbols-outlined text-[14px]">chevron_right</span> Details
         </div>
     </div>
     <div class="flex items-center gap-3">
-        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 bg-white shadow-sm transition-colors cursor-pointer" id="btn-refresh-requests">
+        <button class="w-8 h-8 flex items-center justify-center border border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100 rounded-md shadow-sm transition-colors cursor-pointer" id="btn-refresh-requests">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
         </button>
     </div>
@@ -19,14 +19,14 @@
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Requests -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-primary-light text-primary flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">swap_horiz</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Total Requests</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Total Requests</span>
                 </div>
-                <div class="text-3xl font-bold text-gray-800 mb-1">1,248</div>
+                <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1">1,248</div>
                 <div class="flex items-center gap-1 text-red-500 text-xs font-semibold mb-2">
                     <span class="material-symbols-outlined text-[14px]">arrow_downward</span> 12.9%
                 </div>
@@ -38,14 +38,14 @@
             </div>
 
             <!-- Error Rate -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-red-50 text-red-500 flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">error</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Error Rate</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Error Rate</span>
                 </div>
-                <div class="text-3xl font-bold text-gray-800 mb-1">2.4%</div>
+                <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1">2.4%</div>
                 <div class="flex items-center gap-1 text-red-500 text-xs font-semibold mb-2">
                     <span class="material-symbols-outlined text-[14px]">arrow_upward</span> 1.4%
                 </div>
@@ -57,14 +57,14 @@
             </div>
 
             <!-- Avg Response Time -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-green-50 text-success flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">schedule</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Avg Response Time</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Avg Response Time</span>
                 </div>
-                <div class="text-3xl font-bold text-gray-800 mb-1">112 ms</div>
+                <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1">112 ms</div>
                 <div class="flex items-center gap-1 text-success text-xs font-semibold mb-2">
                     <span class="material-symbols-outlined text-[14px]">arrow_downward</span> 8.7%
                 </div>
@@ -76,14 +76,14 @@
             </div>
 
             <!-- Slow Requests -->
-            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+            <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-4 rounded-xl shadow-sm flex flex-col">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded bg-amber-50 text-warning flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">hourglass_empty</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500">Slow Requests (&gt;500ms)</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-300">Slow Requests (&gt;500ms)</span>
                 </div>
-                <div class="text-3xl font-bold text-gray-800 mb-1">28</div>
+                <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1">28</div>
                 <div class="flex items-center gap-1 text-warning text-xs font-semibold mb-2">
                     <span class="material-symbols-outlined text-[14px]">arrow_upward</span> 5.3%
                 </div>
@@ -96,7 +96,7 @@
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
+        <div class="bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden">
             <div class="p-5 border-b border-gray-100">
                 <h2 class="text-base font-bold text-gray-800 mb-4">Request Logs</h2>
                 <div class="flex flex-wrap gap-3 items-center">
@@ -141,17 +141,17 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                        <tr class="border-b border-gray-100 bg-gray-50/50">
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Method</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Endpoint</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Status</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Response Time</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">IP Address</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase">Time</th>
-                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 uppercase text-right">Action</th>
+                        <tr class="border-b border-gray-100 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-700/50">
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Method</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Endpoint</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Status</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Response Time</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">IP Address</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase">Time</th>
+                            <th class="px-5 py-3 text-[11px] font-bold text-gray-800 dark:text-gray-100 uppercase text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50 text-[13px] text-gray-600" id="requestTableBody">
+                    <tbody class="divide-y divide-gray-50 dark:divide-gray-700 text-[13px] text-gray-600 dark:text-gray-200" id="requestTableBody">
                         <!-- Table rows will be populated by JS -->
                     </tbody>
                 </table>
