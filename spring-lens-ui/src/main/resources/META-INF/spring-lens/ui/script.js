@@ -8,6 +8,8 @@ import RequestEndpoints from './src/assets/request-endpoints.js';
 import BeanTimeline from './src/assets/bean-timeline.js';
 
 $(document).ready(() => {
+    new ThemeToggle().init();
+
     const dataLoader = new BeanDataLoader();
     const beanGraph = new BeanGraph(dataLoader);
     const beanDefinitions = new BeanDefinitions(dataLoader);
