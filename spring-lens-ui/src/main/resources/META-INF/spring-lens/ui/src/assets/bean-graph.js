@@ -467,11 +467,23 @@ export default class BeanGraph {
         $('#detail-bean-name').text(name);
         $('#detail-bean-type').text(type);
 
+        const isDark = document.documentElement.classList.contains('dark');
         const isSingleton = scope === 'singleton';
+        const bg = isDark 
+            ? (isSingleton ? 'rgba(126, 34, 206, 0.15)' : 'rgba(16, 185, 129, 0.15)') 
+            : (isSingleton ? '#f3e8ff' : '#ecfdf5');
+        const fg = isDark 
+            ? (isSingleton ? '#d8b4fe' : '#a7f3d0') 
+            : (isSingleton ? '#7e22ce' : '#047857');
+        const border = isDark 
+            ? (isSingleton ? 'rgba(126, 34, 206, 0.3)' : 'rgba(16, 185, 129, 0.3)') 
+            : (isSingleton ? '#d8b4fe' : '#bbf7d0');
+
         $('#detail-bean-scope').text(scope)
             .css({
-                background: isSingleton ? '#f3e8ff' : '#ecfdf5',
-                color: isSingleton ? '#7e22ce' : '#047857'
+                background: bg,
+                color: fg,
+                'border-color': border
             });
 
         const beanRecord = window.allBeansMap?.get(fullName);
@@ -716,5 +728,11 @@ export default class BeanGraph {
 
         $(document).on('click', '#btn-tb', () => this.setMode('tb'));
         $(document).on('click', '#btn-lr', () => this.setMode('lr'));
+
+        document.addEventListener('themechanged', () => {
+            if (this.root) {
+                this.update(null, this.root);
+            }
+        });
     }
 }

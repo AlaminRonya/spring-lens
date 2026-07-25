@@ -5,6 +5,7 @@ import BeanDefinitions from './src/assets/bean-definitions.js';
 import RequestDefinitions from './src/assets/request-definitions.js';
 import Dashboard from './src/assets/dashboard.js';
 import RequestEndpoints from './src/assets/request-endpoints.js';
+import BeanTimeline from './src/assets/bean-timeline.js';
 
 $(document).ready(() => {
     const dataLoader = new BeanDataLoader();
@@ -13,6 +14,7 @@ $(document).ready(() => {
     const requestDefinitions = new RequestDefinitions();
     const dashboard = new Dashboard(dataLoader);
     const requestEndpoints = new RequestEndpoints();
+    const beanTimeline = new BeanTimeline();
 
     // Configure routes and instantiate Route
     const appRouter = new Route({
@@ -48,12 +50,24 @@ $(document).ready(() => {
                 template: 'bean-condition-reports',
                 onEnter: () => beanDefinitions.enter(),
                 onLeave: () => beanDefinitions.leave()
+            },
+            'timeline': {
+                template: 'bean-timeline',
+                onEnter: () => beanTimeline.enter(),
+                onLeave: () => beanTimeline.leave()
             }
         }
     });
 
     // Start Route
     appRouter.init();
+
+    // Theme toggle interaction handler
+    $('#theme-toggle').on('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: isDark ? 'dark' : 'light' } }));
+    });
 
     /* ── Resize ── */
     let resizeTimer;

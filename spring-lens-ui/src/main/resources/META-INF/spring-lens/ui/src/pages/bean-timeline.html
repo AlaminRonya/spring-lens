@@ -1,0 +1,208 @@
+<!-- Topbar -->
+<header
+    class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between z-10 flex-shrink-0 h-[72px] transition-colors duration-300">
+    <div>
+        <h1 class="text-xl font-bold text-gray-800 dark:text-white">Bean Instantiation Timeline</h1>
+        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
+            SpringLens <span class="material-symbols-outlined text-[14px]">chevron_right</span> Bean <span
+                class="material-symbols-outlined text-[14px]">chevron_right</span> Instantiation Timeline
+        </div>
+    </div>
+    <div class="flex items-center gap-3">
+        <button id="time-btn-refresh"
+            class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">refresh</span>
+        </button>
+        <button id="time-btn-download"
+            class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+        </button>
+    </div>
+</header>
+
+<div class="flex-1 overflow-auto custom-scrollbar p-6 flex items-start gap-6">
+    <!-- Center Column -->
+    <div class="flex-1 flex flex-col gap-6 min-w-0">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <!-- Total Startup Time -->
+            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[14px]">timer</span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Startup Time</span>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-0.5" id="time-kpi-total">-</div>
+                    <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Cumulative init duration</span>
+                </div>
+            </div>
+
+            <!-- Slowest Bean -->
+            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-between md:col-span-1 lg:col-span-2 transition-colors duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[14px]">warning</span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Slowest Bean Initialization</span>
+                </div>
+                <div class="mt-4 min-w-0">
+                    <div class="text-lg font-bold text-gray-800 dark:text-gray-100 truncate" id="time-kpi-slowest-name">-</div>
+                    <div class="text-xs font-semibold text-red-650 dark:text-red-400 font-mono mt-0.5" id="time-kpi-slowest-val">-</div>
+                </div>
+            </div>
+
+            <!-- Bottlenecks / Heavy Beans -->
+            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded bg-orange-50 dark:bg-amber-950/20 text-warning flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[14px]">offline_bolt</span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Heavy Beans (>50ms)</span>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-0.5" id="time-kpi-heavy">-</div>
+                    <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium" id="time-kpi-heavy-pct">-</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Timeline Section -->
+        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden transition-colors duration-300">
+            <div class="p-5 border-b border-gray-100 dark:border-slate-800">
+                <h2 class="text-base font-bold text-gray-800 dark:text-white mb-4">Gantt Creation Timeline</h2>
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="relative flex-1 min-w-[240px] max-w-sm">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
+                        <input type="text" id="time-search-input" placeholder="Search beans by name or type..."
+                            class="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    </div>
+
+                    <!-- Filters and Sorters -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Threshold filter -->
+                        <select id="time-filter-duration"
+                            class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
+                            <option value="0">Duration: All</option>
+                            <option value="5">> 5ms</option>
+                            <option value="20">> 20ms</option>
+                            <option value="50">> 50ms</option>
+                            <option value="100">> 100ms</option>
+                        </select>
+
+                        <!-- Sort dropdown -->
+                        <select id="time-sort-by"
+                            class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
+                            <option value="start">Sort: Startup Order</option>
+                            <option value="duration">Sort: Duration (Slowest First)</option>
+                            <option value="name">Sort: Alphabetical</option>
+                        </select>
+
+                        <button id="time-btn-reset-filters"
+                            class="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-md px-3 py-2 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Reset
+                        </button>
+                        
+                        <select id="time-filter-size"
+                            class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
+                            <option value="15">15 per page</option>
+                            <option value="30">30 per page</option>
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gantt timeline area -->
+            <div class="flex-1 overflow-x-auto min-w-[800px] flex flex-col relative select-none">
+                <!-- Timeline Header Grid (Time labels) -->
+                <div class="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/20 flex items-center h-10 sticky top-0 z-10">
+                    <div class="w-1/3 min-w-[280px] max-w-[360px] pl-5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Bean Name</div>
+                    <div class="flex-1 h-full relative" id="time-grid-header">
+                        <!-- Dynamic time labels will go here, e.g. 0ms, 200ms, ... -->
+                    </div>
+                </div>
+
+                <!-- Timeline Rows Body -->
+                <div class="divide-y divide-gray-50 dark:divide-slate-800 text-[13px] text-gray-600 dark:text-gray-300 flex-1 relative min-h-[400px]" id="time-gantt-body">
+                    <!-- Vertical gridline overlays -->
+                    <div class="absolute inset-y-0 left-0 right-0 pointer-events-none flex" id="time-grid-lines">
+                        <!-- Dynamic vertical line bars matching time labels -->
+                    </div>
+                    
+                    <!-- Dynamic timeline rows populated by JS -->
+                    <div class="relative z-10 w-full" id="time-rows-container">
+                        <!-- Rows rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-5 py-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 mt-auto">
+                <div class="text-xs text-gray-500 dark:text-gray-400" id="time-pagination-info">Showing 0 to 0 of 0 beans</div>
+                <div class="flex items-center gap-1" id="time-pagination-buttons">
+                    <!-- Dynamic page buttons -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right Sidebar - Instantiation Details & Dependency Hybrid Timeline -->
+    <div class="w-[380px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col flex-shrink-0 sticky top-0 transition-colors duration-300"
+        style="height: calc(100vh - 120px); display: none;" id="time-details-sidebar">
+        <div class="p-5 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between">
+            <div>
+                <h3 class="font-bold text-sm text-gray-800 dark:text-white">Timeline Analysis</h3>
+                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium font-mono uppercase tracking-wide">Initialization Details</span>
+            </div>
+            <button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="time-close-sidebar">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+
+        <!-- Sidebar Properties Info Panel -->
+        <div class="p-5 pb-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/20">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center border border-primary/10 dark:border-primary/20 shadow-sm"
+                    id="time-sidebar-icon-container">
+                    <span class="material-symbols-outlined" id="time-sidebar-icon">bolt</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate" id="time-sidebar-name">-</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate" id="time-sidebar-type" title="">-</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
+                <div>
+                    <div class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold uppercase">Start Time</div>
+                    <div class="text-xs font-mono font-bold text-gray-800 dark:text-gray-100 mt-0.5" id="time-sidebar-start">-</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold uppercase">Duration</div>
+                    <div class="text-xs font-mono font-bold text-primary dark:text-purple-350 mt-0.5" id="time-sidebar-duration">-</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold uppercase">End Time</div>
+                    <div class="text-xs font-mono font-bold text-gray-800 dark:text-gray-100 mt-0.5" id="time-sidebar-end">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 2: Dependency Initialization Tree -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col">
+            <h4 class="text-[11px] font-bold text-gray-800 dark:text-white uppercase tracking-wider mb-3">Dependency Initialization Cascade</h4>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 leading-normal mb-4">
+                This shows the initialization timeline of this bean's dependencies. The shaded block represents relative offset and execution time.
+            </p>
+            <div class="space-y-4 flex-1" id="time-sidebar-tree-container">
+                <!-- Dynamic cascade tree will be built here -->
+            </div>
+        </div>
+    </div>
+</div>

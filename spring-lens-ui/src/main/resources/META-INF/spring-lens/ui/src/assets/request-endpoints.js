@@ -93,21 +93,21 @@ export default class RequestEndpoints {
         // Render rows
         const rowsHtml = filtered.map(ep => {
             const methodClass = ep.method.toLowerCase();
-            const methodColor = methodClass === 'get' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                methodClass === 'post' ? 'bg-green-50 text-green-700 border-green-100' :
-                                methodClass === 'put' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                'bg-red-50 text-red-600 border-red-200';
+            const methodColor = methodClass === 'get' ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900/30' :
+                                methodClass === 'post' ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-900/30' :
+                                methodClass === 'put' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900/30' :
+                                'bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-300 border-red-200 dark:border-red-900/30';
 
             return `
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors border-b border-gray-100 dark:border-slate-800">
                     <td class="px-6 py-3.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${methodColor}">${ep.method}</span>
                     </td>
-                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 truncate max-w-[300px]" title="${ep.path}">${ep.path}</td>
-                    <td class="px-6 py-3.5 text-center text-xs font-semibold text-gray-800">${ep.hits}</td>
-                    <td class="px-6 py-3.5 text-center text-xs text-gray-600">${ep.avgTime} ms</td>
-                    <td class="px-6 py-3.5 text-center text-xs text-gray-600">${ep.maxTime} ms</td>
-                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500">${ep.service}</td>
+                    <td class="px-6 py-3.5 font-mono text-xs text-gray-700 dark:text-gray-300 truncate max-w-[300px]" title="${ep.path}">${ep.path}</td>
+                    <td class="px-6 py-3.5 text-center text-xs font-semibold text-gray-800 dark:text-gray-100">${ep.hits}</td>
+                    <td class="px-6 py-3.5 text-center text-xs text-gray-600 dark:text-gray-400">${ep.avgTime} ms</td>
+                    <td class="px-6 py-3.5 text-center text-xs text-gray-600 dark:text-gray-400">${ep.maxTime} ms</td>
+                    <td class="px-6 py-3.5 font-mono text-[11px] text-gray-500 dark:text-gray-400">${ep.service}</td>
                 </tr>
             `;
         }).join('');
