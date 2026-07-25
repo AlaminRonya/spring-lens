@@ -9,7 +9,7 @@ import java.util.Set;
 @SpringLensInternalComponent
 @ConfigurationProperties(prefix = "spring.lens.bean")
 public class SpringLensBeanProperties {
-    
+
     private final Definition definition = new Definition();
     private final Instance instance = new Instance();
     private final Include include = new Include();

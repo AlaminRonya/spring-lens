@@ -36,19 +36,32 @@
             }
         }
     </script>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased h-screen flex overflow-hidden transition-colors duration-200">
+<body class="bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-gray-100 font-sans antialiased h-screen flex overflow-hidden transition-colors duration-300">
 
 <!-- Sidebar -->
-<aside class="w-64 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col h-full flex-shrink-0 transition-colors duration-200">
-    <div class="p-5 flex items-center gap-3">
-        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md">
-            <span class="material-symbols-outlined text-[20px]">layers</span>
+<aside class="w-64 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col h-full flex-shrink-0 transition-colors duration-300">
+    <div class="p-5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
+                <span class="material-symbols-outlined text-[20px]">layers</span>
+            </div>
+            <h1 class="font-bold text-lg tracking-tight text-gray-850 dark:text-white">Spring Lens</h1>
         </div>
-        <h1 class="font-bold text-lg tracking-tight dark:text-gray-100">Spring Lens</h1>
-        <button id="theme-toggle" type="button" class="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white dark:focus-visible:ring-offset-gray-800" aria-label="Switch to dark mode"
-                aria-pressed="false" title="Switch to dark mode">
-            <span class="material-symbols-outlined theme-toggle-icon" aria-hidden="true">dark_mode</span>
+        <button id="theme-toggle" class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer" aria-label="Toggle theme">
+            <span class="material-symbols-outlined text-[18px] dark:hidden">dark_mode</span>
+            <span class="material-symbols-outlined text-[18px] hidden dark:inline">light_mode</span>
         </button>
     </div>
 
@@ -82,13 +95,10 @@
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200 chevron-icon">expand_more</span>
                 </a>
                 <div class="submenu ml-10 space-y-1 mt-1 hidden">
-                    <a data-page="definitions" href="#/definitions"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Definitions</a>
-                    <a data-page="graph" href="#/graph"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Graph</a>
-                    <a data-page="conditions" href="#/conditions"
-                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Condition
-                        Reports</a>
+                    <a data-page="definitions" href="#/definitions" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Definitions</a>
+                    <a data-page="graph" href="#/graph" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Graph</a>
+                    <a data-page="conditions" href="#/conditions" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Condition Reports</a>
+                    <a data-page="timeline" href="#/timeline" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Timeline</a>
                 </div>
             </div>
 
@@ -97,7 +107,7 @@
 </aside>
 
 <!-- Main Content -->
-<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
 
 </main>
 

@@ -38,7 +38,20 @@
     display: block !important;
 }
 
-/* Selected bean row left border indicator */
-tr.bg-primary-light\/40 td:first-child {
+tr.bg-primary-light\/40 td:first-child,
+tr.dark\:bg-primary\/20 td:first-child {
     border-left: 2px solid #6b46c1 !important;
+}
+
+/* Smooth transitions for theme switching */
+body, aside, main, header, .card, button, input, select, table, tr, th, td, div {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Custom scrollbars in dark mode */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155; /* Slate 700 */
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #475569; /* Slate 600 */
 }
