@@ -281,9 +281,7 @@ class EndpointInfoContextTest {
         );
 
         CompositeMatcher<EndpointInfoContext> compositeMatcher = buildCompositeMatcher();
-
-        // Note: CompositeMatcher.matches(...) currently returns false by stub design until business logic is implemented.
-        assertThat(compositeMatcher.matches(context)).isFalse();
+        assertThat(compositeMatcher.matches(context)).isTrue();
     }
 
     /**
@@ -301,7 +299,7 @@ class EndpointInfoContextTest {
                 HandlerType.CONTROLLER
         );
 
-        assertThat(matcher.matches(context)).isFalse();
+        assertThat(matcher.matches(context)).isTrue();
     }
 
     /**
@@ -315,14 +313,13 @@ class EndpointInfoContextTest {
 
         matcher.addIncludeMatcher(includeMatcher);
 
-        // matches() is still a stub returning false, but we verify the method exists and doesn't throw
         EndpointInfoContext context = new EndpointInfoContext(
                 String.class,
                 "/api/test",
                 EnumSet.of(HttpRequestMethod.GET),
                 HandlerType.CONTROLLER
         );
-        assertThat(matcher.matches(context)).isFalse();
+        assertThat(matcher.matches(context)).isTrue();
     }
 
     /**
@@ -342,7 +339,7 @@ class EndpointInfoContextTest {
                 EnumSet.of(HttpRequestMethod.GET),
                 HandlerType.CONTROLLER
         );
-        assertThat(matcher.matches(context)).isFalse();
+        assertThat(matcher.matches(context)).isTrue();
     }
 
     /**
@@ -363,7 +360,7 @@ class EndpointInfoContextTest {
                 Collections.emptyList()
         );
 
-        assertThat(matcher.matches(context)).isFalse();
+        assertThat(matcher.matches(context)).isTrue();
     }
 
     /**
