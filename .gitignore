@@ -33,7 +33,7 @@ target/
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
-.idea/libraries/cd
+.idea/libraries/cdgit
 *.iws
 *.iml
 *.ipr

@@ -6,11 +6,13 @@
     <title>Spring Lens - Beans</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"/>
     <link rel="stylesheet" href="style.css">
     <script src="./src/lib/jquery-3.6.0.min.js"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -34,37 +36,59 @@
             }
         }
     </script>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased h-screen flex overflow-hidden">
+<body class="bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-gray-100 font-sans antialiased h-screen flex overflow-hidden transition-colors duration-300">
 
 <!-- Sidebar -->
-<aside class="w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0">
-    <div class="p-5 flex items-center gap-3">
-        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md">
-            <span class="material-symbols-outlined text-[20px]">layers</span>
+<aside class="w-64 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col h-full flex-shrink-0 transition-colors duration-300">
+    <div class="p-5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
+                <span class="material-symbols-outlined text-[20px]">layers</span>
+            </div>
+            <h1 class="font-bold text-lg tracking-tight text-gray-850 dark:text-white">Spring Lens</h1>
         </div>
-        <h1 class="font-bold text-lg tracking-tight">Spring Lens</h1>
+        <button id="theme-toggle" class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors cursor-pointer" aria-label="Toggle theme">
+            <span class="material-symbols-outlined text-[18px] dark:hidden">dark_mode</span>
+            <span class="material-symbols-outlined text-[18px] hidden dark:inline">light_mode</span>
+        </button>
     </div>
 
     <div class="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4">
         <nav class="space-y-0.5">
-            <a data-page="dashboard" href="#/dashboard" class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link">
+            <a data-page="dashboard" href="#/dashboard"
+               class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link">
                 <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
             </a>
             <div class="menu-group pt-2">
-                <a data-page="request" href="#/request" class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link parent-link">
+                <a data-page="request" href="#/request"
+                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[20px]">compare_arrows</span> Http Insight
                     </div>
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200 chevron-icon">expand_more</span>
                 </a>
                 <div class="submenu ml-10 space-y-1 mt-1 hidden">
-                    <a data-page="request" href="#/request" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Requests</a>
-                    <a data-page="request-endpoint" href="#/request-endpoint" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Endpoints</a>
+                    <a data-page="request" href="#/request"
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Requests</a>
+                    <a data-page="request-endpoint" href="#/request-endpoint"
+                       class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Endpoints</a>
                 </div>
             </div>
             <div class="menu-group pt-2">
-                <a data-page="definitions" href="#/definitions" class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-md text-sm font-medium transition-colors nav-link parent-link">
+                <a data-page="definitions" href="#/definitions"
+                   class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[20px]">view_in_ar</span> Beans
                     </div>
@@ -74,6 +98,7 @@
                     <a data-page="definitions" href="#/definitions" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Definitions</a>
                     <a data-page="graph" href="#/graph" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Graph</a>
                     <a data-page="conditions" href="#/conditions" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Condition Reports</a>
+                    <a data-page="timeline" href="#/timeline" class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Timeline</a>
                 </div>
             </div>
 
@@ -82,7 +107,7 @@
 </aside>
 
 <!-- Main Content -->
-<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+<main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
 
 </main>
 
