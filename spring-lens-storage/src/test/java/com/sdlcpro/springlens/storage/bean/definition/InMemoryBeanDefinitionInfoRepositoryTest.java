@@ -7,12 +7,14 @@ import com.sdlcpro.springlens.query.Filters;
 import com.sdlcpro.springlens.query.PageRequest;
 import com.sdlcpro.springlens.query.PageResponse;
 import com.sdlcpro.springlens.query.Sort;
+import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatException;
 
 class InMemoryBeanDefinitionInfoRepositoryTest {
 
@@ -73,9 +75,10 @@ class InMemoryBeanDefinitionInfoRepositoryTest {
     @Test
     void deleteByIdRemovesEntry() {
         repository.save(bean("ctx", "alpha"));
-        repository.deleteById(new BeanInfoCompositeKey("ctx", "alpha"));
-        assertThat(repository.count()).isZero();
-        assertThat(repository.findById(new BeanInfoCompositeKey("ctx", "alpha"))).isEmpty();
+        assertThatException()
+                .isThrownBy(() -> repository.deleteById(new BeanInfoCompositeKey("ctx", "alpha")))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .withMessage("Bean definitions are not allowed to remove");
     }
 
     @Test
