@@ -2,6 +2,8 @@ package com.sdlcpro.springlens.insight.support.matcher;
 
 import com.sdlcpro.springlens.insight.support.provider.ClassProvider;
 import com.sdlcpro.springlens.matcher.Matcher;
+import com.sdlcpro.springlens.util.ClassInspector;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.Set;
@@ -33,15 +35,11 @@ public class AnnotatedClassMatcher<T extends ClassProvider> implements Matcher<T
      */
     @Override
     public boolean matches(T context) {
-        if (context == null) {
+        if (context == null || context.getClazz() == null || CollectionUtils.isEmpty(this.annotations)) {
             return false;
         }
 
-        Class<?> targetClass = context.getClazz();
-        if (targetClass == null) {
-            return false;
-        }
-
-        return annotations.stream().anyMatch(targetClass::isAnnotationPresent);
+        return this.annotations.stream()
+                .anyMatch(annoClass -> annoClass != null && ClassInspector.hasAnnotation(context.getClazz(), annoClass));
     }
 }

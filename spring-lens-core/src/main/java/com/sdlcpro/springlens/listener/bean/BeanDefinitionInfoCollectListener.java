@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.listener.bean.definition;
+package com.sdlcpro.springlens.listener.bean;
 
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 

@@ -1,4 +1,4 @@
-package com.sdlcpro.springlens.listener.bean.instance;
+package com.sdlcpro.springlens.listener.bean;
 
 import com.sdlcpro.springlens.model.bean.instance.BeanInstanceInfo;
 

@@ -15,8 +15,6 @@ public class SpringLensBeanProperties {
     private final Include include = new Include();
     private final Exclude exclude = new Exclude();
 
-    // Getter methods of definition, instance, include, exclude
-
     public Definition getDefinition() {
         return definition;
     }
@@ -36,8 +34,6 @@ public class SpringLensBeanProperties {
     public static class Definition {
         private boolean enabled = true;
 
-        // Setter & Getter methods
-
         public boolean isEnabled() {
             return enabled;
         }
@@ -49,8 +45,6 @@ public class SpringLensBeanProperties {
 
     public static class Instance {
         private boolean enabled = true;
-
-       // Setter & Getter methods
 
         public boolean isEnabled() {
             return enabled;
@@ -64,8 +58,6 @@ public class SpringLensBeanProperties {
     public static class Include {
         private boolean roleInfra = false;
         private boolean toolInternal = false;
-
-        // Setter & Getter methods
 
         public boolean isRoleInfra() {
             return roleInfra;
@@ -87,8 +79,6 @@ public class SpringLensBeanProperties {
     public static class Exclude {
         private final Set<String> packagePatterns = new HashSet<>();
         private final Set<String> classes = new HashSet<>();
-
-        // Setter & Getter methods
 
         public Set<String> getPackagePatterns() {
             return packagePatterns;
