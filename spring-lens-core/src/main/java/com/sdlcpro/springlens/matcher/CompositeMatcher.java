@@ -35,7 +35,24 @@ public final class CompositeMatcher<T> implements Matcher<T> {
 
     @Override
     public boolean matches(T context) {
-        // TODO: core business logic will be updated later
+        if(!this.excludeMatchers.isEmpty()) {
+            for (Matcher<T> matcher : this.excludeMatchers) {
+                if (matcher.matches(context)) {
+                    return false;
+                }
+            }
+        }
+
+        if (this.includeMatchers.isEmpty()) {
+            return true;
+        }
+
+        for (Matcher<T> matcher : this.includeMatchers) {
+            if (matcher.matches(context)) {
+                return true;
+            }
+        }
+
         return false;
     }
 }
