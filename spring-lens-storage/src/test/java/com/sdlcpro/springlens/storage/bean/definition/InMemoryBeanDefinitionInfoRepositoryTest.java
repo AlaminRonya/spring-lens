@@ -79,6 +79,7 @@ class InMemoryBeanDefinitionInfoRepositoryTest {
                 .isThrownBy(() -> repository.deleteById(new BeanInfoCompositeKey("ctx", "alpha")))
                 .isInstanceOf(UnsupportedOperationException.class)
                 .withMessage("Bean definitions are not allowed to remove");
+        assertThat(repository.count()).isNotZero();
     }
 
     @Test
