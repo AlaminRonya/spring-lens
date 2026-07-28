@@ -1,6 +1,7 @@
 package com.sdlcpro.springlens.autoconfigure.bean.definition;
 
-import com.sdlcpro.springlens.insight.bean.BeanDefinitionInfoCollector;
+import com.sdlcpro.springlens.exposure.bean.BeanDefinitionInfoRestController;
+import com.sdlcpro.springlens.insight.bean.definition.BeanDefinitionInfoCollector;
 import com.sdlcpro.springlens.repository.bean.BeanDefinitionInfoRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -18,7 +19,7 @@ class SpringLensBeanDefinitionInfoAutoConfigurationTest {
         runner.run(context -> {
             assertThat(context).hasSingleBean(BeanDefinitionInfoRepository.class);
             assertThat(context).hasSingleBean(BeanDefinitionInfoCollector.class);
-            assertThat(context).hasBean("springLensBeanDetailsRestController");
+            assertThat(context).hasSingleBean(BeanDefinitionInfoRestController.class);
         });
     }
 
@@ -28,7 +29,7 @@ class SpringLensBeanDefinitionInfoAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(BeanDefinitionInfoRepository.class);
                     assertThat(context).doesNotHaveBean(BeanDefinitionInfoCollector.class);
-                    assertThat(context).doesNotHaveBean("springLensBeanDetailsRestController");
+                    assertThat(context).doesNotHaveBean(BeanDefinitionInfoRestController.class);
                 });
     }
 }
