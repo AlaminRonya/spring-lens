@@ -1,9 +1,10 @@
 package com.sdlcpro.springlens.insight.http.endpoint;
 
-import java.util.Set;
-
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 import com.sdlcpro.springlens.model.http.endpoint.HandlerType;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Immutable configuration settings used by endpoint information collectors.
@@ -27,25 +28,31 @@ import com.sdlcpro.springlens.model.http.endpoint.HandlerType;
  * </p>
  *
  * @param includeToolInternal whether internally exposed endpoints should be collected
- * @param excludeUriPatterns URI path patterns to ignore
- * @param excludeMethods HTTP methods to exclude
+ * @param excludeUriPatterns  URI path patterns to ignore
+ * @param excludeMethods      HTTP methods to exclude
  * @param excludeHandlerTypes handler types to exclude
  */
 public record EndpointInfoCollectorSettings(
         boolean includeToolInternal,
         Set<String> excludeUriPatterns,
-        Set<HttpRequestMethod> excludeMethods,
-        Set<HandlerType> excludeHandlerTypes
+        EnumSet<HttpRequestMethod> excludeMethods,
+        EnumSet<HandlerType> excludeHandlerTypes
 ) {
 
     /**
      * Creates immutable collector settings.
      */
     public EndpointInfoCollectorSettings {
-        excludeUriPatterns = excludeUriPatterns == null ? Set.of() : Set.copyOf(excludeUriPatterns);
+        excludeUriPatterns = excludeUriPatterns == null
+                ? Set.of()
+                : Set.copyOf(excludeUriPatterns);
 
-        excludeMethods = excludeMethods == null ? Set.of() : Set.copyOf(excludeMethods);
+        excludeMethods = excludeMethods == null
+                ? EnumSet.noneOf(HttpRequestMethod.class)
+                : EnumSet.copyOf(excludeMethods);
 
-        excludeHandlerTypes = excludeHandlerTypes == null ? Set.of() : Set.copyOf(excludeHandlerTypes);
+        excludeHandlerTypes = excludeHandlerTypes == null
+                ? EnumSet.noneOf(HandlerType.class)
+                : EnumSet.copyOf(excludeHandlerTypes);
     }
 }
