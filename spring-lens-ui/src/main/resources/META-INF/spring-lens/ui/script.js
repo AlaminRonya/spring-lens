@@ -1,14 +1,13 @@
 import Route from './src/assets/route.js';
-import BeanDataLoader from './src/assets/bean-data-loader.js';
-import BeanGraph from './src/assets/bean-graph.js';
-import BeanDefinitions from './src/assets/bean-definitions.js';
-import RequestDefinitions from './src/assets/request-definitions.js';
 import Dashboard from './src/assets/dashboard.js';
-import RequestEndpoints from './src/assets/request-endpoints.js';
+import BeanGraph from './src/assets/bean-graph.js';
 import BeanTimeline from './src/assets/bean-timeline.js';
+import BeanDataLoader from './src/assets/bean-data-loader.js';
+import BeanDefinitions from './src/assets/bean-definitions.js';
+import RequestEndpoints from './src/assets/request-endpoints.js';
+import RequestDefinitions from './src/assets/request-definitions.js';
 
 $(document).ready(() => {
-    new ThemeToggle().init();
 
     const dataLoader = new BeanDataLoader();
     const beanGraph = new BeanGraph(dataLoader);
