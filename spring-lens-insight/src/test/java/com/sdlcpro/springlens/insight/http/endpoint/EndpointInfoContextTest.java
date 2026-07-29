@@ -46,8 +46,9 @@ class EndpointInfoContextTest {
         mutableMethods.add(HttpRequestMethod.DELETE);
         assertThat(context.getHttpRequestMethods()).doesNotContain(HttpRequestMethod.DELETE);
 
-        assertThatThrownBy(() -> context.getHttpRequestMethods().add(HttpRequestMethod.PUT))
-                .isInstanceOf(UnsupportedOperationException.class);
+        var httpMethods = context.getHttpRequestMethods();
+        httpMethods.add(HttpRequestMethod.PUT);
+        assertThat(context.getHttpRequestMethods().contains(HttpRequestMethod.PUT)).isFalse();
     }
 
     /**
