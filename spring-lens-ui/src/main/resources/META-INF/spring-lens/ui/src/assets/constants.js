@@ -1,3 +1,5 @@
+export const BEAN_DEFINITION_API_URL = "spring-lens/api/beans/definitions";
+
 // UI layout constants for Spring Lens
 export const NW = 196;
 export const NH = 44;

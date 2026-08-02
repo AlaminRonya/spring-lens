@@ -1,8 +1,54 @@
-import {NH, NW, NODE_STYLES, DEFAULT_NODE_STYLE} from "./constants.js";
+import {NH, NW, NODE_STYLES, DEFAULT_NODE_STYLE, BEAN_TYPE_RULES} from "./constants.js";
 
 export const css = variableName => getComputedStyle(document.documentElement)
             .getPropertyValue(variableName)
             .trim();
+
+export function getApiUrl(path = '/spring-lens/api/beans/definitions') {
+    if (path && (path.startsWith('http://') || path.startsWith('https://'))) {
+        return path;
+    }
+    const origin = window.location.origin || `${window.location.protocol}//${window.location.host}`;
+    const cleanPath = (path || '').startsWith('/') ? path : `/${path || ''}`;
+    return `${origin}${cleanPath}`;
+}
+
+export function capitalize(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+export function formatPercentage(count, total) {
+    if (!total) return '0%';
+    const pctVal = (count / total) * 100;
+    if (pctVal > 0 && pctVal < 1) {
+        return '< 1%';
+    } else if (pctVal > 99 && pctVal < 100) {
+        return '> 99%';
+    } else {
+        return Math.round(pctVal) + '%';
+    }
+}
+
+export function resolveBeanMetadata(bean) {
+    if (!bean) return { icon: 'extension', color: '#6b46c1' };
+    const name = (bean.beanName || '').toLowerCase();
+    const type = (bean.type || '').toLowerCase();
+
+    const rule = BEAN_TYPE_RULES.find(r =>
+        r.keywords.some(keyword => name.includes(keyword) || type.includes(keyword))
+    );
+
+    if (rule) {
+        return { icon: rule.icon, color: rule.color };
+    }
+
+    const style = nodeStyle({ fullName: bean.beanName, meta: { type: bean.type } });
+    return {
+        icon: 'extension',
+        color: style.stroke || '#6b46c1'
+    };
+}
 
 export function getBeanCategory(node) {
     if (!node) return 'leaf';

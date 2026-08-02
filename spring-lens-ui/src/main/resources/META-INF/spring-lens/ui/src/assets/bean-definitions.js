@@ -1,11 +1,11 @@
-import { TEMPLATES, BEAN_TYPE_RULES, SCOPE_COLORS, ROLE_COLORS, SCOPE_STYLES, DEFAULT_SCOPE_STYLE, DEPENDENCY_CATEGORY_COLORS } from './constants.js';
-import { getBeanCategory, nodeStyle } from './utils.js';
+import { TEMPLATES, SCOPE_COLORS, ROLE_COLORS, SCOPE_STYLES, DEFAULT_SCOPE_STYLE, DEPENDENCY_CATEGORY_COLORS } from './constants.js';
+import { getBeanCategory, nodeStyle, getApiUrl, capitalize, formatPercentage, resolveBeanMetadata } from './utils.js';
 import { BeanTreeBuilder } from './bean-data-loader.js';
 
 /**
  * Controller class for the Beans Definitions dashboard tab.
- * Renders list tables, processes filters, aggregates bean metrics via Chart.js,
- * and manages detail sidebar selection.
+ * Manages view state (pagination, filters, search, sorting), renders table data via server API,
+ * manages D3/Chart.js metrics, and handles detail sidebar interactivity.
  */
 export default class BeanDefinitions {
 
@@ -16,27 +16,45 @@ export default class BeanDefinitions {
             roleChart: null
         };
 
-        // State variables
+        // All beans dataset (used for overall KPIs, charts, dropdown options)
         this.beans = [];
-        this.filteredBeans = [];
+
+        // Server-paginated data for current table view
+        this.pageBeans = [];
+
+        // API Pagination Metadata state
+        this.pagination = {
+            totalElements: 0,
+            totalPages: 1,
+            pageNumber: 0,
+            pageSize: 10,
+            first: true,
+            last: true
+        };
+
         this.searchQuery = '';
 
         this.filters = {
+            contextId: '',
+            beanName: '',
             scope: '',
             role: '',
             primary: '',
             lazy: ''
         };
 
-        this.currentPage = 1;
+        this.currentPage = 1; // 1-indexed representation for UI display
         this.pageSize = 10;
+        this.sortBy = '';
+        this.sortDir = 'asc';
+
         this.selectedBeanName = null;
         this.activeTab = 'properties'; // 'properties' | 'dependencies' | 'dependents'
     }
 
     /**
-     * Initializes the view by loading live bean definitions, setting up metrics,
-     * building charts, applying filters, and registering event handlers.
+     * Initializes the view by loading overall bean dataset for metrics, setting up dropdowns,
+     * building charts, fetching paginated table data from API, and registering event handlers.
      */
     async enter() {
         try {
@@ -50,11 +68,14 @@ export default class BeanDefinitions {
             this.initFilterDropdowns();
             this.updateKPIs();
             this.initCharts();
-            this.applyFiltersAndRender();
             this.initEvents();
 
+            await this.fetchTableData();
+
             // Select the first bean as default details if available
-            if (this.beans.length > 0) {
+            if (this.pageBeans.length > 0) {
+                this.selectBean(this.pageBeans[0].beanName);
+            } else if (this.beans.length > 0) {
                 this.selectBean(this.beans[0].beanName);
             }
         } catch (error) {
@@ -70,32 +91,45 @@ export default class BeanDefinitions {
     }
 
     /**
-     * Populates filter dropdowns with unique options aggregated from the live dataset.
+     * Populates filter dropdowns with unique options aggregated from the dataset.
      */
     initFilterDropdowns() {
+        let $defFilterContext = $('#def-filter-context');
         let $defFilterScope = $('#def-filter-scope');
         let $defFilterRole = $('#def-filter-role');
 
+        const contexts = new Set();
         const scopes = new Set();
         const roles = new Set();
 
         this.beans.forEach(bean => {
+            if (bean.contextId) contexts.add(bean.contextId);
             if (bean.scope) scopes.add(bean.scope);
             if (bean.role) roles.add(bean.role);
         });
+
+        if ($defFilterContext.length > 0) {
+            this._populateDropdown(
+                $defFilterContext,
+                contexts,
+                'Context: All',
+                ctx => ctx
+            );
+            $defFilterContext.val(this.filters.contextId);
+        }
 
         this._populateDropdown(
             $defFilterScope,
             scopes,
             'Scope: All',
-            scope => this._capitalize(scope)
+            scope => capitalize(scope)
         );
 
         this._populateDropdown(
             $defFilterRole,
             roles,
             'Role: All',
-            role => this._capitalize(role.replace(/^ROLE_/, ''))
+            role => capitalize(role.replace(/^ROLE_/, ''))
         );
 
         // Sync dropdown selectors with active filter state
@@ -183,7 +217,7 @@ export default class BeanDefinitions {
             'scopeChart',
             'scopeChart',
             '#def-scope-legend',
-            bean => this._capitalize(bean.scope || 'unknown'),
+            bean => capitalize(bean.scope || 'unknown'),
             SCOPE_COLORS,
             '#a855f7'
         );
@@ -193,7 +227,7 @@ export default class BeanDefinitions {
             'roleChart',
             'roleChart',
             '#def-role-legend',
-            bean => this._capitalize((bean.role || 'unknown').replace(/^ROLE_/, '')),
+            bean => capitalize((bean.role || 'unknown').replace(/^ROLE_/, '')),
             ROLE_COLORS,
             '#cbd5e1'
         );
@@ -216,7 +250,7 @@ export default class BeanDefinitions {
 
         const legendHtml = labels.map((lbl, idx) => {
             const count = data[idx];
-            const pctStr = this._formatPercentage(count, this.beans.length);
+            const pctStr = formatPercentage(count, this.beans.length);
             const color = bgColors[idx];
             return TEMPLATES.chartLegendItem({ color, lbl, count, pctStr });
         }).join('');
@@ -228,32 +262,6 @@ export default class BeanDefinitions {
             data,
             bgColors
         );
-    }
-
-    /**
-     * Formats count into a percentage string relative to total.
-     * Special formatting ranges: < 1% for values between 0% and 1%, > 99% for values between 99% and 100%.
-     * @private
-     */
-    _formatPercentage(count, total) {
-        if (!total) return '0%';
-        const pctVal = (count / total) * 100;
-        if (pctVal > 0 && pctVal < 1) {
-            return '< 1%';
-        } else if (pctVal > 99 && pctVal < 100) {
-            return '> 99%';
-        } else {
-            return Math.round(pctVal) + '%';
-        }
-    }
-
-    /**
-     * Capitalizes the first letter of a string and converts the rest to lowercase.
-     * @private
-     */
-    _capitalize(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
 
     /**
@@ -288,100 +296,181 @@ export default class BeanDefinitions {
     }
 
     /**
-     * Filters the raw beans using search queries and select values, then renders.
+     * Displays a loading spinner in the table body while fetching from API.
      */
-    applyFiltersAndRender() {
-        this.filteredBeans = this.beans.filter(bean => this._matchesFilters(bean));
-        this._adjustCurrentPageBounds();
-        this.renderTable();
-        this.renderPagination();
+    showTableLoading() {
+        const $tbody = $('#beanTableBody');
+        if ($tbody.length === 0) return;
+        $tbody.html(`
+            <tr>
+                <td colspan="8" class="px-5 py-12 text-center text-gray-400">
+                    <div class="flex flex-col items-center justify-center gap-2">
+                        <span class="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></span>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Loading bean definitions...</span>
+                    </div>
+                </td>
+            </tr>
+        `);
     }
 
     /**
-     * Checks if a bean matches the active search query and dropdown filters.
-     * @private
+     * Displays an error message in the table body if API request fails.
      */
-    _matchesFilters(bean) {
-        // Search text
+    renderTableError(message) {
+        const $tbody = $('#beanTableBody');
+        if ($tbody.length === 0) return;
+        $tbody.html(`
+            <tr>
+                <td colspan="8" class="px-5 py-8 text-center text-red-500 dark:text-red-400">
+                    <div class="flex items-center justify-center gap-2 text-sm font-semibold">
+                        <span class="material-symbols-outlined text-lg">warning</span>
+                        <span>Failed to fetch table data: ${message}</span>
+                    </div>
+                </td>
+            </tr>
+        `);
+    }
+
+    /**
+     * Fetches paginated bean definitions from backend API using search, filters, sorting, and pagination query params.
+     */
+    async fetchTableData() {
+        this.showTableLoading();
+
+        const params = new URLSearchParams();
+        params.append('pageNumber', (this.currentPage - 1).toString());
+        params.append('pageSize', this.pageSize.toString());
+
         if (this.searchQuery) {
-            const query = this.searchQuery.toLowerCase();
-            const searchableFields = [bean.beanName, bean.type, bean.contextId];
-            const hasMatch = searchableFields.some(field =>
-                (field || '').toLowerCase().includes(query)
-            );
-            if (!hasMatch) {
-                return false;
+            params.append('search', this.searchQuery);
+        }
+        if (this.filters.contextId) {
+            params.append('contextId', this.filters.contextId);
+        }
+        if (this.filters.beanName) {
+            params.append('beanName', this.filters.beanName);
+        }
+        if (this.filters.scope) {
+            params.append('scope', this.filters.scope);
+        }
+        if (this.filters.role) {
+            params.append('role', this.filters.role);
+        }
+        if (this.filters.primary !== '') {
+            params.append('primary', this.filters.primary);
+        }
+        if (this.filters.lazy !== '') {
+            params.append('lazyInit', this.filters.lazy);
+        }
+        if (this.sortBy) {
+            params.append('sortBy', this.sortBy);
+        }
+        if (this.sortDir) {
+            params.append('sortDir', this.sortDir);
+        }
+
+        const baseUrl = getApiUrl(this.dataLoader?.dataUrl || '/spring-lens/api/beans/definitions');
+        const requestUrl = `${baseUrl}?${params.toString()}`;
+
+        try {
+            const response = await fetch(requestUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+
+            if (data && Array.isArray(data.content)) {
+                // Paginated API response metadata mapping
+                this.pageBeans = data.content;
+                this.pagination = {
+                    totalElements: data.totalElements !== undefined ? data.totalElements : data.content.length,
+                    totalPages: data.totalPages !== undefined ? data.totalPages : 1,
+                    pageNumber: data.pageNumber !== undefined ? data.pageNumber : 0,
+                    pageSize: data.pageSize !== undefined ? data.pageSize : this.pageSize,
+                    first: data.first !== undefined ? data.first : (data.pageNumber === 0),
+                    last: data.last !== undefined ? data.last : (data.pageNumber >= ((data.totalPages || 1) - 1))
+                };
+            } else if (Array.isArray(data)) {
+                // Fallback for flat array responses
+                const total = data.length;
+                const totalPages = Math.max(1, Math.ceil(total / this.pageSize));
+                const pageNum = Math.max(0, Math.min(this.currentPage - 1, totalPages - 1));
+                this.pageBeans = data.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize);
+                this.pagination = {
+                    totalElements: total,
+                    totalPages: totalPages,
+                    pageNumber: pageNum,
+                    pageSize: this.pageSize,
+                    first: pageNum === 0,
+                    last: pageNum >= totalPages - 1
+                };
+            } else {
+                this.pageBeans = [];
+                this.pagination = {
+                    totalElements: 0,
+                    totalPages: 1,
+                    pageNumber: 0,
+                    pageSize: this.pageSize,
+                    first: true,
+                    last: true
+                };
+            }
+
+            // Sync UI current page and page size directly with API response values
+            this.currentPage = this.pagination.pageNumber + 1;
+            this.pageSize = this.pagination.pageSize;
+
+            // Cache fetched beans into window.allBeansMap for detail sidebar dependency lookups
+            if (window.allBeansMap) {
+                this.pageBeans.forEach(b => {
+                    if (b.beanName && !window.allBeansMap.has(b.beanName)) {
+                        window.allBeansMap.set(b.beanName, b);
+                    }
+                });
+            }
+
+            this.renderTable();
+            this.renderPagination();
+            this.updateSortHeaderIcons();
+        } catch (error) {
+            console.error('Error fetching bean definitions table data:', error);
+            this.renderTableError(error.message);
+        }
+    }
+
+    /**
+     * Updates visual sort direction indicators in table headers.
+     */
+    updateSortHeaderIcons() {
+        $('.sort-icon').text('unfold_more').removeClass('text-primary font-bold');
+        if (this.sortBy) {
+            const $icon = $(`.sort-icon[data-col="${this.sortBy}"]`);
+            if ($icon.length > 0) {
+                $icon.text(this.sortDir === 'desc' ? 'arrow_downward' : 'arrow_upward')
+                     .addClass('text-primary font-bold');
             }
         }
-
-        // Dropdown filter validation
-        const matchesScope = !this.filters.scope || bean.scope === this.filters.scope;
-        const matchesRole = !this.filters.role || bean.role === this.filters.role;
-        const matchesPrimary = this.filters.primary === '' || bean.primary === (this.filters.primary === 'true');
-        const matchesLazy = this.filters.lazy === '' || bean.lazyInit === (this.filters.lazy === 'true');
-
-        return matchesScope && matchesRole && matchesPrimary && matchesLazy;
-    }
-
-    /**
-     * Adjusts the current page pointer to be within valid limits of filtered results.
-     * @private
-     */
-    _adjustCurrentPageBounds() {
-        const maxPage = Math.max(1, Math.ceil(this.filteredBeans.length / this.pageSize));
-        if (this.currentPage > maxPage) {
-            this.currentPage = maxPage;
-        }
-    }
-
-    /**
-     * Resolves matching semantic metadata (icon & color) based on bean identifier text.
-     * @private
-     * @param {Object} bean - The bean definition object.
-     * @returns {{icon: string, color: string}}
-     */
-    _resolveBeanMetadata(bean) {
-        const name = (bean.beanName || '').toLowerCase();
-        const type = (bean.type || '').toLowerCase();
-
-        const rule = BEAN_TYPE_RULES.find(r =>
-            r.keywords.some(keyword => name.includes(keyword) || type.includes(keyword))
-        );
-
-        if (rule) {
-            return { icon: rule.icon, color: rule.color };
-        }
-
-        const style = nodeStyle({ fullName: bean.beanName, meta: { type: bean.type } });
-        return {
-            icon: 'extension',
-            color: style.stroke || '#6b46c1'
-        };
     }
 
     /**
      * Resolves matching semantic icons based on bean identifier text.
      */
     getBeanIcon(bean) {
-        return this._resolveBeanMetadata(bean).icon;
+        return resolveBeanMetadata(bean).icon;
     }
 
     getBeanColor(bean) {
-        return this._resolveBeanMetadata(bean).color;
+        return resolveBeanMetadata(bean).color;
     }
 
     /**
-     * Renders the bean definitions list table for the current page.
+     * Renders the bean definitions list table for the current server-returned page.
      */
     renderTable() {
         const $tbody = $('#beanTableBody');
         if ($tbody.length === 0) return;
 
-        const startIndex = (this.currentPage - 1) * this.pageSize;
-        const endIndex = Math.min(startIndex + this.pageSize, this.filteredBeans.length);
-        const pageBeans = this.filteredBeans.slice(startIndex, endIndex);
-
-        if (pageBeans.length === 0) {
+        if (this.pageBeans.length === 0) {
             $tbody.html(`
                 <tr>
                     <td colspan="8" class="px-5 py-8 text-center text-gray-400">
@@ -392,12 +481,12 @@ export default class BeanDefinitions {
             return;
         }
 
-        const rowsHtml = pageBeans.map(bean => {
+        const rowsHtml = this.pageBeans.map(bean => {
             const displayName = BeanTreeBuilder._displayName(bean.beanName);
 
             const cleanRole = (bean.role || '').replace(/^ROLE_/, '');
-            const displayRole = cleanRole ? this._capitalize(cleanRole) : 'N/A';
-            const displayScope = bean.scope ? this._capitalize(bean.scope) : 'N/A';
+            const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
+            const displayScope = bean.scope ? capitalize(bean.scope) : 'N/A';
 
             const scopeLower = (bean.scope || '').toLowerCase();
             const scopeStyle = SCOPE_STYLES[scopeLower] || DEFAULT_SCOPE_STYLE;
@@ -430,39 +519,45 @@ export default class BeanDefinitions {
     }
 
     /**
-     * Renders dynamic pagination navigation controls.
+     * Renders dynamic pagination navigation controls driven directly by API pagination metadata
+     * (totalElements, totalPages, pageNumber, pageSize, first, last).
      */
     renderPagination() {
-        const total = this.filteredBeans.length;
-        const startIndex = total === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
-        const endIndex = Math.min(startIndex + this.pageSize - 1, total);
+        const { totalElements, totalPages, pageNumber, pageSize, first, last } = this.pagination;
+        const displayPage = pageNumber + 1; // 1-indexed page number for display UI
 
-        $('#def-pagination-info').text(`Showing ${startIndex} to ${endIndex} of ${total.toLocaleString()} beans`);
+        const startIndex = totalElements === 0 ? 0 : (pageNumber * pageSize) + 1;
+        const endIndex = totalElements === 0 ? 0 : Math.min((pageNumber + 1) * pageSize, totalElements);
+
+        $('#def-pagination-info').text(`Showing ${startIndex} to ${endIndex} of ${totalElements.toLocaleString()} beans`);
 
         const $buttons = $('#def-pagination-buttons');
         if ($buttons.length === 0) return;
 
-        const totalPages = Math.max(1, Math.ceil(total / this.pageSize));
+        const maxPages = Math.max(1, totalPages);
         const buttonsHtml = [];
 
-        buttonsHtml.push(TEMPLATES.paginationPrevBtn({ isDisabled: this.currentPage === 1 }));
+        // Previous button (disabled if first is true)
+        buttonsHtml.push(TEMPLATES.paginationPrevBtn({ isDisabled: first }));
 
-        const range = this._getPaginationRange(this.currentPage, totalPages);
+        // Dynamic page number buttons array
+        const range = this._getPaginationRange(displayPage, maxPages);
         range.forEach(p => {
             if (p === '...') {
                 buttonsHtml.push(TEMPLATES.paginationEllipsis);
             } else {
-                buttonsHtml.push(TEMPLATES.paginationPageBtn({ page: p, isActive: p === this.currentPage }));
+                buttonsHtml.push(TEMPLATES.paginationPageBtn({ page: p, isActive: p === displayPage }));
             }
         });
 
-        buttonsHtml.push(TEMPLATES.paginationNextBtn({ isDisabled: this.currentPage === totalPages }));
+        // Next button (disabled if last is true)
+        buttonsHtml.push(TEMPLATES.paginationNextBtn({ isDisabled: last }));
 
         $buttons.html(buttonsHtml.join(''));
     }
 
     /**
-     * Helper to compute the numeric pages and ellipses range array for pagination.
+     * Helper to compute the numeric pages and ellipses range array for pagination display.
      * @private
      */
     _getPaginationRange(currentPage, totalPages) {
@@ -486,7 +581,10 @@ export default class BeanDefinitions {
             return $(this).attr('data-bean-name') === beanName;
         }).addClass('bg-primary-light/40 border-l-2 border-primary font-medium');
 
-        const bean = this.beans.find(b => b.beanName === beanName);
+        let bean = (this.pageBeans && this.pageBeans.find(b => b.beanName === beanName)) ||
+                   (window.allBeansMap && window.allBeansMap.get(beanName)) ||
+                   (this.beans && this.beans.find(b => b.beanName === beanName));
+
         if (!bean) return;
 
         $('#def-details-sidebar').show();
@@ -517,9 +615,9 @@ export default class BeanDefinitions {
                 'border-color': `${color}33`
             });
 
-        const displayScope = bean.scope ? this._capitalize(bean.scope) : 'N/A';
+        const displayScope = bean.scope ? capitalize(bean.scope) : 'N/A';
         const cleanRole = (bean.role || '').replace(/^ROLE_/, '');
-        const displayRole = cleanRole ? this._capitalize(cleanRole) : 'N/A';
+        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
 
         $('#def-sidebar-scope').text(displayScope);
         $('#def-sidebar-role').text(displayRole);
@@ -580,11 +678,13 @@ export default class BeanDefinitions {
         $('.tab-pane').addClass('hidden');
         $(`#def-pane-${this.activeTab}`).removeClass('hidden');
     }
+
     /**
-     * Binds all interactivity handlers for filters, searching, sidebar operations, and pagination.
+     * Binds all interactivity handlers for filters, searching, header sorting, sidebar operations, and pagination.
      */
     initEvents() {
         this._bindFilterEvents();
+        this._bindHeaderSortEvents();
         this._bindTableAndPaginationEvents();
         this._bindSidebarEvents();
     }
@@ -594,15 +694,20 @@ export default class BeanDefinitions {
      * @private
      */
     _bindFilterEvents() {
-        // Search
+        // Search with 300ms debounce
+        let searchTimeout;
         $('#def-search-input').off('input').on('input', (e) => {
+            clearTimeout(searchTimeout);
             this.searchQuery = $(e.target).val();
             this.currentPage = 1;
-            this.applyFiltersAndRender();
+            searchTimeout = setTimeout(() => {
+                this.fetchTableData();
+            }, 300);
         });
 
-        // Dropdown Filters (Scope, Role, Primary, Lazy)
+        // Dropdown Filters (Context, Scope, Role, Primary, Lazy)
         const filterMappings = [
+            { selector: '#def-filter-context', key: 'contextId' },
             { selector: '#def-filter-scope', key: 'scope' },
             { selector: '#def-filter-role', key: 'role' },
             { selector: '#def-filter-primary', key: 'primary' },
@@ -613,7 +718,7 @@ export default class BeanDefinitions {
             $(selector).off('change').on('change', (e) => {
                 this.filters[key] = $(e.target).val();
                 this.currentPage = 1;
-                this.applyFiltersAndRender();
+                this.fetchTableData();
             });
         });
 
@@ -621,27 +726,49 @@ export default class BeanDefinitions {
         $('#def-filter-size').off('change').on('change', (e) => {
             this.pageSize = parseInt($(e.target).val()) || 10;
             this.currentPage = 1;
-            this.applyFiltersAndRender();
+            this.fetchTableData();
         });
 
         // Clear filter settings
         $('#def-btn-reset-filters').off('click').on('click', () => {
             this.searchQuery = '';
-            this.filters = { scope: '', role: '', primary: '', lazy: '' };
+            this.filters = { contextId: '', scope: '', role: '', primary: '', lazy: '', beanName: '' };
             this.pageSize = 10;
             this.currentPage = 1;
+            this.sortBy = '';
+            this.sortDir = 'asc';
             this.initFilterDropdowns();
-            this.applyFiltersAndRender();
+            this.fetchTableData();
         });
     }
 
     /**
-     * Binds table selection rows and pagination chevrons/number button events.
+     * Binds table header column sorting clicks.
+     * @private
+     */
+    _bindHeaderSortEvents() {
+        $('.th-sortable').off('click').on('click', (e) => {
+            const col = $(e.currentTarget).data('sort');
+            if (!col) return;
+            if (this.sortBy === col) {
+                this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortBy = col;
+                this.sortDir = 'asc';
+            }
+            this.currentPage = 1;
+            this.fetchTableData();
+        });
+    }
+
+    /**
+     * Binds table selection rows and pagination chevrons/number button events based on API pagination state.
      * @private
      */
     _bindTableAndPaginationEvents() {
         let $paginationButton = $('#def-pagination-buttons');
-        // Table clicks
+
+        // Table row click
         $('#beanTableBody').off('click', '.bean-row').on('click', '.bean-row', (e) => {
             const beanName = $(e.currentTarget).attr('data-bean-name');
             if (beanName) {
@@ -649,30 +776,28 @@ export default class BeanDefinitions {
             }
         });
 
-        // Pagination buttons
+        // Pagination page number click
         $paginationButton.off('click', '.btn-page').on('click', '.btn-page', (e) => {
-            const page = parseInt($(e.currentTarget).data('page'));
-            if (!isNaN(page)) {
-                this.currentPage = page;
-                this.renderTable();
-                this.renderPagination();
+            const targetPage = parseInt($(e.currentTarget).data('page'));
+            if (!isNaN(targetPage) && targetPage !== (this.pagination.pageNumber + 1)) {
+                this.currentPage = targetPage;
+                this.fetchTableData();
             }
         });
 
+        // Pagination prev click
         $paginationButton.off('click', '.btn-prev').on('click', '.btn-prev', () => {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-                this.renderTable();
-                this.renderPagination();
+            if (!this.pagination.first && this.pagination.pageNumber > 0) {
+                this.currentPage = this.pagination.pageNumber; // Target page 1-indexed
+                this.fetchTableData();
             }
         });
 
+        // Pagination next click
         $paginationButton.off('click', '.btn-next').on('click', '.btn-next', () => {
-            const totalPages = Math.ceil(this.filteredBeans.length / this.pageSize);
-            if (this.currentPage < totalPages) {
-                this.currentPage++;
-                this.renderTable();
-                this.renderPagination();
+            if (!this.pagination.last && this.pagination.pageNumber < (this.pagination.totalPages - 1)) {
+                this.currentPage = this.pagination.pageNumber + 2; // Target page 1-indexed
+                this.fetchTableData();
             }
         });
     }

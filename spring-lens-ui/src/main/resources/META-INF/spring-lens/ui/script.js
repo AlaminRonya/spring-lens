@@ -6,16 +6,20 @@ import BeanDataLoader from './src/assets/bean-data-loader.js';
 import BeanDefinitions from './src/assets/bean-definitions.js';
 import RequestEndpoints from './src/assets/request-endpoints.js';
 import RequestDefinitions from './src/assets/request-definitions.js';
+import { getApiUrl } from './src/assets/utils.js';
 
 $(document).ready(() => {
 
-    const dataLoader = new BeanDataLoader();
+    const dataLoader = new BeanDataLoader(getApiUrl('/spring-lens/api/beans/definitions'));
     const beanGraph = new BeanGraph(dataLoader);
     const beanDefinitions = new BeanDefinitions(dataLoader);
     const requestDefinitions = new RequestDefinitions();
     const dashboard = new Dashboard(dataLoader);
     const requestEndpoints = new RequestEndpoints();
     const beanTimeline = new BeanTimeline();
+
+    const pathname = window.location.hostname;
+    // console.log(pathname);
 
     // Configure routes and instantiate Route
     const appRouter = new Route({
