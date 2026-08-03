@@ -41,20 +41,25 @@ public class BeanDefinitionInfoRestController {
     /**
      * Returns a page of collected bean metadata.
      *
-     * @param contextId       the value of application context id
-     * @param beanName        the unique bean name for each application context
-     * @param scope           the scope of the bean (like: singleton, prototype, request etc.)
-     * @param role            the role of the bean (like: ROLE_APPLICATION, ROLE_SUPPORT etc.)
-     * @param primary         define is the bean primary or not
-     * @param lazyInit        define is the bean initialized lazily
-     * @param search          free text search value which will be applied search on different field (like: contextId, beanName etc.)
-     * @param pageNumber      zero-based page index (defaults to {@code 0})
-     * @param pageSize        the number of records per page (defaults to {@code 20})
-     * @param sortBy          optional property name to sort by
-     * @param sortDir         optional sort direction ({@code ASC} or {@code DESC}); defaults to
-     *                        ascending when a {@code sortBy} property is supplied
-     * @return                a {@link ResponseEntity} wrapping the requested
-     *                        {@link com.sdlcpro.springlens.query.PageResponse page} of bean definitions
+     * @param contextId  the value of application context id
+     * @param beanName   the unique bean name for each application context
+     * @param scope      the scope of the bean (like: singleton, prototype, request
+     *                   etc.)
+     * @param role       the role of the bean (like: ROLE_APPLICATION, ROLE_SUPPORT
+     *                   etc.)
+     * @param primary    define is the bean primary or not
+     * @param lazyInit   define is the bean initialized lazily
+     * @param search     free text search value which will be applied search on
+     *                   different field (like: contextId, beanName etc.)
+     * @param pageNumber zero-based page index (defaults to {@code 0})
+     * @param pageSize   the number of records per page (defaults to {@code 20})
+     * @param sortBy     optional property name to sort by
+     * @param sortDir    optional sort direction ({@code ASC} or {@code DESC});
+     *                   defaults to
+     *                   ascending when a {@code sortBy} property is supplied
+     * @return a {@link ResponseEntity} wrapping the requested
+     *         {@link com.sdlcpro.springlens.query.PageResponse page} of bean
+     *         definitions
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getBeanDefinitionInfo(
@@ -88,9 +93,7 @@ public class BeanDefinitionInfoRestController {
                             containsIgnoreCaseIfPresent("description", search),
                             containsIgnoreCaseIfPresent("initMethodName", search),
                             containsIgnoreCaseIfPresent("destroyMethodName", search),
-                            containsIgnoreCaseIfPresent("factoryBeanName", search)
-                    )
-            );
+                            containsIgnoreCaseIfPresent("factoryBeanName", search)));
 
             return this.beanDefinitionInfoRepository.findAll(filter, pageRequest);
         });

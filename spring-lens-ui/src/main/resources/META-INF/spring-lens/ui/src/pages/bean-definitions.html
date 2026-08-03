@@ -14,7 +14,8 @@
                 class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm cursor-pointer">
                 <span class="material-symbols-outlined text-[18px] text-gray-400 dark:text-gray-500">schedule</span>
                 Last 15 minutes
-                <span class="material-symbols-outlined text-[18px] text-gray-400 dark:text-gray-500 ml-1">expand_more</span>
+                <span
+                    class="material-symbols-outlined text-[18px] text-gray-400 dark:text-gray-500 ml-1">expand_more</span>
             </button>
         </div>
         <button
@@ -35,9 +36,11 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
             <!-- Total Bean Definitions -->
-            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
+            <div
+                class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
                 <div class="flex items-center gap-2 mb-3">
-                    <div class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
+                    <div
+                        class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">view_in_ar</span>
                     </div>
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Bean Definitions</span>
@@ -49,9 +52,11 @@
             </div>
 
             <!-- Scope Distribution -->
-            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
+            <div
+                class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
                 <div class="flex items-center gap-2 mb-2">
-                    <div class="w-6 h-6 rounded bg-green-50 dark:bg-success/15 text-success flex items-center justify-center">
+                    <div
+                        class="w-6 h-6 rounded bg-green-50 dark:bg-success/15 text-success flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">pie_chart</span>
                     </div>
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Scope Distribution</span>
@@ -67,9 +72,11 @@
             </div>
 
             <!-- Role Distribution -->
-            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
+            <div
+                class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors duration-300">
                 <div class="flex items-center gap-2 mb-2">
-                    <div class="w-6 h-6 rounded bg-orange-50 dark:bg-warning/15 text-warning flex items-center justify-center">
+                    <div
+                        class="w-6 h-6 rounded bg-orange-50 dark:bg-warning/15 text-warning flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">donut_large</span>
                     </div>
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Role Distribution</span>
@@ -85,9 +92,11 @@
             </div>
 
             <!-- Lazy Init -->
-            <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-center relative transition-colors duration-300">
+            <div
+                class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col justify-center relative transition-colors duration-300">
                 <div class="flex items-center gap-2 mb-2 absolute top-4 left-4">
-                    <div class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
+                    <div
+                        class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">bolt</span>
                     </div>
                 </div>
@@ -103,7 +112,8 @@
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden transition-colors duration-300">
+        <div
+            class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col flex-1 overflow-hidden transition-colors duration-300">
             <div class="p-5 border-b border-gray-100 dark:border-slate-800">
                 <h2 class="text-base font-bold text-gray-800 dark:text-white mb-4">Bean Definition Table</h2>
                 <div class="flex flex-wrap gap-3 items-center">
@@ -117,6 +127,10 @@
 
                     <!-- Filters -->
                     <div class="flex items-center gap-2 flex-wrap">
+                        <select id="def-filter-context"
+                            class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
+                            <option value="">Context: All</option>
+                        </select>
                         <select id="def-filter-scope"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Scope: All</option>
@@ -155,26 +169,73 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                        <tr class="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 text-[11px] font-bold text-gray-800 dark:text-gray-400 uppercase tracking-wider">
-                            <th class="px-5 py-3">Bean Name</th>
-                            <th class="px-5 py-3">Type</th>
-                            <th class="px-5 py-3">Scope</th>
-                            <th class="px-5 py-3">Role</th>
-                            <th class="px-5 py-3 text-center">Primary</th>
-                            <th class="px-5 py-3 text-center">Lazy</th>
-                            <th class="px-5 py-3">Context ID</th>
+                        <tr
+                            class="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/40 text-[11px] font-bold text-gray-800 dark:text-gray-400 uppercase tracking-wider select-none">
+                            <th class="px-5 py-3 cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="beanName">
+                                <div class="flex items-center gap-1">
+                                    Bean Name <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="beanName">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="type">
+                                <div class="flex items-center gap-1">
+                                    Type <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="type">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="scope">
+                                <div class="flex items-center gap-1">
+                                    Scope <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="scope">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="role">
+                                <div class="flex items-center gap-1">
+                                    Role <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="role">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 text-center cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="primary">
+                                <div class="flex items-center justify-center gap-1">
+                                    Primary <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="primary">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 text-center cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="lazyInit">
+                                <div class="flex items-center justify-center gap-1">
+                                    Lazy <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="lazyInit">unfold_more</span>
+                                </div>
+                            </th>
+                            <th class="px-5 py-3 cursor-pointer hover:text-primary transition-colors th-sortable"
+                                data-sort="contextId">
+                                <div class="flex items-center gap-1">
+                                    Context ID <span class="material-symbols-outlined text-[14px] sort-icon"
+                                        data-col="contextId">unfold_more</span>
+                                </div>
+                            </th>
                             <th class="px-5 py-3 w-10 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50 dark:divide-slate-800 text-[13px] text-gray-600 dark:text-gray-305" id="beanTableBody">
+                    <tbody
+                        class="divide-y divide-gray-50 dark:divide-slate-800 text-[13px] text-gray-600 dark:text-gray-305"
+                        id="beanTableBody">
                         <!-- Table rows will be populated by JS -->
                     </tbody>
                 </table>
             </div>
 
             <!-- Pagination -->
-            <div class="px-5 py-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 mt-auto">
-                <div class="text-xs text-gray-500 dark:text-gray-400" id="def-pagination-info">Showing 0 to 0 of 0 beans</div>
+            <div
+                class="px-5 py-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 mt-auto">
+                <div class="text-xs text-gray-500 dark:text-gray-400" id="def-pagination-info">Showing 0 to 0 of 0 beans
+                </div>
                 <div class="flex items-center gap-1" id="def-pagination-buttons">
                     <!-- Dynamic page buttons -->
                 </div>
@@ -188,7 +249,8 @@
         style="height: calc(100vh - 120px);" id="def-details-sidebar">
         <div class="p-5 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between">
             <h3 class="font-bold text-sm text-gray-800 dark:text-white">Bean Details</h3>
-            <button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer" id="def-close-sidebar">
+            <button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                id="def-close-sidebar">
                 <span class="material-symbols-outlined text-[18px]">close</span>
             </button>
         </div>
@@ -200,12 +262,15 @@
                     <span class="material-symbols-outlined" id="def-sidebar-icon">database</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate" id="def-sidebar-name">-</div>
-                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate" title="" id="def-sidebar-type">-</div>
+                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate" id="def-sidebar-name">-
+                    </div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate" title=""
+                        id="def-sidebar-type">-</div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div
+                class="grid grid-cols-2 gap-4 mb-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
                     <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-1">Scope</div>
                     <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="def-sidebar-scope">-</div>
@@ -219,17 +284,20 @@
             <div class="flex items-center justify-between text-xs font-medium">
                 <span class="text-success">Health Status</span>
                 <span class="flex items-center gap-1.5 text-success uppercase text-[10px] font-bold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-success"></span> RUNNING
+                    <span class="w-1.5 h-1.5 rounded-full bg-success" id="def-sidebar-health-status"></span> RUNNING
                 </span>
             </div>
         </div>
 
         <div class="flex border-b border-gray-100 dark:border-slate-800 px-2" id="def-sidebar-tabs">
-            <button class="flex-1 py-3 text-xs font-bold text-primary dark:text-purple-400 border-b-2 border-primary text-center tab-btn"
+            <button
+                class="flex-1 py-3 text-xs font-bold text-primary dark:text-purple-400 border-b-2 border-primary text-center tab-btn"
                 data-tab="properties" id="def-tab-properties">Properties</button>
-            <button class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
+            <button
+                class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
                 data-tab="dependencies" id="def-tab-dependencies">Dependencies</button>
-            <button class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
+            <button
+                class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
                 data-tab="dependents" id="def-tab-dependents">Dependents</button>
         </div>
 
@@ -241,15 +309,17 @@
                     <div class="space-y-2.5">
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Primary Bean</span>
-                            <span class="font-bold text-gray-800 dark:text-gray-200" id="def-sidebar-prop-primary">FALSE</span>
+                            <span class="font-bold text-gray-800 dark:text-gray-200"
+                                id="def-sidebar-prop-primary"></span>
                         </div>
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Lazy Initialized</span>
-                            <span class="font-bold text-gray-800 dark:text-gray-200" id="def-sidebar-prop-lazy">FALSE</span>
+                            <span class="font-bold text-gray-800 dark:text-gray-200" id="def-sidebar-prop-lazy"></span>
                         </div>
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Autowired Candidate</span>
-                            <span class="font-bold text-gray-800 dark:text-gray-200" id="def-sidebar-prop-autowired">FALSE</span>
+                            <span class="font-bold text-gray-800 dark:text-gray-200"
+                                id="def-sidebar-prop-autowired"></span>
                         </div>
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-gray-500 dark:text-gray-400">Context ID</span>
@@ -259,7 +329,8 @@
                     </div>
                 </div>
 
-                <div class="bg-gray-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-lg p-3">
+                <div
+                    class="bg-gray-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-lg p-3">
                     <h4 class="text-[11px] font-bold text-gray-800 dark:text-white mb-2">Factory Details</h4>
                     <div class="space-y-2">
                         <div>
@@ -268,8 +339,10 @@
                                 id="def-sidebar-factory-bean">-</span>
                         </div>
                         <div>
-                            <span class="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Factory Method</span>
-                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200" id="def-sidebar-factory-method">-</span>
+                            <span class="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Factory
+                                Method</span>
+                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200"
+                                id="def-sidebar-factory-method">-</span>
                         </div>
                     </div>
                 </div>
