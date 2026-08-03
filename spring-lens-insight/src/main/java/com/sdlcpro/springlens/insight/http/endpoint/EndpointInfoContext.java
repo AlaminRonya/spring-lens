@@ -6,9 +6,7 @@ import com.sdlcpro.springlens.insight.support.provider.ClassProvider;
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 import com.sdlcpro.springlens.model.http.endpoint.HandlerType;
 
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Set;
 
 /**
  * A package-private context evaluation record that acts as a unified adapter
@@ -56,11 +54,11 @@ record EndpointInfoContext(
     /**
      * Returns an unmodifiable view of the HTTP request methods supported by this endpoint.
      *
-     * @return an unmodifiable set of {@link HttpRequestMethod}s
+     * @return a copy version of EnumSet of {@link HttpRequestMethod}s
      */
     @Override
-    public Set<HttpRequestMethod> getHttpRequestMethods() {
-        return Collections.unmodifiableSet(this.methods);
+    public EnumSet<HttpRequestMethod> getHttpRequestMethods() {
+        return EnumSet.copyOf(this.methods);
     }
 
     /**
