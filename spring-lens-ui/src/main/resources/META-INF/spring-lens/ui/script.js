@@ -18,9 +18,6 @@ $(document).ready(() => {
     const requestEndpoints = new RequestEndpoints();
     const beanTimeline = new BeanTimeline();
 
-    const pathname = window.location.hostname;
-    // console.log(pathname);
-
     // Configure routes and instantiate Route
     const appRouter = new Route({
         container: '#main-content',

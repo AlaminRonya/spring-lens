@@ -1,6 +1,20 @@
-import { TEMPLATES, SCOPE_COLORS, ROLE_COLORS, SCOPE_STYLES, DEFAULT_SCOPE_STYLE, DEPENDENCY_CATEGORY_COLORS } from './constants.js';
-import { getBeanCategory, nodeStyle, getApiUrl, capitalize, formatPercentage, resolveBeanMetadata } from './utils.js';
 import { BeanTreeBuilder } from './bean-data-loader.js';
+import {
+    TEMPLATES,
+    SCOPE_COLORS,
+    ROLE_COLORS,
+    SCOPE_STYLES,
+    DEFAULT_SCOPE_STYLE,
+    DEPENDENCY_CATEGORY_COLORS
+} from './constants.js';
+import {
+    getBeanCategory,
+    nodeStyle,
+    getApiUrl,
+    capitalize,
+    formatPercentage,
+    resolveBeanMetadata
+} from './utils.js';
 
 /**
  * Controller class for the Beans Definitions dashboard tab.
@@ -165,10 +179,14 @@ export default class BeanDefinitions {
 
     /**
      * Updates the total bean count metric.
+     * Uses totalElements from API pagination metadata if available, falling back to loaded beans count.
      * @private
      */
     _updateTotalCountKPI() {
-        $('#def-total-count').text(this.beans.length.toLocaleString());
+        const count = (this.pagination && typeof this.pagination.totalElements === 'number' && (this.pagination.totalElements > 0 || this._hasFetchedTableData))
+            ? this.pagination.totalElements
+            : (this.beans ? this.beans.length : 0);
+        $('#def-total-count').text(count.toLocaleString());
     }
 
     /**
@@ -176,6 +194,8 @@ export default class BeanDefinitions {
      * @private
      */
     _updateContextDistributionKPI() {
+        if (!this.beans || this.beans.length === 0) return;
+        const total = this.beans.length;
         const contexts = {};
         this.beans.forEach(b => {
             const ctxId = b.contextId || 'unknown';
@@ -187,7 +207,7 @@ export default class BeanDefinitions {
 
         const colors = ['bg-primary', 'bg-blue-500', 'bg-success'];
         const contextListHtml = contextEntries.map(([ctxId, count], idx) => {
-            const pct = Math.round((count / this.beans.length) * 100);
+            const pct = Math.round((count / total) * 100);
             const colorClass = colors[idx] || 'bg-gray-400';
             return TEMPLATES.contextListItem({ ctxId, colorClass, pct });
         }).join('');
@@ -199,8 +219,10 @@ export default class BeanDefinitions {
      * @private
      */
     _updateLazyInitKPI() {
+        if (!this.beans || this.beans.length === 0) return;
+        const total = this.beans.length;
         const lazyCount = this.beans.filter(b => b.lazyInit).length;
-        const lazyPct = Math.round((lazyCount / this.beans.length) * 100);
+        const lazyPct = Math.round((lazyCount / total) * 100);
         $('#def-lazy-percent').text(`${lazyPct}%`);
         $('#def-lazy-bar').css('width', `${lazyPct}%`);
     }
@@ -429,9 +451,11 @@ export default class BeanDefinitions {
                 });
             }
 
+            this._hasFetchedTableData = true;
             this.renderTable();
             this.renderPagination();
             this.updateSortHeaderIcons();
+            this._updateTotalCountKPI();
         } catch (error) {
             console.error('Error fetching bean definitions table data:', error);
             this.renderTableError(error.message);
@@ -447,7 +471,7 @@ export default class BeanDefinitions {
             const $icon = $(`.sort-icon[data-col="${this.sortBy}"]`);
             if ($icon.length > 0) {
                 $icon.text(this.sortDir === 'desc' ? 'arrow_downward' : 'arrow_upward')
-                     .addClass('text-primary font-bold');
+                    .addClass('text-primary font-bold');
             }
         }
     }
@@ -582,8 +606,8 @@ export default class BeanDefinitions {
         }).addClass('bg-primary-light/40 border-l-2 border-primary font-medium');
 
         let bean = (this.pageBeans && this.pageBeans.find(b => b.beanName === beanName)) ||
-                   (window.allBeansMap && window.allBeansMap.get(beanName)) ||
-                   (this.beans && this.beans.find(b => b.beanName === beanName));
+            (window.allBeansMap && window.allBeansMap.get(beanName)) ||
+            (this.beans && this.beans.find(b => b.beanName === beanName));
 
         if (!bean) return;
 

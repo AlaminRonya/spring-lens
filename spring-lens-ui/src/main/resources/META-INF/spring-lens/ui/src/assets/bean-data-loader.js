@@ -140,7 +140,11 @@ export default class BeanDataLoader {
      */
     async _loadBeanData() {
         try {
-            const response = await fetch(this.dataUrl);
+            let fetchUrl = this.dataUrl;
+            if (fetchUrl && !fetchUrl.includes('pageSize=')) {
+                fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'pageSize=1000';
+            }
+            const response = await fetch(fetchUrl);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
