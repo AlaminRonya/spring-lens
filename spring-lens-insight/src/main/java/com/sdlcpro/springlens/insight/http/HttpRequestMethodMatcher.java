@@ -1,6 +1,7 @@
 package com.sdlcpro.springlens.insight.http;
 
-import com.sdlcpro.springlens.insight.core.Matcher;
+import com.sdlcpro.springlens.matcher.Matcher;
+import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 
 import java.util.EnumSet;
 import java.util.Objects;
