@@ -1,5 +1,6 @@
 package com.sdlcpro.springlens.insight.http;
 
+import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,14 +16,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class HttpRequestMethodMatcherTest {
 
     private static class TestHttpRequestMethodProvider implements HttpRequestMethodProvider {
-        private final Set<HttpRequestMethod> methods;
+        private final EnumSet<HttpRequestMethod> methods;
 
         TestHttpRequestMethodProvider(Set<HttpRequestMethod> methods) {
-            this.methods = methods;
+            this.methods = methods == null || methods.isEmpty()
+                    ? EnumSet.noneOf(HttpRequestMethod.class)
+                    : EnumSet.copyOf(methods);
         }
 
         @Override
-        public Set<HttpRequestMethod> getHttpRequestMethods() {
+        public EnumSet<HttpRequestMethod> getHttpRequestMethods() {
             return methods;
         }
     }
