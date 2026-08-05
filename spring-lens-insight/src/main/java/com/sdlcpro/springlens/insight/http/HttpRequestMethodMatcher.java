@@ -4,7 +4,6 @@ import com.sdlcpro.springlens.matcher.Matcher;
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 
 import java.util.EnumSet;
-import java.util.Objects;
 
 /**
  * A concrete {@link Matcher} implementation that evaluates whether candidate HTTP request methods
@@ -85,34 +84,5 @@ public final class HttpRequestMethodMatcher<T extends HttpRequestMethodProvider>
         }
 
         return false;
-    }
-
-    /**
-     * Returns the immutable set of target HTTP request methods configured for this matcher.
-     *
-     * @return an immutable {@link EnumSet} of the target HTTP request methods
-     */
-    public EnumSet<HttpRequestMethod> getHttpRequestMethods() {
-        return EnumSet.copyOf(httpRequestMethods);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        HttpRequestMethodMatcher<?> that = (HttpRequestMethodMatcher<?>) o;
-        return Objects.equals(httpRequestMethods, that.httpRequestMethods);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(httpRequestMethods);
-    }
-
-    @Override
-    public String toString() {
-        return "HttpRequestMethodMatcher{" +
-                "httpRequestMethods=" + httpRequestMethods +
-                '}';
     }
 }

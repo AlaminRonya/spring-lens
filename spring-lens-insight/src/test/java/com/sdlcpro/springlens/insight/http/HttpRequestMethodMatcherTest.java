@@ -31,52 +31,6 @@ class HttpRequestMethodMatcherTest {
     }
 
     @Nested
-    @DisplayName("Constructor and Immutability Tests")
-    class ConstructorTests {
-
-        @Test
-        @DisplayName("Should create matcher with provided EnumSet")
-        void shouldCreateMatcherWithProvidedEnumSet() {
-            var methods = EnumSet.of(HttpRequestMethod.GET, HttpRequestMethod.POST);
-            var matcher = new HttpRequestMethodMatcher<>(methods);
-            
-            assertThat(matcher.getHttpRequestMethods())
-                .containsExactlyInAnyOrder(HttpRequestMethod.GET, HttpRequestMethod.POST);
-        }
-
-        @Test
-        @DisplayName("Should create matcher with empty EnumSet when null is provided")
-        void shouldCreateMatcherWithEmptyEnumSetWhenNull() {
-            var matcher = new HttpRequestMethodMatcher<>(null);
-            
-            assertThat(matcher.getHttpRequestMethods()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("Should defensively copy provided EnumSet to maintain immutability")
-        void shouldDefensivelyCopyEnumSet() {
-            var original = EnumSet.of(HttpRequestMethod.GET);
-            var matcher = new HttpRequestMethodMatcher<>(original);
-            
-            // Modify original after construction
-            original.add(HttpRequestMethod.POST);
-            
-            // Matcher's internal state should remain unchanged
-            assertThat(matcher.getHttpRequestMethods()).containsExactly(HttpRequestMethod.GET);
-        }
-
-        @Test
-        @DisplayName("Should return immutable EnumSet from getter")
-        void shouldReturnImmutableEnumSet() {
-            var matcher = new HttpRequestMethodMatcher<>(EnumSet.of(HttpRequestMethod.GET));
-            var returned = matcher.getHttpRequestMethods();
-            
-            // Attempting to modify should throw UnsupportedOperationException
-            assertThat(returned).isUnmodifiable();
-        }
-    }
-
-    @Nested
     @DisplayName("Matching Logic Tests")
     class MatchingTests {
 
@@ -175,85 +129,6 @@ class HttpRequestMethodMatcherTest {
                     .as("Should match %s", method)
                     .isTrue();
             }
-        }
-    }
-
-    @Nested
-    @DisplayName("Equals and HashCode Tests")
-    class EqualsAndHashCodeTests {
-
-        @Test
-        @DisplayName("Should return true when comparing equal matchers")
-        void shouldReturnTrueWhenEqual() {
-            var matcher1 = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.GET, HttpRequestMethod.POST)
-            );
-            var matcher2 = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.GET, HttpRequestMethod.POST)
-            );
-            
-            assertThat(matcher1).isEqualTo(matcher2);
-            assertThat(matcher1.hashCode()).isEqualTo(matcher2.hashCode());
-        }
-
-        @Test
-        @DisplayName("Should return false when comparing different matchers")
-        void shouldReturnFalseWhenDifferent() {
-            var matcher1 = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.GET)
-            );
-            var matcher2 = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.POST)
-            );
-            
-            assertThat(matcher1).isNotEqualTo(matcher2);
-        }
-
-        @Test
-        @DisplayName("Should return false when comparing with null or different type")
-        void shouldReturnFalseWhenNullOrDifferentType() {
-            var matcher = new HttpRequestMethodMatcher<>(EnumSet.of(HttpRequestMethod.GET));
-            
-            assertThat(matcher).isNotEqualTo(null);
-            assertThat(matcher).isNotEqualTo("not a matcher");
-        }
-
-        @Test
-        @DisplayName("Should produce consistent hashCode")
-        void shouldProduceConsistentHashCode() {
-            var matcher = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.GET, HttpRequestMethod.POST)
-            );
-            
-            assertThat(matcher.hashCode()).isEqualTo(matcher.hashCode());
-        }
-    }
-
-    @Nested
-    @DisplayName("ToString Tests")
-    class ToStringTests {
-
-        @Test
-        @DisplayName("Should produce meaningful string representation")
-        void shouldProduceMeaningfulToString() {
-            var matcher = new HttpRequestMethodMatcher<>(
-                EnumSet.of(HttpRequestMethod.GET, HttpRequestMethod.POST)
-            );
-            
-            assertThat(matcher.toString())
-                .contains("HttpRequestMethodMatcher")
-                .contains("GET")
-                .contains("POST");
-        }
-
-        @Test
-        @DisplayName("Should handle empty methods in toString")
-        void shouldHandleEmptyMethodsInToString() {
-            var matcher = new HttpRequestMethodMatcher<>(null);
-            
-            assertThat(matcher.toString())
-                .contains("HttpRequestMethodMatcher")
-                .contains("[]");
         }
     }
 }
