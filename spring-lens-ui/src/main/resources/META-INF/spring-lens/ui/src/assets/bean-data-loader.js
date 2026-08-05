@@ -115,7 +115,7 @@ export default class BeanDataLoader {
     /**
      * @param {string} [dataUrl] - The endpoint/path to fetch bean definitions from.
      */
-    constructor(dataUrl = './src/assets/bean-definitions.json') {
+    constructor(dataUrl) {
         this.dataUrl = dataUrl;
         this.rootPromise = null;
     }
@@ -140,21 +140,26 @@ export default class BeanDataLoader {
      */
     async _loadBeanData() {
         try {
-            const response = await fetch(this.dataUrl);
+            let fetchUrl = this.dataUrl;
+            if (fetchUrl && !fetchUrl.includes('pageSize=')) {
+                fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'pageSize=1000';
+            }
+            const response = await fetch(fetchUrl);
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             const json = await response.json();
-            const { beans = [] } = json;
+            const { content = [] } = json;
 
-            window.allBeansMap = new Map(beans.map(bean => [bean.beanName, bean]));
+            window.allBeansMap = new Map(content.map(bean => [bean.beanName, bean]));
 
             // Set counts in toolbar
-            $('#beans-count').text(beans.length);
-            const totalDeps = beans.reduce((sum, { dependencies = [] }) => sum + dependencies.length, 0);
+            $('#beans-count').text(content.length);
+            const totalDeps = content.reduce((sum, { dependencies = [] }) => sum + dependencies.length, 0);
             $('#deps-count').text(totalDeps);
 
-            const data = BeanTreeBuilder.build(beans);
+            const data = BeanTreeBuilder.build(content);
             const root = d3.hierarchy(data);
 
             const allNodes = root.descendants();
