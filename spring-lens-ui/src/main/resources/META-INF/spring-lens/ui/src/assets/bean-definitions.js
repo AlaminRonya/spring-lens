@@ -748,10 +748,8 @@ export default class BeanDefinitionsController {
         const inactiveClasses = 'text-gray-500 hover:text-gray-700 font-medium';
 
         $('#def-sidebar-tabs button').each((_, element) => {
-            const $button = $(element);
-            const isSelected = $button.attr('id') === `def-tab-${this.activeSidebarTab}`;
-
-            $button
+            const isSelected = element.id === `def-tab-${this.activeSidebarTab}`;
+            $(element)
                 .toggleClass(activeClasses, isSelected)
                 .toggleClass(inactiveClasses, !isSelected);
         });
@@ -761,57 +759,132 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Binds all UI interactivity handlers for filters, sorting, table pagination, and sidebar.
+     * Binds all UI interactivity handlers using centralized event delegation.
      */
     bindEvents() {
-        this._bindFilterEvents();
-        this._bindHeaderSortEvents();
-        this._bindTableAndPaginationEvents();
-        this._bindSidebarEvents();
+        this._bindSearchInput();
+        this._bindFilterChangeEvents();
+        this._bindClickActionDelegation();
     }
 
-    _bindFilterEvents() {
-        // Search input with 300ms debounce
+    _bindSearchInput() {
         $('#def-search-input').off('input').on('input', (e) => {
             clearTimeout(this._searchDebounceTimer);
-            this.searchQuery = $(e.target).val().trim();
+            this.searchQuery = e.target.value.trim();
             this.currentPage = 1;
 
-            this._searchDebounceTimer = setTimeout(() => {
-                this.fetchTableData();
-            }, 300);
+            this._searchDebounceTimer = setTimeout(() => this.fetchTableData(), 300);
         });
+    }
 
-        // Dropdown filters mapping
-        const filterMappings = [
-            { selector: '#def-filter-context', key: 'contextId' },
-            { selector: '#def-filter-scope', key: 'scope' },
-            { selector: '#def-filter-role', key: 'role' },
-            { selector: '#def-filter-primary', key: 'isPrimary' },
-            { selector: '#def-filter-lazy', key: 'isLazy' }
-        ];
+    _bindFilterChangeEvents() {
+        const filterKeyMap = {
+            '#def-filter-context': 'contextId',
+            '#def-filter-scope': 'scope',
+            '#def-filter-role': 'role',
+            '#def-filter-primary': 'isPrimary',
+            '#def-filter-lazy': 'isLazy'
+        };
 
-        filterMappings.forEach(({ selector, key }) => {
-            $(selector).off('change').on('change', (e) => {
-                this.filterCriteria[key] = $(e.target).val();
+        // Consolidated filter change router
+        const filterSelectors = Object.keys(filterKeyMap).join(', ');
+        $(filterSelectors).off('change').on('change', (e) => {
+            const key = filterKeyMap[`#${e.target.id}`];
+            if (key) {
+                this.filterCriteria[key] = e.target.value;
                 this.currentPage = 1;
                 this.fetchTableData();
-            });
+            }
         });
 
-        // Page size selection change
+        // Page size dropdown handler
         $('#def-filter-size').off('change').on('change', (e) => {
-            this.itemsPerPage = parseInt($(e.target).val(), 10) || 10;
+            this.itemsPerPage = parseInt(e.target.value, 10) || 10;
             this.currentPage = 1;
             this.fetchTableData();
         });
+    }
 
-        // Reset filters
-        $('#def-btn-reset-filters').off('click').on('click', () => {
-            this._resetFilterState();
-            this.initializeFilterDropdowns();
-            this.fetchTableData();
+    /**
+     * Centralized click router using data-action attributes and element classes.
+     */
+    _bindClickActionDelegation() {
+        // Top-level document delegation prevents re-binding on dynamic HTML updates
+        $(document).off('click.beanDefs').on('click.beanDefs', '[data-action]', (e) => {
+            const $target = $(e.currentTarget);
+            const action = $target.data('action');
+
+            this._handleDelegatedClick(action, $target, e);
         });
+    }
+
+    _handleDelegatedClick(action, $target, event) {
+        const actionHandlers = {
+            'reset-filters': () => {
+                this._resetFilterState();
+                this.initializeFilterDropdowns();
+                this.fetchTableData();
+            },
+            'sort-column': () => {
+                const columnKey = $target.data('sort');
+                if (!columnKey) return;
+
+                this.sortDirection = (this.sortColumn === columnKey && this.sortDirection === 'asc') ? 'desc' : 'asc';
+                this.sortColumn = columnKey;
+                this.currentPage = 1;
+                this.fetchTableData();
+            },
+            'select-bean': () => {
+                const beanName = $target.data('bean-name');
+                if (beanName) this.selectBean(beanName);
+            },
+            'select-dependency': () => {
+                const dependencyName = $target.data('fullname');
+                if (dependencyName && window.allBeansMap?.has(dependencyName)) {
+                    this.selectBean(dependencyName);
+                }
+            },
+            'change-page': () => {
+                const targetPage = parseInt($target.data('page'), 10);
+                if (!isNaN(targetPage) && targetPage !== this.currentPage) {
+                    this.currentPage = targetPage;
+                    this.fetchTableData();
+                }
+            },
+            'prev-page': () => {
+                if (!this.paginationState.isFirstPage && this.paginationState.pageNumber > 0) {
+                    this.currentPage = this.paginationState.pageNumber;
+                    this.fetchTableData();
+                }
+            },
+            'next-page': () => {
+                if (!this.paginationState.isLastPage && this.paginationState.pageNumber < (this.paginationState.totalPages - 1)) {
+                    this.currentPage = this.paginationState.pageNumber + 2;
+                    this.fetchTableData();
+                }
+            },
+            'switch-tab': () => {
+                this.activeSidebarTab = $target.data('tab');
+                this.renderActiveTab();
+            },
+            'close-sidebar': () => {
+                $('#def-details-sidebar').hide();
+                this.selectedBeanName = null;
+                $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
+            },
+            'view-graph': () => {
+                if (this.selectedBeanName) {
+                    window.focusBeanOnNextGraphEnter = this.selectedBeanName;
+                    window.location.hash = '#/graph';
+                }
+            }
+        };
+
+        const handler = actionHandlers[action];
+        if (handler) {
+            event.preventDefault();
+            handler();
+        }
     }
 
     _resetFilterState() {
@@ -828,87 +901,6 @@ export default class BeanDefinitionsController {
         this.currentPage = 1;
         this.sortColumn = '';
         this.sortDirection = 'asc';
-    }
-
-    _bindHeaderSortEvents() {
-        $('.th-sortable').off('click').on('click', (e) => {
-            const columnKey = $(e.currentTarget).data('sort');
-            if (!columnKey) return;
-
-            this.sortDirection = (this.sortColumn === columnKey && this.sortDirection === 'asc') ? 'desc' : 'asc';
-            this.sortColumn = columnKey;
-            this.currentPage = 1;
-
-            this.fetchTableData();
-        });
-    }
-
-    _bindTableAndPaginationEvents() {
-        // Delegated row click selection
-        $('#beanTableBody').off('click', '.bean-row').on('click', '.bean-row', (e) => {
-            const beanName = $(e.currentTarget).attr('data-bean-name');
-            if (beanName) {
-                this.selectBean(beanName);
-            }
-        });
-
-        const $paginationControls = $('#def-pagination-buttons');
-
-        // Page number button click
-        $paginationControls.off('click', '.btn-page').on('click', '.btn-page', (e) => {
-            const targetPage = parseInt($(e.currentTarget).data('page'), 10);
-            if (!isNaN(targetPage) && targetPage !== this.currentPage) {
-                this.currentPage = targetPage;
-                this.fetchTableData();
-            }
-        });
-
-        // Previous page chevron click
-        $paginationControls.off('click', '.btn-prev').on('click', '.btn-prev', () => {
-            if (!this.paginationState.isFirstPage && this.paginationState.pageNumber > 0) {
-                this.currentPage = this.paginationState.pageNumber;
-                this.fetchTableData();
-            }
-        });
-
-        // Next page chevron click
-        $paginationControls.off('click', '.btn-next').on('click', '.btn-next', () => {
-            if (!this.paginationState.isLastPage && this.paginationState.pageNumber < (this.paginationState.totalPages - 1)) {
-                this.currentPage = this.paginationState.pageNumber + 2;
-                this.fetchTableData();
-            }
-        });
-    }
-
-    _bindSidebarEvents() {
-        // Sidebar close button
-        $('#def-close-sidebar').off('click').on('click', () => {
-            $('#def-details-sidebar').hide();
-            this.selectedBeanName = null;
-            $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
-        });
-
-        // Sidebar tab buttons
-        $('#def-sidebar-tabs').off('click', '.tab-btn').on('click', '.tab-btn', (e) => {
-            this.activeSidebarTab = $(e.currentTarget).data('tab');
-            this.renderActiveTab();
-        });
-
-        // Sidebar dependency list item click
-        $('#def-sidebar-content').off('click', '.def-sidebar-item-click').on('click', '.def-sidebar-item-click', (e) => {
-            const dependencyName = $(e.currentTarget).data('fullname');
-            if (dependencyName && window.allBeansMap?.has(dependencyName)) {
-                this.selectBean(dependencyName);
-            }
-        });
-
-        // View in full dependency graph redirect
-        $('#def-view-graph-btn').off('click').on('click', () => {
-            if (this.selectedBeanName) {
-                window.focusBeanOnNextGraphEnter = this.selectedBeanName;
-                window.location.hash = '#/graph';
-            }
-        });
     }
 
     /**
