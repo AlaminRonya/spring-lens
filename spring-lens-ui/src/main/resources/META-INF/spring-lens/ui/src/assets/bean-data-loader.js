@@ -142,40 +142,52 @@ export default class BeanDataLoader {
         try {
             let fetchUrl = this.dataUrl;
             if (fetchUrl && !fetchUrl.includes('pageSize=')) {
-                fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + 'pageSize=1000';
+                fetchUrl += `${fetchUrl.includes('?') ? '&' : '?'}pageSize=1000`;
             }
-            const response = await fetch(fetchUrl);
 
+            const response = await fetch(fetchUrl);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            const json = await response.json();
-            const { content = [] } = json;
 
-            window.allBeansMap = new Map(content.map(bean => [bean.beanName, bean]));
+            const { content = [] } = await response.json();
+            const contentCount = content.length;
 
-            // Set counts in toolbar
-            $('#beans-count').text(content.length);
-            const totalDeps = content.reduce((sum, { dependencies = [] }) => sum + dependencies.length, 0);
+            // Build global Map and count total dependencies in a single pass
+            const allBeansMap = new Map();
+            let totalDeps = 0;
+
+            for (let i = 0; i < contentCount; i++) {
+                const bean = content[i];
+                allBeansMap.set(bean.beanName, bean);
+                totalDeps += bean.dependencies?.length ?? 0;
+            }
+
+            window.allBeansMap = allBeansMap;
+
+            // Batch update UI counts
+            $('#beans-count').text(contentCount);
             $('#deps-count').text(totalDeps);
 
+            // Build hierarchy and process nodes in a single pass
             const data = BeanTreeBuilder.build(content);
             const root = d3.hierarchy(data);
-
             const allNodes = root.descendants();
-            allNodes.forEach((node, index) => {
-                node.id = index;
-                node._children = node.children;
-            });
+            const nodeCount = allNodes.length;
 
-            allNodes.forEach(node => {
+            for (let i = 0; i < nodeCount; i++) {
+                const node = allNodes[i];
+                node.id = i;
+                node._children = node.children;
+
                 if (node.depth > 0) {
                     node.children = null;
                 }
-            });
+            }
 
             root.x0 = 0;
             root.y0 = 0;
+
             return root;
         } catch (error) {
             console.error('Error loading or processing bean graph data:', error);
