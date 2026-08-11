@@ -23,7 +23,7 @@ import {
 export default class BeanDefinitionsController {
     // Private State Fields
     _hasFetchedTableData = false;
-    #searchDebounceTimer = null;
+    _searchDebounceTimer = null;
 
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
@@ -99,8 +99,8 @@ export default class BeanDefinitionsController {
      */
     leave() {
         this.destroyCharts();
-        if (this.#searchDebounceTimer) {
-            clearTimeout(this.#searchDebounceTimer);
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
         }
     }
 
@@ -277,7 +277,7 @@ export default class BeanDefinitionsController {
     }
 
     _instantiateDoughnutChart(canvasId, labels, data, backgroundColor) {
-        const canvasElement = $(canvasId);
+        const canvasElement = document.getElementById(canvasId);
         if (!canvasElement) return null;
 
         return new Chart(canvasElement, {
@@ -541,7 +541,7 @@ export default class BeanDefinitionsController {
             lazyIcon: lazyInit ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle
         });
     }
-    
+
     /**
      * Renders dynamic pagination navigation controls driven by pagination metadata.
      */
@@ -678,6 +678,7 @@ export default class BeanDefinitionsController {
             $(selector).text(textValue);
         });
 
+        $('#def-sidebar-name').attr('title', beanName);
         $('#def-sidebar-type').attr('title', type);
 
         this._updateSidebarIcon(bean);
@@ -722,8 +723,8 @@ export default class BeanDefinitionsController {
         const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
 
         return TEMPLATES.sidebarListItem({
-            dependencyName,
-            displayName,
+            depName: dependencyName,
+            dispName: displayName,
             catColor: categoryColor
         });
     }
@@ -820,6 +821,20 @@ export default class BeanDefinitionsController {
 
     _handleDelegatedClick(action, $target, event) {
         const actionHandlers = {
+            'refresh-data': async () => {
+                const $icon = $target.find('.material-symbols-outlined');
+                $icon.addClass('animate-spin');
+                try {
+                    if (this.dataLoader) {
+                        this.dataLoader.rootPromise = null;
+                    }
+                    await this.enter();
+                } catch (err) {
+                    console.error('Error refreshing bean definitions:', err);
+                } finally {
+                    setTimeout(() => $icon.removeClass('animate-spin'), 500);
+                }
+            },
             'reset-filters': () => {
                 this._resetFilterState();
                 this.initializeFilterDropdowns();
