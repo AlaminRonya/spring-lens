@@ -45,17 +45,17 @@ public record HttpRequestCollectorSettings(
         Set<String> maskableParams
 
 ) {
-
     /**
      * Compact constructor enforcing null-safety, defensive copying, and structural invariants.
      */
     public HttpRequestCollectorSettings
     {
         // Defensive copying & immutability for standard sets ( null-safe )
-        includeUriPatterns = (includeUriPatterns == null) ? Set.of() : Set.copyOf(includeUriPatterns);
-        excludeUriPatterns = (excludeUriPatterns == null) ? Set.of() : Set.copyOf(excludeUriPatterns);
-        maskableHeaders = (maskableHeaders == null) ? Set.of() : Set.copyOf(maskableHeaders);
-        maskableParams = (maskableParams == null) ? Set.of() : Set.copyOf(maskableParams);
+        includeUriPatterns = (includeUriPatterns == null)   ? Set.of() : Set.copyOf(includeUriPatterns);
+        excludeUriPatterns = (excludeUriPatterns == null)   ? Set.of() : Set.copyOf(excludeUriPatterns);
+
+        maskableHeaders = (maskableHeaders == null)         ? Set.of() : Set.copyOf(maskableHeaders);
+        maskableParams = (maskableParams == null)           ? Set.of() : Set.copyOf(maskableParams);
 
         // EnumSet : null-safe defensive copy.
         excludeMethods = (excludeMethods == null || excludeMethods.isEmpty())
@@ -65,5 +65,11 @@ public record HttpRequestCollectorSettings(
         if (maxBodyLength < 0) {
             throw new IllegalArgumentException("maxBodyLength must be a positive integer cannot be negative");
         }
+    }
+
+    // Override getter to return a fresh defensive copy on read
+    @Override
+    public EnumSet<HttpRequestMethod> excludeMethods() {
+        return EnumSet.copyOf(excludeMethods);
     }
 }
