@@ -18,8 +18,9 @@
                     class="material-symbols-outlined text-[18px] text-gray-400 dark:text-gray-500 ml-1">expand_more</span>
             </button>
         </div>
-        <button
-            class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm cursor-pointer">
+        <button id="def-btn-refresh" data-action="refresh-data"
+            class="w-8 h-8 flex items-center justify-center border border-gray-200 dark:border-slate-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 shadow-sm cursor-pointer"
+            title="Refresh bean definitions">
             <span class="material-symbols-outlined text-[18px]">refresh</span>
         </button>
         <button
@@ -151,7 +152,7 @@
                             <option value="true">Lazy</option>
                             <option value="false">Eager</option>
                         </select>
-                        <button id="def-btn-reset-filters"
+                        <button id="def-btn-reset-filters" data-action="reset-filters"
                             class="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/35 rounded-md px-3 py-2 hover:bg-red-100 dark:hover:bg-red-950/45 transition-colors cursor-pointer">
                             <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Clear Filters
                         </button>
@@ -249,54 +250,58 @@
         style="height: calc(100vh - 120px);" id="def-details-sidebar">
         <div class="p-5 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between">
             <h3 class="font-bold text-sm text-gray-800 dark:text-white">Bean Details</h3>
-            <button class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+            <button data-action="close-sidebar"
+                class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
                 id="def-close-sidebar">
                 <span class="material-symbols-outlined text-[18px]">close</span>
             </button>
         </div>
 
         <div class="p-5 pb-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/10">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-success/10 text-success flex items-center justify-center border border-success/10 dark:border-success/20 shadow-sm"
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-green-50 dark:bg-success/10 text-success flex items-center justify-center border border-success/10 dark:border-success/20 shadow-sm flex-shrink-0 mt-0.5"
                     id="def-sidebar-icon-container">
                     <span class="material-symbols-outlined" id="def-sidebar-icon">database</span>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate" id="def-sidebar-name">-
+                <div class="min-w-0 flex-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
+                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 break-words leading-tight" id="def-sidebar-name">-
                     </div>
-                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate" title=""
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all leading-normal mt-1" title=""
                         id="def-sidebar-type">-</div>
                 </div>
             </div>
 
             <div
-                class="grid grid-cols-2 gap-4 mb-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
+                class="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
                 <div>
                     <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-1">Scope</div>
-                    <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="def-sidebar-scope">-</div>
+                    <div class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="def-sidebar-scope">-
+                    </div>
                 </div>
                 <div>
                     <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-1">Role</div>
-                    <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="def-sidebar-role">-</div>
+                    <div class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="def-sidebar-role">-
+                    </div>
                 </div>
-            </div>
-
-            <div class="flex items-center justify-between text-xs font-medium">
-                <span class="text-success">Health Status</span>
-                <span class="flex items-center gap-1.5 text-success uppercase text-[10px] font-bold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-success" id="def-sidebar-health-status"></span> RUNNING
-                </span>
+                <div>
+                    <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-1">Health</div>
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-success">
+                        <span class="w-1.5 h-1.5 rounded-full bg-success flex-shrink-0"
+                            id="def-sidebar-health-status"></span>
+                        <span class="truncate">RUNNING</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="flex border-b border-gray-100 dark:border-slate-800 px-2" id="def-sidebar-tabs">
-            <button
+            <button data-action="switch-tab"
                 class="flex-1 py-3 text-xs font-bold text-primary dark:text-purple-400 border-b-2 border-primary text-center tab-btn"
                 data-tab="properties" id="def-tab-properties">Properties</button>
-            <button
+            <button data-action="switch-tab"
                 class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
                 data-tab="dependencies" id="def-tab-dependencies">Dependencies</button>
-            <button
+            <button data-action="switch-tab"
                 class="flex-1 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn"
                 data-tab="dependents" id="def-tab-dependents">Dependents</button>
         </div>
@@ -386,7 +391,7 @@
         </div>
 
         <div class="p-4 border-t border-gray-100 dark:border-slate-800 mt-auto bg-white dark:bg-slate-900">
-            <button
+            <button data-action="view-graph"
                 class="w-full py-2 border border-primary text-primary hover:text-white rounded-md text-xs font-bold flex items-center justify-center gap-2 hover:bg-primary dark:hover:bg-primary/80 transition-all cursor-pointer"
                 id="def-view-graph-btn">
                 <span class="material-symbols-outlined text-[16px]">account_tree</span> View Complete Bean Graph

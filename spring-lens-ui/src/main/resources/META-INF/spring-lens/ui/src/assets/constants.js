@@ -85,7 +85,7 @@ export const TEMPLATES = {
         const fg = isDark ? (scopeStyle.darkFg || '#cbd5e1') : scopeStyle.fg;
         const border = isDark ? (scopeStyle.darkBorder || 'rgba(71, 85, 105, 0.3)') : scopeStyle.border;
         return `
-        <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors bean-row ${activeRowClass}" data-bean-name="${beanName}">
+        <tr data-action="select-bean" class="hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors bean-row ${activeRowClass}" data-bean-name="${beanName}">
             <td class="px-5 py-3">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]" style="color: ${color}">${icon}</span>
@@ -101,7 +101,7 @@ export const TEMPLATES = {
             <td class="px-5 py-3 text-center">${lazyIcon}</td>
             <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400">${contextId || 'N/A'}</td>
             <td class="px-5 py-3 text-right">
-                <button class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary dark:text-purple-300 rounded-md text-xs font-semibold transition-colors cursor-pointer btn-bean-view animate-none" data-bean-name="${beanName}">
+                <button data-action="select-bean" class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary dark:text-purple-300 rounded-md text-xs font-semibold transition-colors cursor-pointer btn-bean-view animate-none" data-bean-name="${beanName}">
                     View
                 </button>
             </td>
@@ -116,13 +116,13 @@ export const TEMPLATES = {
             <div id="tip-meta" class="text-[10px] text-gray-500"></div>
         </div>
     `,
-    dependencyItem: ({ depName, displayName, catColor }) => `
+    depListItem: ({ depName, displayName, catColor }) => `
         <div class="dep-item flex items-center justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800/50 px-2 rounded-md transition-colors">
-            <div class="dep-item-left flex items-center gap-2 cursor-pointer def-sidebar-item-click" data-fullname="${depName}">
+            <div data-action="select-dependency" class="dep-item-left flex items-center gap-2 cursor-pointer def-sidebar-item-click" data-fullname="${depName}">
                 <span class="w-2 h-2 rounded-full bg-${catColor}-500"></span>
                 <span class="font-medium text-gray-700 dark:text-gray-300 font-mono text-[11px]">${displayName}</span>
             </div>
-            <span class="dep-link flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-350 cursor-pointer" data-fullname="${depName}" title="Focus in graph">
+            <span data-action="select-dependency" class="dep-link flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-350 cursor-pointer" data-fullname="${depName}" title="Focus in graph">
                 <span class="material-symbols-outlined text-[16px]">east</span>
             </span>
         </div>
@@ -149,12 +149,12 @@ export const TEMPLATES = {
         </div>
     `,
     paginationPrevBtn: ({ isDisabled }) => `
-        <button class="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded btn-prev" ${isDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'style="cursor: pointer;"'}>
+        <button data-action="prev-page" class="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded btn-prev" ${isDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'style="cursor: pointer;"'}>
             <span class="material-symbols-outlined text-[18px]">chevron_left</span>
         </button>
     `,
     paginationNextBtn: ({ isDisabled }) => `
-        <button class="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded btn-next" ${isDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'style="cursor: pointer;"'}>
+        <button data-action="next-page" class="w-7 h-7 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded btn-next" ${isDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'style="cursor: pointer;"'}>
             <span class="material-symbols-outlined text-[18px]">chevron_right</span>
         </button>
     `,
@@ -163,24 +163,28 @@ export const TEMPLATES = {
             ? 'text-white bg-primary font-medium'
             : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium';
         return `
-            <button class="w-7 h-7 flex items-center justify-center rounded text-xs btn-page ${btnClass}" data-page="${page}">
+            <button data-action="change-page" class="w-7 h-7 flex items-center justify-center rounded text-xs btn-page ${btnClass}" data-page="${page}">
                 ${page}
             </button>
         `;
     },
     paginationEllipsis: `<span class="text-gray-400 dark:text-gray-500 mx-1">...</span>`,
     sidebarEmptyList: `<div class="text-gray-400 dark:text-gray-500 text-xs p-3 italic">None</div>`,
-    sidebarListItem: ({ depName, dispName, catColor }) => `
-        <div class="def-sidebar-item-click flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 px-2 rounded-md transition-colors cursor-pointer" data-fullname="${depName}">
+    sidebarListItem: ({ depName, dispName, catColor, dependencyName, displayName }) => {
+        const full = depName ?? dependencyName;
+        const disp = dispName ?? displayName;
+        return `
+        <div data-action="select-dependency" class="def-sidebar-item-click flex items-center justify-between py-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 px-2 rounded-md transition-colors cursor-pointer" data-fullname="${full}">
             <div class="flex items-center gap-2 min-w-0">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-${catColor}-500"></span>
-                <span class="font-medium text-gray-700 dark:text-gray-300 font-mono text-[11px] truncate" title="${depName}">${dispName}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300 font-mono text-[11px] truncate" title="${full}">${disp}</span>
             </div>
             <span class="text-gray-400 dark:text-gray-500">
                 <span class="material-symbols-outlined text-[16px]">east</span>
             </span>
         </div>
-    `
+    `;
+    }
 };
 
 export const BEAN_TYPE_RULES = [

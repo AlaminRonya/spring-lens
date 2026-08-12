@@ -9,7 +9,6 @@ import {
 } from './constants.js';
 import {
     getBeanCategory,
-    nodeStyle,
     getApiUrl,
     capitalize,
     formatPercentage,
@@ -21,221 +20,215 @@ import {
  * Manages view state (pagination, filters, search, sorting), renders table data via server API,
  * manages D3/Chart.js metrics, and handles detail sidebar interactivity.
  */
-export default class BeanDefinitions {
+export default class BeanDefinitionsController {
+    // Private State Fields
+    _hasFetchedTableData = false;
+    _searchDebounceTimer = null;
 
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
-        this.charts = {
+
+        this.activeCharts = {
             scopeChart: null,
             roleChart: null
         };
 
         // All beans dataset (used for overall KPIs, charts, dropdown options)
-        this.beans = [];
+        this.allBeans = [];
 
         // Server-paginated data for current table view
-        this.pageBeans = [];
+        this.currentPageBeans = [];
+        this.searchQuery = '';
 
         // API Pagination Metadata state
-        this.pagination = {
+        this.paginationState = {
             totalElements: 0,
             totalPages: 1,
             pageNumber: 0,
             pageSize: 10,
-            first: true,
-            last: true
+            isFirstPage: true,
+            isLastPage: true
         };
 
-        this.searchQuery = '';
-
-        this.filters = {
+        this.filterCriteria = {
             contextId: '',
             beanName: '',
             scope: '',
             role: '',
-            primary: '',
-            lazy: ''
+            isPrimary: '',
+            isLazy: ''
         };
 
-        this.currentPage = 1; // 1-indexed representation for UI display
-        this.pageSize = 10;
-        this.sortBy = '';
-        this.sortDir = 'asc';
+        this.currentPage = 1; // 1-indexed UI state
+        this.itemsPerPage = 10;
+        this.sortColumn = '';
+        this.sortDirection = 'asc';
 
         this.selectedBeanName = null;
-        this.activeTab = 'properties'; // 'properties' | 'dependencies' | 'dependents'
+        this.activeSidebarTab = 'properties'; // 'properties' | 'dependencies' | 'dependents'
     }
 
     /**
-     * Initializes the view by loading overall bean dataset for metrics, setting up dropdowns,
-     * building charts, fetching paginated table data from API, and registering event handlers.
+     * Initializes the view by loading the overall bean dataset, setting up filters,
+     * building charts, fetching paginated table data, and binding event handlers.
      */
     async enter() {
         try {
             await this.dataLoader.load();
-            if (window.allBeansMap) {
-                this.beans = Array.from(window.allBeansMap.values());
-            } else {
-                this.beans = [];
-            }
+            this.allBeans = window.allBeansMap ? Array.from(window.allBeansMap.values()) : [];
 
-            this.initFilterDropdowns();
-            this.updateKPIs();
-            this.initCharts();
-            this.initEvents();
+            this.initializeFilterDropdowns();
+            this.refreshKeyPerformanceIndicators();
+            this.initializeCharts();
+            this.bindEvents();
 
             await this.fetchTableData();
 
             // Select the first bean as default details if available
-            if (this.pageBeans.length > 0) {
-                this.selectBean(this.pageBeans[0].beanName);
-            } else if (this.beans.length > 0) {
-                this.selectBean(this.beans[0].beanName);
+            const defaultBean = this.currentPageBeans[0] || this.allBeans[0];
+            if (defaultBean) {
+                this.selectBean(defaultBean.beanName);
             }
         } catch (error) {
-            console.error('Error in BeanDefinitions enter:', error);
+            console.error('Error entering BeanDefinitions view:', error);
         }
     }
 
     /**
-     * Handles cleaning up charts when transitioning away from the dashboard.
+     * Cleans up resources (charts, timers) when transitioning away from the view.
      */
     leave() {
-        this.cleanupCharts();
+        this.destroyCharts();
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
+        }
     }
 
     /**
      * Populates filter dropdowns with unique options aggregated from the dataset.
      */
-    initFilterDropdowns() {
-        let $defFilterContext = $('#def-filter-context');
-        let $defFilterScope = $('#def-filter-scope');
-        let $defFilterRole = $('#def-filter-role');
+    initializeFilterDropdowns() {
+        const $contextDropdown = $('#def-filter-context');
+        const $scopeDropdown = $('#def-filter-scope');
+        const $roleDropdown = $('#def-filter-role');
 
-        const contexts = new Set();
-        const scopes = new Set();
-        const roles = new Set();
+        const uniqueContexts = new Set();
+        const uniqueScopes = new Set();
+        const uniqueRoles = new Set();
 
-        this.beans.forEach(bean => {
-            if (bean.contextId) contexts.add(bean.contextId);
-            if (bean.scope) scopes.add(bean.scope);
-            if (bean.role) roles.add(bean.role);
+        this.allBeans.forEach(bean => {
+            if (bean.contextId) uniqueContexts.add(bean.contextId);
+            if (bean.scope) uniqueScopes.add(bean.scope);
+            if (bean.role) uniqueRoles.add(bean.role);
         });
 
-        if ($defFilterContext.length > 0) {
-            this._populateDropdown(
-                $defFilterContext,
-                contexts,
+        if ($contextDropdown.length > 0) {
+            this._populateSelectDropdown(
+                $contextDropdown,
+                uniqueContexts,
                 'Context: All',
-                ctx => ctx
+                contextId => contextId
             );
-            $defFilterContext.val(this.filters.contextId);
+            $contextDropdown.val(this.filterCriteria.contextId);
         }
 
-        this._populateDropdown(
-            $defFilterScope,
-            scopes,
+        this._populateSelectDropdown(
+            $scopeDropdown,
+            uniqueScopes,
             'Scope: All',
             scope => capitalize(scope)
         );
 
-        this._populateDropdown(
-            $defFilterRole,
-            roles,
+        this._populateSelectDropdown(
+            $roleDropdown,
+            uniqueRoles,
             'Role: All',
             role => capitalize(role.replace(/^ROLE_/, ''))
         );
 
         // Sync dropdown selectors with active filter state
-        $defFilterScope.val(this.filters.scope);
-        $defFilterRole.val(this.filters.role);
-        $('#def-filter-primary').val(this.filters.primary);
-        $('#def-filter-lazy').val(this.filters.lazy);
-        $('#def-filter-size').val(this.pageSize);
+        $scopeDropdown.val(this.filterCriteria.scope);
+        $roleDropdown.val(this.filterCriteria.role);
+        $('#def-filter-primary').val(this.filterCriteria.isPrimary);
+        $('#def-filter-lazy').val(this.filterCriteria.isLazy);
+        $('#def-filter-size').val(this.itemsPerPage);
         $('#def-search-input').val(this.searchQuery);
     }
 
-    /**
-     * Helper to populate a select dropdown with unique, sorted, and formatted options.
-     * @private
-     */
-    _populateDropdown($select, values, defaultText, formatter) {
-        $select.html(`<option value="">${defaultText}</option>`);
-        Array.from(values).sort().forEach(val => {
-            $select.append(`<option value="${val}">${formatter(val)}</option>`);
+    _populateSelectDropdown($selectElement, optionsSet, defaultLabel, labelFormatter) {
+        $selectElement.html(`<option value="">${defaultLabel}</option>`);
+        Array.from(optionsSet).sort().forEach(value => {
+            $selectElement.append(`<option value="${value}">${labelFormatter(value)}</option>`);
         });
     }
 
     /**
      * Computes and updates metrics cards (total counts, context distributions, lazy percentage).
      */
-    updateKPIs() {
-        if (this.beans.length === 0) return;
+    refreshKeyPerformanceIndicators() {
+        if (this.allBeans.length === 0) return;
 
-        this._updateTotalCountKPI();
+        this._updateTotalBeanCountKPI();
         this._updateContextDistributionKPI();
-        this._updateLazyInitKPI();
+        this._updateLazyInitializationKPI();
     }
 
-    /**
-     * Updates the total bean count metric.
-     * Uses totalElements from API pagination metadata if available, falling back to loaded beans count.
-     * @private
-     */
-    _updateTotalCountKPI() {
-        const count = (this.pagination && typeof this.pagination.totalElements === 'number' && (this.pagination.totalElements > 0 || this._hasFetchedTableData))
-            ? this.pagination.totalElements
-            : (this.beans ? this.beans.length : 0);
-        $('#def-total-count').text(count.toLocaleString());
+    _updateTotalBeanCountKPI() {
+        const hasValidPagination = this.paginationState &&
+            typeof this.paginationState.totalElements === 'number' &&
+            (this.paginationState.totalElements > 0 || this._hasFetchedTableData);
+
+        const totalCount = hasValidPagination
+            ? this.paginationState.totalElements
+            : this.allBeans.length;
+
+        $('#def-total-count').text(totalCount.toLocaleString());
     }
 
-    /**
-     * Computes and updates context distribution stats and progress bars.
-     * @private
-     */
     _updateContextDistributionKPI() {
-        if (!this.beans || this.beans.length === 0) return;
-        const total = this.beans.length;
-        const contexts = {};
-        this.beans.forEach(b => {
-            const ctxId = b.contextId || 'unknown';
-            contexts[ctxId] = (contexts[ctxId] || 0) + 1;
+        if (!this.allBeans || this.allBeans.length === 0) return;
+
+        const totalBeans = this.allBeans.length;
+        const contextCounts = {};
+
+        this.allBeans.forEach(bean => {
+            const contextId = bean.contextId || 'unknown';
+            contextCounts[contextId] = (contextCounts[contextId] || 0) + 1;
         });
 
-        const contextEntries = Object.entries(contexts).sort((a, b) => b[1] - a[1]);
-        $('#def-context-count').text(`${contextEntries.length} Total`);
+        const sortedContextEntries = Object.entries(contextCounts).sort((a, b) => b[1] - a[1]);
+        $('#def-context-count').text(`${sortedContextEntries.length} Total`);
 
-        const colors = ['bg-primary', 'bg-blue-500', 'bg-success'];
-        const contextListHtml = contextEntries.map(([ctxId, count], idx) => {
-            const pct = Math.round((count / total) * 100);
-            const colorClass = colors[idx] || 'bg-gray-400';
-            return TEMPLATES.contextListItem({ ctxId, colorClass, pct });
+        const themeColors = ['bg-primary', 'bg-blue-500', 'bg-success'];
+        const contextListHtml = sortedContextEntries.map(([ctxId, count], index) => {
+            const percentage = Math.round((count / totalBeans) * 100);
+            const colorClass = themeColors[index] || 'bg-gray-400';
+            return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage });
         }).join('');
+
         $('#def-context-list').html(contextListHtml);
     }
 
-    /**
-     * Computes and updates lazy initialization percentage and progress bar.
-     * @private
-     */
-    _updateLazyInitKPI() {
-        if (!this.beans || this.beans.length === 0) return;
-        const total = this.beans.length;
-        const lazyCount = this.beans.filter(b => b.lazyInit).length;
-        const lazyPct = Math.round((lazyCount / total) * 100);
-        $('#def-lazy-percent').text(`${lazyPct}%`);
-        $('#def-lazy-bar').css('width', `${lazyPct}%`);
+    _updateLazyInitializationKPI() {
+        if (!this.allBeans || this.allBeans.length === 0) return;
+
+        const totalBeans = this.allBeans.length;
+        const lazyBeanCount = this.allBeans.filter(bean => bean.lazyInit).length;
+        const lazyPercentage = Math.round((lazyBeanCount / totalBeans) * 100);
+
+        $('#def-lazy-percent').text(`${lazyPercentage}%`);
+        $('#def-lazy-bar').css('width', `${lazyPercentage}%`);
     }
 
     /**
      * Initializes scope and role distribution charts with live computed frequencies.
      */
-    initCharts() {
-        this.cleanupCharts();
-        if (this.beans.length === 0) return;
+    initializeCharts() {
+        this.destroyCharts();
+        if (this.allBeans.length === 0) return;
 
-        // 1. Scope distribution
-        this._initDistributionChart(
+        // Scope distribution
+        this._createDistributionChart(
             'scopeChart',
             'scopeChart',
             '#def-scope-legend',
@@ -244,8 +237,8 @@ export default class BeanDefinitions {
             '#a855f7'
         );
 
-        // 2. Role distribution
-        this._initDistributionChart(
+        // Role distribution
+        this._createDistributionChart(
             'roleChart',
             'roleChart',
             '#def-role-legend',
@@ -255,52 +248,45 @@ export default class BeanDefinitions {
         );
     }
 
-    /**
-     * Helper to initialize a distribution chart and its corresponding HTML legend.
-     * @private
-     */
-    _initDistributionChart(chartKey, canvasId, legendId, valueExtractor, colorsConfig, defaultColor) {
-        const counts = {};
-        this.beans.forEach(bean => {
-            const rawVal = valueExtractor(bean) || 'unknown';
-            counts[rawVal] = (counts[rawVal] || 0) + 1;
+    _createDistributionChart(chartKey, canvasId, legendContainerId, valueExtractor, colorMap, fallbackColor) {
+        const itemFrequencies = {};
+        this.allBeans.forEach(bean => {
+            const categoryKey = valueExtractor(bean) || 'unknown';
+            itemFrequencies[categoryKey] = (itemFrequencies[categoryKey] || 0) + 1;
         });
 
-        const labels = Object.keys(counts);
-        const data = Object.values(counts);
-        const bgColors = labels.map(lbl => colorsConfig[lbl] || defaultColor);
+        const chartLabels = Object.keys(itemFrequencies);
+        const chartData = Object.values(itemFrequencies);
+        const segmentColors = chartLabels.map(label => colorMap[label] || fallbackColor);
 
-        const legendHtml = labels.map((lbl, idx) => {
-            const count = data[idx];
-            const pctStr = formatPercentage(count, this.beans.length);
-            const color = bgColors[idx];
-            return TEMPLATES.chartLegendItem({ color, lbl, count, pctStr });
+        const legendHtml = chartLabels.map((label, index) => {
+            const count = chartData[index];
+            const pctStr = formatPercentage(count, this.allBeans.length);
+            const color = segmentColors[index];
+            return TEMPLATES.chartLegendItem({ color, lbl: label, count, pctStr });
         }).join('');
-        $(legendId).html(legendHtml);
 
-        this.charts[chartKey] = this._createDoughnutChart(
+        $(legendContainerId).html(legendHtml);
+
+        this.activeCharts[chartKey] = this._instantiateDoughnutChart(
             canvasId,
-            labels,
-            data,
-            bgColors
+            chartLabels,
+            chartData,
+            segmentColors
         );
     }
 
-    /**
-     * Helper to instantiate a pre-styled doughnut chart on a target canvas.
-     * @private
-     */
-    _createDoughnutChart(canvasId, labels, data, colors) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return null;
+    _instantiateDoughnutChart(canvasId, labels, data, backgroundColor) {
+        const canvasElement = document.getElementById(canvasId);
+        if (!canvasElement) return null;
 
-        return new Chart(ctx, {
+        return new Chart(canvasElement, {
             type: 'doughnut',
             data: {
                 labels,
                 datasets: [{
                     data,
-                    backgroundColor: colors,
+                    backgroundColor,
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -317,12 +303,10 @@ export default class BeanDefinitions {
         });
     }
 
-    /**
-     * Displays a loading spinner in the table body while fetching from API.
-     */
     showTableLoading() {
         const $tbody = $('#beanTableBody');
         if ($tbody.length === 0) return;
+
         $tbody.html(`
             <tr>
                 <td colspan="8" class="px-5 py-12 text-center text-gray-400">
@@ -335,64 +319,56 @@ export default class BeanDefinitions {
         `);
     }
 
-    /**
-     * Displays an error message in the table body if API request fails.
-     */
-    renderTableError(message) {
+    renderTableError(errorMessage) {
         const $tbody = $('#beanTableBody');
         if ($tbody.length === 0) return;
+
         $tbody.html(`
             <tr>
                 <td colspan="8" class="px-5 py-8 text-center text-red-500 dark:text-red-400">
                     <div class="flex items-center justify-center gap-2 text-sm font-semibold">
                         <span class="material-symbols-outlined text-lg">warning</span>
-                        <span>Failed to fetch table data: ${message}</span>
+                        <span>Failed to fetch table data: ${errorMessage}</span>
                     </div>
                 </td>
             </tr>
         `);
     }
 
+    _buildApiQueryParams() {
+        const rawParams = {
+            pageNumber: this.currentPage - 1,
+            pageSize: this.itemsPerPage,
+            search: this.searchQuery,
+            contextId: this.filterCriteria.contextId,
+            beanName: this.filterCriteria.beanName,
+            scope: this.filterCriteria.scope,
+            role: this.filterCriteria.role,
+            primary: this.filterCriteria.isPrimary,
+            lazyInit: this.filterCriteria.isLazy,
+            sortBy: this.sortColumn,
+            sortDir: this.sortDirection
+        };
+
+        const entries = Object.entries(rawParams)
+            .filter(
+                ([_, value]) => value !== ''
+                    && value !== null
+                    && value !== undefined
+            );
+
+        return new URLSearchParams(entries);
+    }
+
     /**
-     * Fetches paginated bean definitions from backend API using search, filters, sorting, and pagination query params.
+     * Fetches paginated bean definitions from backend API using active filters and pagination state.
      */
     async fetchTableData() {
         this.showTableLoading();
 
-        const params = new URLSearchParams();
-        params.append('pageNumber', (this.currentPage - 1).toString());
-        params.append('pageSize', this.pageSize.toString());
-
-        if (this.searchQuery) {
-            params.append('search', this.searchQuery);
-        }
-        if (this.filters.contextId) {
-            params.append('contextId', this.filters.contextId);
-        }
-        if (this.filters.beanName) {
-            params.append('beanName', this.filters.beanName);
-        }
-        if (this.filters.scope) {
-            params.append('scope', this.filters.scope);
-        }
-        if (this.filters.role) {
-            params.append('role', this.filters.role);
-        }
-        if (this.filters.primary !== '') {
-            params.append('primary', this.filters.primary);
-        }
-        if (this.filters.lazy !== '') {
-            params.append('lazyInit', this.filters.lazy);
-        }
-        if (this.sortBy) {
-            params.append('sortBy', this.sortBy);
-        }
-        if (this.sortDir) {
-            params.append('sortDir', this.sortDir);
-        }
-
+        const queryParams = this._buildApiQueryParams();
         const baseUrl = getApiUrl(this.dataLoader?.dataUrl || '/spring-lens/api/beans/definitions');
-        const requestUrl = `${baseUrl}?${params.toString()}`;
+        const requestUrl = `${baseUrl}?${queryParams.toString()}`;
 
         try {
             const response = await fetch(requestUrl);
@@ -401,61 +377,13 @@ export default class BeanDefinitions {
             }
             const data = await response.json();
 
-            if (data && Array.isArray(data.content)) {
-                // Paginated API response metadata mapping
-                this.pageBeans = data.content;
-                this.pagination = {
-                    totalElements: data.totalElements !== undefined ? data.totalElements : data.content.length,
-                    totalPages: data.totalPages !== undefined ? data.totalPages : 1,
-                    pageNumber: data.pageNumber !== undefined ? data.pageNumber : 0,
-                    pageSize: data.pageSize !== undefined ? data.pageSize : this.pageSize,
-                    first: data.first !== undefined ? data.first : (data.pageNumber === 0),
-                    last: data.last !== undefined ? data.last : (data.pageNumber >= ((data.totalPages || 1) - 1))
-                };
-            } else if (Array.isArray(data)) {
-                // Fallback for flat array responses
-                const total = data.length;
-                const totalPages = Math.max(1, Math.ceil(total / this.pageSize));
-                const pageNum = Math.max(0, Math.min(this.currentPage - 1, totalPages - 1));
-                this.pageBeans = data.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize);
-                this.pagination = {
-                    totalElements: total,
-                    totalPages: totalPages,
-                    pageNumber: pageNum,
-                    pageSize: this.pageSize,
-                    first: pageNum === 0,
-                    last: pageNum >= totalPages - 1
-                };
-            } else {
-                this.pageBeans = [];
-                this.pagination = {
-                    totalElements: 0,
-                    totalPages: 1,
-                    pageNumber: 0,
-                    pageSize: this.pageSize,
-                    first: true,
-                    last: true
-                };
-            }
-
-            // Sync UI current page and page size directly with API response values
-            this.currentPage = this.pagination.pageNumber + 1;
-            this.pageSize = this.pagination.pageSize;
-
-            // Cache fetched beans into window.allBeansMap for detail sidebar dependency lookups
-            if (window.allBeansMap) {
-                this.pageBeans.forEach(b => {
-                    if (b.beanName && !window.allBeansMap.has(b.beanName)) {
-                        window.allBeansMap.set(b.beanName, b);
-                    }
-                });
-            }
+            this._processPaginatedResponse(data);
 
             this._hasFetchedTableData = true;
             this.renderTable();
             this.renderPagination();
             this.updateSortHeaderIcons();
-            this._updateTotalCountKPI();
+            this._updateTotalBeanCountKPI();
         } catch (error) {
             console.error('Error fetching bean definitions table data:', error);
             this.renderTableError(error.message);
@@ -463,22 +391,96 @@ export default class BeanDefinitions {
     }
 
     /**
-     * Updates visual sort direction indicators in table headers.
+     * Processes API responses (paginated objects or raw arrays) and updates component state.
+     * @param {Object|Array} responseData - The API response payload.
      */
-    updateSortHeaderIcons() {
-        $('.sort-icon').text('unfold_more').removeClass('text-primary font-bold');
-        if (this.sortBy) {
-            const $icon = $(`.sort-icon[data-col="${this.sortBy}"]`);
-            if ($icon.length > 0) {
-                $icon.text(this.sortDir === 'desc' ? 'arrow_downward' : 'arrow_upward')
-                    .addClass('text-primary font-bold');
+    _processPaginatedResponse(responseData) {
+        const isPaginatedPayload = Array.isArray(responseData?.content);
+        const isFlatArrayPayload = Array.isArray(responseData);
+
+        if (isPaginatedPayload) {
+            this._applyPaginatedPayload(responseData);
+        } else if (isFlatArrayPayload) {
+            this._applyFlatArrayPayload(responseData);
+        } else {
+            this._resetPaginationState();
+        }
+
+        // Sync UI display page (1-indexed) and items per page
+        this.currentPage = this.paginationState.pageNumber + 1;
+        this.itemsPerPage = this.paginationState.pageSize;
+
+        this._cacheFetchedBeans();
+    }
+
+    _applyPaginatedPayload(data) {
+        const { content, totalElements, totalPages, pageNumber, pageSize, first, last } = data;
+        const computedTotalPages = totalPages ?? 1;
+        const computedPageNumber = pageNumber ?? 0;
+
+        this.currentPageBeans = content;
+        this.paginationState = {
+            totalElements: totalElements ?? content.length,
+            totalPages: computedTotalPages,
+            pageNumber: computedPageNumber,
+            pageSize: pageSize ?? this.itemsPerPage,
+            isFirstPage: first ?? (computedPageNumber === 0),
+            isLastPage: last ?? (computedPageNumber >= computedTotalPages - 1)
+        };
+    }
+
+    _applyFlatArrayPayload(items) {
+        const totalElements = items.length;
+        const totalPages = Math.max(1, Math.ceil(totalElements / this.itemsPerPage));
+        const pageIndex = Math.max(0, Math.min(this.currentPage - 1, totalPages - 1));
+
+        const startIndex = pageIndex * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+
+        this.currentPageBeans = items.slice(startIndex, endIndex);
+        this.paginationState = {
+            totalElements,
+            totalPages,
+            pageNumber: pageIndex,
+            pageSize: this.itemsPerPage,
+            isFirstPage: pageIndex === 0,
+            isLastPage: pageIndex >= totalPages - 1
+        };
+    }
+
+    _resetPaginationState() {
+        this.currentPageBeans = [];
+        this.paginationState = {
+            totalElements: 0,
+            totalPages: 1,
+            pageNumber: 0,
+            pageSize: this.itemsPerPage,
+            isFirstPage: true,
+            isLastPage: true
+        };
+    }
+
+    _cacheFetchedBeans() {
+        if (!window.allBeansMap) return;
+
+        for (const bean of this.currentPageBeans) {
+            if (bean.beanName && !window.allBeansMap.has(bean.beanName)) {
+                window.allBeansMap.set(bean.beanName, bean);
             }
         }
     }
 
-    /**
-     * Resolves matching semantic icons based on bean identifier text.
-     */
+    updateSortHeaderIcons() {
+        $('.sort-icon').text('unfold_more').removeClass('text-primary font-bold');
+        if (this.sortColumn) {
+            const $sortIcon = $(`.sort-icon[data-col="${this.sortColumn}"]`);
+            if ($sortIcon.length > 0) {
+                const iconName = this.sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward';
+                $sortIcon.text(iconName).addClass('text-primary font-bold');
+            }
+        }
+    }
+
     getBeanIcon(bean) {
         return resolveBeanMetadata(bean).icon;
     }
@@ -488,13 +490,13 @@ export default class BeanDefinitions {
     }
 
     /**
-     * Renders the bean definitions list table for the current server-returned page.
+     * Renders the bean definitions list table for the current page.
      */
     renderTable() {
         const $tbody = $('#beanTableBody');
         if ($tbody.length === 0) return;
 
-        if (this.pageBeans.length === 0) {
+        if (this.currentPageBeans.length === 0) {
             $tbody.html(`
                 <tr>
                     <td colspan="8" class="px-5 py-8 text-center text-gray-400">
@@ -505,88 +507,87 @@ export default class BeanDefinitions {
             return;
         }
 
-        const rowsHtml = this.pageBeans.map(bean => {
-            const displayName = BeanTreeBuilder._displayName(bean.beanName);
-
-            const cleanRole = (bean.role || '').replace(/^ROLE_/, '');
-            const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
-            const displayScope = bean.scope ? capitalize(bean.scope) : 'N/A';
-
-            const scopeLower = (bean.scope || '').toLowerCase();
-            const scopeStyle = SCOPE_STYLES[scopeLower] || DEFAULT_SCOPE_STYLE;
-
-            const primaryIcon = bean.primary ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle;
-            const lazyIcon = bean.lazyInit ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle;
-            const icon = this.getBeanIcon(bean);
-            const color = this.getBeanColor(bean);
-
-            const isSelected = this.selectedBeanName === bean.beanName;
-            const activeRowClass = isSelected ? 'bg-primary-light/40 border-l-2 border-primary font-medium' : '';
-
-            return TEMPLATES.dashboardRow({
-                activeRowClass,
-                beanName: bean.beanName,
-                color,
-                icon,
-                displayName,
-                type: bean.type,
-                scopeStyle,
-                displayScope,
-                displayRole,
-                primaryIcon,
-                lazyIcon,
-                contextId: bean.contextId
-            });
-        });
-
+        const rowsHtml = this.currentPageBeans.map(bean => this._generateTableRowHtml(bean));
         $tbody.html(rowsHtml.join(''));
     }
 
-    /**
-     * Renders dynamic pagination navigation controls driven directly by API pagination metadata
-     * (totalElements, totalPages, pageNumber, pageSize, first, last).
-     */
-    renderPagination() {
-        const { totalElements, totalPages, pageNumber, pageSize, first, last } = this.pagination;
-        const displayPage = pageNumber + 1; // 1-indexed page number for display UI
+    _generateTableRowHtml(bean) {
+        const { beanName, role, scope, type, primary, lazyInit, contextId } = bean;
 
-        const startIndex = totalElements === 0 ? 0 : (pageNumber * pageSize) + 1;
-        const endIndex = totalElements === 0 ? 0 : Math.min((pageNumber + 1) * pageSize, totalElements);
+        // Format display values
+        const displayName = BeanTreeBuilder._displayName(beanName);
+        const cleanRole = role?.replace(/^ROLE_/, '');
+        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
+        const displayScope = scope ? capitalize(scope) : 'N/A';
 
-        $('#def-pagination-info').text(`Showing ${startIndex} to ${endIndex} of ${totalElements.toLocaleString()} beans`);
+        // Style resolutions
+        const scopeStyle = SCOPE_STYLES[scope?.toLowerCase()] ?? DEFAULT_SCOPE_STYLE;
+        const activeRowClass = this.selectedBeanName === beanName
+            ? 'bg-primary-light/40 border-l-2 border-primary font-medium'
+            : '';
 
-        const $buttons = $('#def-pagination-buttons');
-        if ($buttons.length === 0) return;
-
-        const maxPages = Math.max(1, totalPages);
-        const buttonsHtml = [];
-
-        // Previous button (disabled if first is true)
-        buttonsHtml.push(TEMPLATES.paginationPrevBtn({ isDisabled: first }));
-
-        // Dynamic page number buttons array
-        const range = this._getPaginationRange(displayPage, maxPages);
-        range.forEach(p => {
-            if (p === '...') {
-                buttonsHtml.push(TEMPLATES.paginationEllipsis);
-            } else {
-                buttonsHtml.push(TEMPLATES.paginationPageBtn({ page: p, isActive: p === displayPage }));
-            }
+        return TEMPLATES.dashboardRow({
+            activeRowClass,
+            beanName,
+            displayName,
+            type,
+            contextId,
+            color: this.getBeanColor(bean),
+            icon: this.getBeanIcon(bean),
+            scopeStyle,
+            displayScope,
+            displayRole,
+            primaryIcon: primary ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle,
+            lazyIcon: lazyInit ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle
         });
-
-        // Next button (disabled if last is true)
-        buttonsHtml.push(TEMPLATES.paginationNextBtn({ isDisabled: last }));
-
-        $buttons.html(buttonsHtml.join(''));
     }
 
     /**
-     * Helper to compute the numeric pages and ellipses range array for pagination display.
-     * @private
+     * Renders dynamic pagination navigation controls driven by pagination metadata.
      */
-    _getPaginationRange(currentPage, totalPages) {
+    renderPagination() {
+        const { totalElements, totalPages, pageNumber, pageSize, isFirstPage, isLastPage } = this.paginationState;
+
+        this._updatePaginationInfoText(totalElements, pageNumber, pageSize);
+
+        const $paginationContainer = $('#def-pagination-buttons');
+        if ($paginationContainer.length === 0) return;
+
+        const activeDisplayPage = pageNumber + 1;
+        const maxPages = Math.max(1, totalPages);
+        const pageRange = this._calculatePaginationRange(activeDisplayPage, maxPages);
+
+        const paginationButtonsHtml = [
+            TEMPLATES.paginationPrevBtn({ isDisabled: isFirstPage }),
+            ...pageRange.map(page => this._renderPaginationButton(page, activeDisplayPage)),
+            TEMPLATES.paginationNextBtn({ isDisabled: isLastPage })
+        ].join('');
+
+        $paginationContainer.html(paginationButtonsHtml);
+    }
+
+    _updatePaginationInfoText(totalElements, pageNumber, pageSize) {
+        const startIndex = totalElements === 0 ? 0 : (pageNumber * pageSize) + 1;
+        const endIndex = Math.min((pageNumber + 1) * pageSize, totalElements);
+
+        const infoText = `Showing ${startIndex} to ${endIndex} of ${totalElements.toLocaleString()} beans`;
+        $('#def-pagination-info').text(infoText);
+    }
+
+    _renderPaginationButton(page, activeDisplayPage) {
+        if (page === '...') {
+            return TEMPLATES.paginationEllipsis;
+        }
+        return TEMPLATES.paginationPageBtn({
+            page,
+            isActive: page === activeDisplayPage
+        });
+    }
+
+    _calculatePaginationRange(currentPage, totalPages) {
         const delta = 2;
         const range = [];
+
         for (let i = 1; i <= totalPages; i++) {
             if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
                 range.push(i);
@@ -597,278 +598,334 @@ export default class BeanDefinitions {
         return range;
     }
 
+    /**
+     * Selects a bean, updates UI highlighting, and populates the details sidebar.
+     * @param {string} beanName - Unique identifier for the target bean.
+     */
     selectBean(beanName) {
         this.selectedBeanName = beanName;
 
-        $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
-        $('.bean-row').filter(function () {
-            return $(this).attr('data-bean-name') === beanName;
-        }).addClass('bg-primary-light/40 border-l-2 border-primary font-medium');
+        this._updateRowSelectionStyles(beanName);
 
-        let bean = (this.pageBeans && this.pageBeans.find(b => b.beanName === beanName)) ||
-            (window.allBeansMap && window.allBeansMap.get(beanName)) ||
-            (this.beans && this.beans.find(b => b.beanName === beanName));
-
-        if (!bean) return;
+        const targetBean = this._findBeanByName(beanName);
+        if (!targetBean) return;
 
         $('#def-details-sidebar').show();
 
-        this._updateSidebarDetails(bean);
-        this._updateSidebarLists(bean);
-
+        this._populateSidebarDetails(targetBean);
+        this._populateSidebarLists(targetBean);
         this.renderActiveTab();
     }
 
-    /**
-     * Updates the text properties and factory/init info in the details sidebar.
-     * @private
-     */
-    _updateSidebarDetails(bean) {
-        const displayName = BeanTreeBuilder._displayName(bean.beanName);
-        $('#def-sidebar-name').text(displayName);
-        $('#def-sidebar-type').text(bean.type || 'N/A').attr('title', bean.type || '');
+    _updateRowSelectionStyles(activeBeanName) {
+        const activeClass = 'bg-primary-light/40 border-l-2 border-primary font-medium';
 
+        $('.bean-row').each((_, element) => {
+            const $row = $(element);
+            const isSelected = $row.attr('data-bean-name') === activeBeanName;
+            $row.toggleClass(activeClass, isSelected);
+        });
+    }
+
+    _findBeanByName(beanName) {
+        return this.currentPageBeans?.find(bean => bean.beanName === beanName)
+            ?? window.allBeansMap?.get(beanName)
+            ?? this.allBeans?.find(bean => bean.beanName === beanName);
+    }
+
+    /**
+     * Updates the text properties and factory/lifecycle info in the details sidebar.
+     * @param {Object} bean - The bean definition object.
+     */
+    _populateSidebarDetails(bean) {
+        const {
+            beanName,
+            type = 'N/A',
+            scope,
+            role,
+            primary,
+            lazyInit,
+            autowireCandidate,
+            contextId = 'N/A',
+            factoryBeanName = '-',
+            factoryMethodName = '-',
+            initMethodName = '-',
+            destroyMethodName = '-'
+        } = bean;
+
+        const displayName = BeanTreeBuilder._displayName(beanName);
+        const cleanRole = role?.replace(/^ROLE_/, '');
+        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
+        const displayScope = scope ? capitalize(scope) : 'N/A';
+
+        // Batch text updates to prevent repetitive DOM queries
+        const textMap = {
+            '#def-sidebar-name': displayName,
+            '#def-sidebar-type': type,
+            '#def-sidebar-scope': displayScope,
+            '#def-sidebar-role': displayRole,
+            '#def-sidebar-prop-primary': primary ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-lazy': lazyInit ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-autowired': autowireCandidate ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-context': contextId,
+            '#def-sidebar-factory-bean': factoryBeanName,
+            '#def-sidebar-factory-method': factoryMethodName,
+            '#def-sidebar-init-method': initMethodName,
+            '#def-sidebar-destroy-method': destroyMethodName
+        };
+
+        Object.entries(textMap).forEach(([selector, textValue]) => {
+            $(selector).text(textValue);
+        });
+
+        $('#def-sidebar-name').attr('title', beanName);
+        $('#def-sidebar-type').attr('title', type);
+
+        this._updateSidebarIcon(bean);
+    }
+
+    _updateSidebarIcon(bean) {
         const icon = this.getBeanIcon(bean);
         const color = this.getBeanColor(bean);
+
         $('#def-sidebar-icon').text(icon);
-
-        $('#def-sidebar-icon-container')
-            .css({
-                'background-color': `${color}10`,
-                'color': color,
-                'border-color': `${color}33`
-            });
-
-        const displayScope = bean.scope ? capitalize(bean.scope) : 'N/A';
-        const cleanRole = (bean.role || '').replace(/^ROLE_/, '');
-        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
-
-        $('#def-sidebar-scope').text(displayScope);
-        $('#def-sidebar-role').text(displayRole);
-
-        $('#def-sidebar-prop-primary').text(bean.primary ? 'TRUE' : 'FALSE');
-        $('#def-sidebar-prop-lazy').text(bean.lazyInit ? 'TRUE' : 'FALSE');
-        $('#def-sidebar-prop-autowired').text(bean.autowireCandidate ? 'TRUE' : 'FALSE');
-        $('#def-sidebar-prop-context').text(bean.contextId || 'N/A');
-
-        $('#def-sidebar-factory-bean').text(bean.factoryBeanName || '-');
-        $('#def-sidebar-factory-method').text(bean.factoryMethodName || '-');
-
-        $('#def-sidebar-init-method').text(bean.initMethodName || '-');
-        $('#def-sidebar-destroy-method').text(bean.destroyMethodName || '-');
+        $('#def-sidebar-icon-container').css({
+            backgroundColor: `${color}10`,
+            color,
+            borderColor: `${color}33`
+        });
     }
 
     /**
      * Renders dependency and dependent lists in the details sidebar.
-     * @private
+     * @param {Object} bean - The selected bean definition object.
      */
-    _updateSidebarLists(bean) {
-        const deps = bean.dependencies || [];
-        const dependents = bean.dependents || [];
+    _populateSidebarLists(bean) {
+        const { dependencies = [], dependents = [] } = bean;
 
-        $('#def-sidebar-deps-count').text(deps.length);
+        $('#def-sidebar-deps-count').text(dependencies.length);
         $('#def-sidebar-dependents-count').text(dependents.length);
 
-        const buildListHtml = (names) => {
-            if (names.length === 0) {
-                return TEMPLATES.sidebarEmptyList;
-            }
+        $('#def-sidebar-deps-list').html(this._generateSidebarListHtml(dependencies));
+        $('#def-sidebar-dependents-list').html(this._generateSidebarListHtml(dependents));
+    }
 
-            return names.map(depName => {
-                const depRecord = window.allBeansMap?.get(depName);
-                const dispName = BeanTreeBuilder._displayName(depName);
+    _generateSidebarListHtml(beanNames) {
+        if (beanNames.length === 0) return TEMPLATES.sidebarEmptyList;
 
-                let catColor = 'blue';
-                if (depRecord) {
-                    const cat = getBeanCategory({ fullName: depName, meta: { type: depRecord.type } });
-                    catColor = DEPENDENCY_CATEGORY_COLORS[cat] || 'blue';
-                }
+        return beanNames
+            .map(depName => this._renderSidebarListItem(depName))
+            .join('');
+    }
 
-                return TEMPLATES.sidebarListItem({ depName, dispName, catColor });
-            }).join('');
-        };
+    _renderSidebarListItem(dependencyName) {
+        const displayName = BeanTreeBuilder._displayName(dependencyName);
+        const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
 
-        $('#def-sidebar-deps-list').html(buildListHtml(deps));
-        $('#def-sidebar-dependents-list').html(buildListHtml(dependents));
+        return TEMPLATES.sidebarListItem({
+            depName: dependencyName,
+            dispName: displayName,
+            catColor: categoryColor
+        });
+    }
+
+    _resolveDependencyCategoryColor(dependencyName) {
+        const dependencyRecord = window.allBeansMap?.get(dependencyName);
+        if (!dependencyRecord) return 'blue';
+
+        const category = getBeanCategory({
+            fullName: dependencyName,
+            meta: { type: dependencyRecord.type }
+        });
+
+        return DEPENDENCY_CATEGORY_COLORS[category] ?? 'blue';
     }
 
     /**
-     * Refreshes the display of the active tab pane in the details sidebar.
+     * Refreshes the active tab button style and toggles visible tab pane.
      */
     renderActiveTab() {
-        $('#def-sidebar-tabs button').removeClass('text-primary border-b-2 border-primary font-bold').addClass('text-gray-500 hover:text-gray-700 font-medium');
-        $(`#def-tab-${this.activeTab}`).removeClass('text-gray-500 hover:text-gray-700 font-medium').addClass('text-primary border-b-2 border-primary font-bold');
+        const activeClasses = 'text-primary border-b-2 border-primary font-bold';
+        const inactiveClasses = 'text-gray-500 hover:text-gray-700 font-medium';
+
+        $('#def-sidebar-tabs button').each((_, element) => {
+            const isSelected = element.id === `def-tab-${this.activeSidebarTab}`;
+            $(element)
+                .toggleClass(activeClasses, isSelected)
+                .toggleClass(inactiveClasses, !isSelected);
+        });
 
         $('.tab-pane').addClass('hidden');
-        $(`#def-pane-${this.activeTab}`).removeClass('hidden');
+        $(`#def-pane-${this.activeSidebarTab}`).removeClass('hidden');
     }
 
     /**
-     * Binds all interactivity handlers for filters, searching, header sorting, sidebar operations, and pagination.
+     * Binds all UI interactivity handlers using centralized event delegation.
      */
-    initEvents() {
-        this._bindFilterEvents();
-        this._bindHeaderSortEvents();
-        this._bindTableAndPaginationEvents();
-        this._bindSidebarEvents();
+    bindEvents() {
+        this._bindSearchInput();
+        this._bindFilterChangeEvents();
+        this._bindClickActionDelegation();
     }
 
-    /**
-     * Binds input search, reset, and dropdown filters.
-     * @private
-     */
-    _bindFilterEvents() {
-        // Search with 300ms debounce
-        let searchTimeout;
+    _bindSearchInput() {
         $('#def-search-input').off('input').on('input', (e) => {
-            clearTimeout(searchTimeout);
-            this.searchQuery = $(e.target).val();
+            clearTimeout(this._searchDebounceTimer);
+            this.searchQuery = e.target.value.trim();
             this.currentPage = 1;
-            searchTimeout = setTimeout(() => {
-                this.fetchTableData();
-            }, 300);
+
+            this._searchDebounceTimer = setTimeout(() => this.fetchTableData(), 300);
         });
+    }
 
-        // Dropdown Filters (Context, Scope, Role, Primary, Lazy)
-        const filterMappings = [
-            { selector: '#def-filter-context', key: 'contextId' },
-            { selector: '#def-filter-scope', key: 'scope' },
-            { selector: '#def-filter-role', key: 'role' },
-            { selector: '#def-filter-primary', key: 'primary' },
-            { selector: '#def-filter-lazy', key: 'lazy' }
-        ];
+    _bindFilterChangeEvents() {
+        const filterKeyMap = {
+            '#def-filter-context': 'contextId',
+            '#def-filter-scope': 'scope',
+            '#def-filter-role': 'role',
+            '#def-filter-primary': 'isPrimary',
+            '#def-filter-lazy': 'isLazy'
+        };
 
-        filterMappings.forEach(({ selector, key }) => {
-            $(selector).off('change').on('change', (e) => {
-                this.filters[key] = $(e.target).val();
+        // Consolidated filter change router
+        const filterSelectors = Object.keys(filterKeyMap).join(', ');
+        $(filterSelectors).off('change').on('change', (e) => {
+            const key = filterKeyMap[`#${e.target.id}`];
+            if (key) {
+                this.filterCriteria[key] = e.target.value;
                 this.currentPage = 1;
                 this.fetchTableData();
-            });
+            }
         });
 
-        // Dropdown Page Size Filter
+        // Page size dropdown handler
         $('#def-filter-size').off('change').on('change', (e) => {
-            this.pageSize = parseInt($(e.target).val()) || 10;
-            this.currentPage = 1;
-            this.fetchTableData();
-        });
-
-        // Clear filter settings
-        $('#def-btn-reset-filters').off('click').on('click', () => {
-            this.searchQuery = '';
-            this.filters = { contextId: '', scope: '', role: '', primary: '', lazy: '', beanName: '' };
-            this.pageSize = 10;
-            this.currentPage = 1;
-            this.sortBy = '';
-            this.sortDir = 'asc';
-            this.initFilterDropdowns();
-            this.fetchTableData();
-        });
-    }
-
-    /**
-     * Binds table header column sorting clicks.
-     * @private
-     */
-    _bindHeaderSortEvents() {
-        $('.th-sortable').off('click').on('click', (e) => {
-            const col = $(e.currentTarget).data('sort');
-            if (!col) return;
-            if (this.sortBy === col) {
-                this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.sortBy = col;
-                this.sortDir = 'asc';
-            }
+            this.itemsPerPage = parseInt(e.target.value, 10) || 10;
             this.currentPage = 1;
             this.fetchTableData();
         });
     }
 
     /**
-     * Binds table selection rows and pagination chevrons/number button events based on API pagination state.
-     * @private
+     * Centralized click router using data-action attributes and element classes.
      */
-    _bindTableAndPaginationEvents() {
-        let $paginationButton = $('#def-pagination-buttons');
+    _bindClickActionDelegation() {
+        // Top-level document delegation prevents re-binding on dynamic HTML updates
+        $(document).off('click.beanDefs').on('click.beanDefs', '[data-action]', (e) => {
+            const $target = $(e.currentTarget);
+            const action = $target.data('action');
 
-        // Table row click
-        $('#beanTableBody').off('click', '.bean-row').on('click', '.bean-row', (e) => {
-            const beanName = $(e.currentTarget).attr('data-bean-name');
-            if (beanName) {
-                this.selectBean(beanName);
-            }
-        });
-
-        // Pagination page number click
-        $paginationButton.off('click', '.btn-page').on('click', '.btn-page', (e) => {
-            const targetPage = parseInt($(e.currentTarget).data('page'));
-            if (!isNaN(targetPage) && targetPage !== (this.pagination.pageNumber + 1)) {
-                this.currentPage = targetPage;
-                this.fetchTableData();
-            }
-        });
-
-        // Pagination prev click
-        $paginationButton.off('click', '.btn-prev').on('click', '.btn-prev', () => {
-            if (!this.pagination.first && this.pagination.pageNumber > 0) {
-                this.currentPage = this.pagination.pageNumber; // Target page 1-indexed
-                this.fetchTableData();
-            }
-        });
-
-        // Pagination next click
-        $paginationButton.off('click', '.btn-next').on('click', '.btn-next', () => {
-            if (!this.pagination.last && this.pagination.pageNumber < (this.pagination.totalPages - 1)) {
-                this.currentPage = this.pagination.pageNumber + 2; // Target page 1-indexed
-                this.fetchTableData();
-            }
+            this._handleDelegatedClick(action, $target, e);
         });
     }
 
-    /**
-     * Binds close buttons, tabs switches, list-item clicks, and redirection buttons in sidebar details pane.
-     * @private
-     */
-    _bindSidebarEvents() {
-        // Sidebar close
-        $('#def-close-sidebar').off('click').on('click', () => {
-            $('#def-details-sidebar').hide();
-            this.selectedBeanName = null;
-            $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
-        });
+    _handleDelegatedClick(action, $target, event) {
+        const actionHandlers = {
+            'refresh-data': async () => {
+                const $icon = $target.find('.material-symbols-outlined');
+                $icon.addClass('animate-spin');
+                try {
+                    if (this.dataLoader) {
+                        this.dataLoader.rootPromise = null;
+                    }
+                    await this.enter();
+                } catch (err) {
+                    console.error('Error refreshing bean definitions:', err);
+                } finally {
+                    setTimeout(() => $icon.removeClass('animate-spin'), 500);
+                }
+            },
+            'reset-filters': () => {
+                this._resetFilterState();
+                this.initializeFilterDropdowns();
+                this.fetchTableData();
+            },
+            'sort-column': () => {
+                const columnKey = $target.data('sort');
+                if (!columnKey) return;
 
-        // Sidebar tabs
-        $('#def-sidebar-tabs').off('click', '.tab-btn').on('click', '.tab-btn', (e) => {
-            this.activeTab = $(e.currentTarget).data('tab');
-            this.renderActiveTab();
-        });
-
-        // Click list link in details pane
-        $('#def-sidebar-content').off('click', '.def-sidebar-item-click').on('click', '.def-sidebar-item-click', (e) => {
-            const depName = $(e.currentTarget).data('fullname');
-            if (depName && window.allBeansMap?.has(depName)) {
-                this.selectBean(depName);
+                this.sortDirection = (this.sortColumn === columnKey && this.sortDirection === 'asc') ? 'desc' : 'asc';
+                this.sortColumn = columnKey;
+                this.currentPage = 1;
+                this.fetchTableData();
+            },
+            'select-bean': () => {
+                const beanName = $target.data('bean-name');
+                if (beanName) this.selectBean(beanName);
+            },
+            'select-dependency': () => {
+                const dependencyName = $target.data('fullname');
+                if (dependencyName && window.allBeansMap?.has(dependencyName)) {
+                    this.selectBean(dependencyName);
+                }
+            },
+            'change-page': () => {
+                const targetPage = parseInt($target.data('page'), 10);
+                if (!isNaN(targetPage) && targetPage !== this.currentPage) {
+                    this.currentPage = targetPage;
+                    this.fetchTableData();
+                }
+            },
+            'prev-page': () => {
+                if (!this.paginationState.isFirstPage && this.paginationState.pageNumber > 0) {
+                    this.currentPage = this.paginationState.pageNumber;
+                    this.fetchTableData();
+                }
+            },
+            'next-page': () => {
+                if (!this.paginationState.isLastPage && this.paginationState.pageNumber < (this.paginationState.totalPages - 1)) {
+                    this.currentPage = this.paginationState.pageNumber + 2;
+                    this.fetchTableData();
+                }
+            },
+            'switch-tab': () => {
+                this.activeSidebarTab = $target.data('tab');
+                this.renderActiveTab();
+            },
+            'close-sidebar': () => {
+                $('#def-details-sidebar').hide();
+                this.selectedBeanName = null;
+                $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
+            },
+            'view-graph': () => {
+                if (this.selectedBeanName) {
+                    window.focusBeanOnNextGraphEnter = this.selectedBeanName;
+                    window.location.hash = '#/graph';
+                }
             }
-        });
+        };
 
-        // Complete graph redirect hook
-        $('#def-view-graph-btn').off('click').on('click', () => {
-            if (this.selectedBeanName) {
-                window.focusBeanOnNextGraphEnter = this.selectedBeanName;
-                window.location.hash = '#/graph';
-            }
-        });
+        const handler = actionHandlers[action];
+        if (handler) {
+            event.preventDefault();
+            handler();
+        }
+    }
+
+    _resetFilterState() {
+        this.searchQuery = '';
+        this.filterCriteria = {
+            contextId: '',
+            scope: '',
+            role: '',
+            isPrimary: '',
+            isLazy: '',
+            beanName: ''
+        };
+        this.itemsPerPage = 10;
+        this.currentPage = 1;
+        this.sortColumn = '';
+        this.sortDirection = 'asc';
     }
 
     /**
      * Destroys existing charts to avoid memory leaks or canvas drawing conflicts.
      */
-    cleanupCharts() {
-        for (const [key, chart] of Object.entries(this.charts)) {
-            if (chart) {
-                chart.destroy();
-                this.charts[key] = null;
+    destroyCharts() {
+        for (const [key, chartInstance] of Object.entries(this.activeCharts)) {
+            if (chartInstance) {
+                chartInstance.destroy();
+                this.activeCharts[key] = null;
             }
         }
     }
