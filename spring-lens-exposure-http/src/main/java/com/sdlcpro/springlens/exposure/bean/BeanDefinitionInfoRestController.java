@@ -3,6 +3,7 @@ package com.sdlcpro.springlens.exposure.bean;
 import com.sdlcpro.springlens.annotation.SpringLensEndpoint;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.exposure.ApiResponseHandler;
+import com.sdlcpro.springlens.model.bean.BeanInfoCompositeKey;
 import com.sdlcpro.springlens.model.bean.BeanRole;
 import com.sdlcpro.springlens.query.PageRequest;
 import com.sdlcpro.springlens.query.Sort;
@@ -58,8 +59,8 @@ public class BeanDefinitionInfoRestController {
      *                   defaults to
      *                   ascending when a {@code sortBy} property is supplied
      * @return a {@link ResponseEntity} wrapping the requested
-     *         {@link com.sdlcpro.springlens.query.PageResponse page} of bean
-     *         definitions
+     * {@link com.sdlcpro.springlens.query.PageResponse page} of bean
+     * definitions
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getBeanDefinitionInfo(
@@ -97,5 +98,24 @@ public class BeanDefinitionInfoRestController {
 
             return this.beanDefinitionInfoRepository.findAll(filter, pageRequest);
         });
+    }
+
+    /**
+     * Return BeanInstanceInfo according to the contextId and beanName
+     *
+     * @param contextId the value of application context id
+     * @param beanName  the unique bean name for each application context
+     * @return a {@link ResponseEntity} by wrapping the
+     * {@link com.sdlcpro.springlens.model.bean.instance.BeanInstanceInfo}
+     */
+    @GetMapping(value = "/find", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getBeanDefinitionInfo(
+            @RequestParam("contextId") String contextId,
+            @RequestParam("beanName") String beanName) {
+        var beanDefinitionInfoKey = new BeanInfoCompositeKey(contextId, beanName);
+        return ApiResponseHandler.handle(
+                () -> this.beanDefinitionInfoRepository.findById(beanDefinitionInfoKey),
+                "No bean definition found with name '%s' in application context '%s'".formatted(beanName, contextId)
+        );
     }
 }
