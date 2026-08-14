@@ -1,5 +1,5 @@
 import { NW, NH, RX, GAP_X, GAP_Y, ICON, ZOOM_SCALE_EXTENT, TEMPLATES } from './constants.js';
-import { css, getBeanCategory, nodeStyle, tbLink, lrLink, tree } from './utils.js';
+import { getBeanCategory, nodeStyle, tbLink, lrLink, tree } from './utils.js';
 import { BeanTreeBuilder } from './bean-data-loader.js';
 
 export default class BeanGraph {
@@ -7,13 +7,13 @@ export default class BeanGraph {
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
         this.root = null;
-        this.mode = localStorage.getItem('sl-layout') || 'tb';
+        this.mode = localStorage.getItem('sl-layout') ?? 'tb';
         this.svg = null;
         this.gLink = null;
         this.gNode = null;
         this.zoom = null;
         this.isHighlightPathActive = false;
-        
+
         this.initEvents();
     }
 
@@ -47,13 +47,11 @@ export default class BeanGraph {
         this.fitView(0);
         this.setMode(this.mode);
 
-        if (window.focusBeanOnNextGraphEnter) {
-            const targetBean = window.focusBeanOnNextGraphEnter;
-            window.focusBeanOnNextGraphEnter = null;
-            setTimeout(() => {
-                this.focusOnBean(targetBean);
-            }, 300);
-        }
+        if (!window.focusBeanOnNextGraphEnter) return;
+
+        const targetBean = window.focusBeanOnNextGraphEnter;
+        window.focusBeanOnNextGraphEnter = null;
+        setTimeout(() => this.focusOnBean(targetBean), 300);
     }
 
     /**
@@ -107,11 +105,11 @@ export default class BeanGraph {
             marker.attr(key, value);
         }
 
-        if (circle) {
-            const circleNode = marker.append('circle');
-            for (const [key, value] of Object.entries(circle)) {
-                circleNode.attr(key, value);
-            }
+        if (!circle) return;
+
+        const circleNode = marker.append('circle');
+        for (const [key, value] of Object.entries(circle)) {
+            circleNode.attr(key, value);
         }
     }
 
@@ -137,50 +135,54 @@ export default class BeanGraph {
      * @private
      */
     _updateToolbarCounts() {
-        if (window.allBeansMap) {
-            $('#beans-count').text(window.allBeansMap.size);
-            const totalDeps = Array.from(window.allBeansMap.values()).reduce(
-                (acc, { dependencies = [] }) => acc + dependencies.length,
-                0
-            );
-            $('#deps-count').text(totalDeps);
+        if (!window.allBeansMap) return;
+
+        $('#beans-count').text(window.allBeansMap.size);
+
+        let totalDeps = 0;
+        for (const bean of window.allBeansMap.values()) {
+            totalDeps += bean.dependencies?.length ?? 0;
         }
+        $('#deps-count').text(totalDeps);
     }
 
     leave() {
         $('#details-sidebar').hide();
-        if ($('#tip').length) {
-            $('#tip').removeClass('show');
-        }
+        $('#tip').removeClass('show');
     }
 
     /**
-     * Shows the hovering tooltip for a given node, updating its text content and position.
-     * @param {MouseEvent} event - The mouse event trigger.
-     * @param {d3.HierarchyNode} node - The hovered hierarchy node.
+     * Displays the tooltip for a hovered tree node with its metadata and updates its position.
+     * @param {MouseEvent} event - The triggering mouse event.
+     * @param {d3.HierarchyNode} node - Hovered node object.
      */
     showTip({ pageX, pageY }, node) {
-        const { data: { name, meta = {} }, depth, _children = [] } = node;
+        const { data, depth, _children = [] } = node;
+        const { name, meta = {} } = data;
         const { type, scope, role, deps, dependents } = meta;
-        const childrenCount = _children.length;
 
-        const typeLabel = type ? `Type: ${type.split('.').pop()}` : '';
+        const childrenCount = _children.length;
+        const shortType = type ? type.slice(type.lastIndexOf('.') + 1) : '';
+
+        const typeLabel = shortType ? `Type: ${shortType}` : '';
         const scopeLabel = scope ? `Scope: ${scope}${role ? ` · ${role}` : ''}` : '';
 
-        let metaText;
+        let metaText = `Leaf · depth ${depth}`;
         if (deps !== undefined) {
             metaText = `Deps: ${deps} · Dependents: ${dependents} · Children: ${childrenCount}`;
-        } else {
-            metaText = childrenCount > 0 
-                ? `${childrenCount} child bean(s) · depth ${depth}` 
-                : `Leaf · depth ${depth}`;
+        } else if (childrenCount > 0) {
+            metaText = `${childrenCount} child bean(s) · depth ${depth}`;
         }
 
+        // Cache element lookups or execute in a single selection
         $('#tip-name').text(name);
         $('#tip-type').text(typeLabel);
         $('#tip-scope').text(scopeLabel);
         $('#tip-meta').text(metaText);
-        $('#tip').addClass('show').css({ left: pageX + 14, top: pageY - 10 });
+
+        $('#tip')
+            .addClass('show')
+            .css({ left: pageX + 14, top: pageY - 10 });
     }
 
     /**
@@ -191,16 +193,20 @@ export default class BeanGraph {
     highlightPathForNode(node) {
         if (!this.isHighlightPathActive) return;
 
-        const pathNodes = new Set(node.ancestors());
-        node.descendants().forEach(descendantNode => pathNodes.add(descendantNode));
+        // Collect all ancestor and descendant nodes in a single set
+        const pathNodes = new Set([...node.ancestors(), ...node.descendants()]);
 
-        this.svg.selectAll('.node')
-            .classed('dimmed', itemNode => !pathNodes.has(itemNode))
-            .classed('highlighted', itemNode => pathNodes.has(itemNode));
+        // Single-pass node state updates using D3 .classed() function overload
+        this.svg.selectAll('.node').classed({
+            highlighted: targetNode => pathNodes.has(targetNode),
+            dimmed: targetNode => !pathNodes.has(targetNode)
+        });
 
-        this.svg.selectAll('.link')
-            .classed('dimmed', link => !pathNodes.has(link.source) || !pathNodes.has(link.target))
-            .classed('highlighted', link => pathNodes.has(link.source) && pathNodes.has(link.target));
+        // Single-pass link state updates
+        this.svg.selectAll('.link').classed({
+            highlighted: ({ source, target }) => pathNodes.has(source) && pathNodes.has(target),
+            dimmed: ({ source, target }) => !pathNodes.has(source) || !pathNodes.has(target)
+        });
     }
 
     /**
@@ -219,19 +225,31 @@ export default class BeanGraph {
      * @param {Object} source - The source coordinate origin/destination for transition animations.
      */
     update(event, source) {
-        if (!this.svg || !this.svg.node() || !this.root) return;
+        if (!this.svg?.node() || !this.root) return;
 
-        const duration = event?.altKey ? 2500 : 300;
         const isTB = this.mode === 'tb';
-        const nodes = this.root.descendants().reverse();
-        const links = this.root.links();
+        const duration = event?.altKey ? 2500 : 300;
         const linkColor = '#94a3b8';
 
-        // Calculate node widths using the existing array to avoid redundant array creation
-        nodes.forEach(node => {
-            const name = node.data.name || '';
-            node.width = Math.max(160, name.length * 7.2 + 56);
-        });
+        const descendants = this.root.descendants();
+        const nodes = descendants.slice().reverse();
+        const links = this.root.links();
+
+        let visibleCount = 0;
+
+        // Single-pass node width calculation & visible node counter
+        for (let i = 0; i < descendants.length; i++) {
+            const node = descendants[i];
+
+            // Width calculation
+            const nameLength = node.data.name?.length ?? 0;
+            node.width = Math.max(160, nameLength * 7.2 + 56);
+
+            // Visibility counting without allocating extra arrays
+            if (node.depth === 0 || node.parent?.children) {
+                visibleCount++;
+            }
+        }
 
         this._calculateLayout(nodes, isTB);
 
@@ -240,13 +258,12 @@ export default class BeanGraph {
         this._drawNodes(nodes, transition, isTB, source);
         this._drawLinks(links, transition, isTB, source, linkColor);
 
-        // Store positions for future animations
+        // Store current positions for future animations
         this.root.eachBefore(node => {
             node.x0 = node.x;
             node.y0 = node.y;
         });
 
-        const visibleCount = this.root.descendants().filter(node => node.depth === 0 || node.parent?.children).length;
         $('#nodeCount strong').text(visibleCount);
     }
 
@@ -258,11 +275,7 @@ export default class BeanGraph {
      */
     _calculateLayout(nodes, isTB) {
         const maxWidth = d3.max(nodes, node => node.width) || NW;
-        if (isTB) {
-            tree.nodeSize([maxWidth + GAP_X, NH + GAP_Y]);
-        } else {
-            tree.nodeSize([NH + 28, maxWidth + GAP_Y]);
-        }
+        tree.nodeSize(isTB ? [maxWidth + GAP_X, NH + GAP_Y] : [NH + 28, maxWidth + GAP_Y]);
         tree(this.root);
     }
 
@@ -275,33 +288,41 @@ export default class BeanGraph {
      * @param {Object} source - Animated origin/destination source coordinates.
      */
     _drawNodes(nodes, transition, isTB, source) {
-        const srcPos = s => isTB
-            ? `translate(${s.x0 ?? s.x},${s.y0 ?? s.y})`
-            : `translate(${s.y0 ?? s.y},${s.x0 ?? s.x})`;
+        const $tip = $('#tip');
 
-        const nodePos = node => isTB ? `translate(${node.x},${node.y})` : `translate(${node.y},${node.x})`;
+        // Pre-calculate position transform helpers
+        const getSourcePos = ({ x, y, x0, y0 }) => {
+            const posX = x0 ?? x;
+            const posY = y0 ?? y;
+            return isTB ? `translate(${posX},${posY})` : `translate(${posY},${posX})`;
+        };
+
+        const getNodePos = ({ x, y }) => isTB ? `translate(${x},${y})` : `translate(${y},${x})`;
+        const exitPos = `translate(${isTB ? source.x : source.y},${isTB ? source.y : source.x})`;
+        const initialTransform = getSourcePos(source);
 
         const nodeSelection = this.gNode.selectAll('g.node').data(nodes, node => node.id);
 
+        // Create entering nodes
         const enter = nodeSelection.enter().append('g')
             .attr('class', 'node')
             .attr('cursor', 'pointer')
-            .attr('transform', () => srcPos(source))
+            .attr('transform', initialTransform)
             .attr('fill-opacity', 0)
             .on('click', (event, node) => {
                 event.stopPropagation();
                 node.children = node.children ? null : node._children;
                 this.update(event, node);
                 this.selectNode(node);
-                $('#tip').removeClass('show');
+                $tip.removeClass('show');
             })
             .on('mouseenter', (event, node) => {
                 this.showTip(event, node);
                 this.highlightPathForNode(node);
             })
-            .on('mousemove', event => $('#tip').css({ left: event.pageX + 14, top: event.pageY - 10 }))
+            .on('mousemove', ({ pageX, pageY }) => $tip.css({ left: pageX + 14, top: pageY - 10 }))
             .on('mouseleave', () => {
-                $('#tip').removeClass('show');
+                $tip.removeClass('show');
                 this.resetPathHighlight();
             });
 
@@ -329,17 +350,19 @@ export default class BeanGraph {
             .attr('font-weight', 500)
             .attr('font-family', 'Inter, sans-serif');
 
-        const mergedNodes = nodeSelection.merge(enter);
-        const mergedTransition = mergedNodes.transition(transition)
-            .attr('transform', nodePos)
+        // Update merged nodes
+        const mergedTransition = nodeSelection.merge(enter)
+            .transition(transition)
+            .attr('transform', getNodePos)
             .attr('fill-opacity', 1);
 
         this._updateNodeStylesAndContent(mergedTransition);
 
-        nodeSelection.exit().transition(transition).remove()
-            .attr('transform', () => isTB
-                ? `translate(${source.x},${source.y})`
-                : `translate(${source.y},${source.x})`)
+        // Animate exiting nodes
+        nodeSelection.exit()
+            .transition(transition)
+            .remove()
+            .attr('transform', exitPos)
             .attr('fill-opacity', 0);
     }
 
@@ -349,22 +372,23 @@ export default class BeanGraph {
      * @param {d3.Selection|d3.Transition} selection - Target D3 selection/transition container.
      */
     _updateNodeStylesAndContent(selection) {
+        // Single sub-element queries with cached nodeStyle evaluations
         selection.select('.node-rect')
-            .attr('x', node => -node.width / 2)
-            .attr('width', node => node.width)
+            .attr('x', ({ width }) => -width / 2)
+            .attr('width', ({ width }) => width)
             .attr('fill', node => nodeStyle(node).fill)
             .attr('stroke', node => nodeStyle(node).stroke);
 
         selection.select('.node-icon')
-            .attr('transform', node => `translate(${-node.width / 2 + 14}, -10)`);
+            .attr('transform', ({ width }) => `translate(${-width / 2 + 14}, -10)`);
 
         selection.select('.node-icon path')
             .attr('stroke', node => nodeStyle(node).icon);
 
         selection.select('.node-text')
-            .attr('x', node => -node.width / 2 + 42)
+            .attr('x', ({ width }) => -width / 2 + 42)
             .attr('fill', node => nodeStyle(node).text)
-            .text(node => node.data.name);
+            .text(({ data }) => data.name);
     }
 
     /**
@@ -378,29 +402,44 @@ export default class BeanGraph {
      */
     _drawLinks(links, transition, isTB, source, linkColor) {
         const linkFn = isTB ? tbLink : lrLink;
+
+        // Pre-compute origin path string once for all entering elements
+        const origin = { x: source.x0 ?? source.x, y: source.y0 ?? source.y };
+        const enterPathD = linkFn({ source: origin, target: origin });
+        const exitPathD = linkFn({ source, target: source });
+
         const linkSelection = this.gLink.selectAll('path.link').data(links, link => link.target.id);
 
+        // Create entering links
         const enter = linkSelection.enter().append('path')
             .attr('class', 'link')
             .attr('fill', 'none')
             .attr('stroke', linkColor)
             .attr('stroke-width', 1.5)
             .attr('marker-end', 'url(#dot)')
-            .attr('d', () => {
-                const o = { x: source.x0 ?? source.x, y: source.y0 ?? source.y };
-                return linkFn({ source: o, target: o });
-            });
+            .attr('d', enterPathD);
 
-        linkSelection.merge(enter).transition(transition)
+        // Animate active links
+        linkSelection.merge(enter)
+            .transition(transition)
             .attr('stroke', linkColor)
             .attr('d', linkFn);
 
-        linkSelection.exit().transition(transition).remove()
-            .attr('d', () => linkFn({ source, target: source }));
+        // Animate exiting links
+        linkSelection.exit()
+            .transition(transition)
+            .remove()
+            .attr('d', exitPathD);
     }
 
+    /**
+     * Adjusts the current zoom level by a specified scale factor.
+     * @param {number} factor - Scale factor multiplier.
+     * @param {number} [duration=300] - Animation duration in milliseconds.
+     */
     zoomBy(factor, duration = 300) {
         if (!this.svg || !this.zoom) return;
+
         this.svg.transition()
             .duration(duration)
             .call(this.zoom.scaleBy, factor);
@@ -414,34 +453,44 @@ export default class BeanGraph {
      * @param {number} [maxScale=1.5] - Maximum zoom scale allowed when fitting.
      */
     fitView(duration = 500, padding = 60, minScale = 0.15, maxScale = 1.5) {
-        if (!this.svg || !this.svg.node() || !this.root) return;
+        if (!this.svg?.node() || !this.root) return;
 
-        const width = $('#beanGraph').width() || 800;
-        const height = $('#beanGraph').height() || 600;
+        const $beanGraph = $('#beanGraph');
+        const width = $beanGraph.width() || 800;
+        const height = $beanGraph.height() || 600;
 
         const nodes = this.root.descendants();
         if (nodes.length === 0) return;
 
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        nodes.forEach(({ x, y }) => {
-            const nx = this.mode === 'tb' ? x : y;
-            const ny = this.mode === 'tb' ? y : x;
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+        let maxNodeW = NW;
+
+        const isTB = this.mode === 'tb';
+
+        // Single pass to find coordinate bounds and maximum node width
+        for (let i = 0; i < nodes.length; i++) {
+            const { x, y, width: nodeWidth = NW } = nodes[i];
+            const nx = isTB ? x : y;
+            const ny = isTB ? y : x;
 
             if (nx < minX) minX = nx;
             if (nx > maxX) maxX = nx;
             if (ny < minY) minY = ny;
             if (ny > maxY) maxY = ny;
-        });
+            if (nodeWidth > maxNodeW) maxNodeW = nodeWidth;
+        }
 
-        const maxNodeW = d3.max(nodes, ({ width: nodeWidth }) => nodeWidth) || NW;
         const graphW = (maxX - minX) + maxNodeW + padding * 2;
         const graphH = (maxY - minY) + NH + padding * 2;
 
-        const centerX = minX + (maxX - minX) / 2;
-        const centerY = minY + (maxY - minY) / 2;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
 
-        let scale = Math.min(width / graphW, height / graphH);
-        scale = Math.max(minScale, Math.min(maxScale, scale));
+        const rawScale = Math.min(width / graphW, height / graphH);
+        const scale = Math.max(minScale, Math.min(maxScale, rawScale));
 
         const tx = width / 2 - centerX * scale;
         const ty = height / 2 - centerY * scale;
@@ -451,8 +500,12 @@ export default class BeanGraph {
             .call(this.zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
     }
 
+    /**
+     * Updates the UI zoom level indicator percentage text.
+     * @param {number} k - Current transform scale factor.
+     */
     updateZoomPercent(k) {
-        $('#zoom-percent').text(Math.round(k * 100) + '%');
+        $('#zoom-percent').text(`${Math.round(k * 100)}%`);
     }
 
     /**
@@ -469,26 +522,33 @@ export default class BeanGraph {
 
         const isDark = document.documentElement.classList.contains('dark');
         const isSingleton = scope === 'singleton';
-        const bg = isDark 
-            ? (isSingleton ? 'rgba(126, 34, 206, 0.15)' : 'rgba(16, 185, 129, 0.15)') 
-            : (isSingleton ? '#f3e8ff' : '#ecfdf5');
-        const fg = isDark 
-            ? (isSingleton ? '#d8b4fe' : '#a7f3d0') 
-            : (isSingleton ? '#7e22ce' : '#047857');
-        const border = isDark 
-            ? (isSingleton ? 'rgba(126, 34, 206, 0.3)' : 'rgba(16, 185, 129, 0.3)') 
-            : (isSingleton ? '#d8b4fe' : '#bbf7d0');
 
-        $('#detail-bean-scope').text(scope)
-            .css({
-                background: bg,
-                color: fg,
-                'border-color': border
-            });
+        // Static theme dictionary lookup instead of nested ternary allocations
+        const THEME_MAP = {
+            dark: {
+                singleton: { bg: 'rgba(126, 34, 206, 0.15)', fg: '#d8b4fe', border: 'rgba(126, 34, 206, 0.3)' },
+                other: { bg: 'rgba(16, 185, 129, 0.15)', fg: '#a7f3d0', border: 'rgba(16, 185, 129, 0.3)' }
+            },
+            light: {
+                singleton: { bg: '#f3e8ff', fg: '#7e22ce', border: '#d8b4fe' },
+                other: { bg: '#ecfdf5', fg: '#047857', border: '#bbf7d0' }
+            }
+        };
 
-        const beanRecord = window.allBeansMap?.get(fullName);
-        const deps = beanRecord?.dependencies || [];
-        const dependents = beanRecord?.dependents || [];
+        const modeKey = isDark ? 'dark' : 'light';
+        const scopeKey = isSingleton ? 'singleton' : 'other';
+        const { bg, fg, border } = THEME_MAP[modeKey][scopeKey];
+
+        $('#detail-bean-scope').text(scope).css({
+            background: bg,
+            color: fg,
+            borderColor: border
+        });
+
+        const beansMap = window.allBeansMap;
+        const beanRecord = beansMap?.get(fullName);
+        const deps = beanRecord?.dependencies ?? [];
+        const dependents = beanRecord?.dependents ?? [];
 
         $('#detail-deps-count').text(deps.length);
         $('#detail-dependents-count').text(dependents.length);
@@ -505,14 +565,10 @@ export default class BeanGraph {
             }
 
             return names.map(depName => {
-                const depRecord = window.allBeansMap?.get(depName);
+                const depRecord = beansMap?.get(depName);
                 const displayName = BeanTreeBuilder._displayName(depName);
-
-                let catColor = 'blue';
-                if (depRecord) {
-                    const cat = getBeanCategory({ fullName: depName, meta: { type: depRecord.type } });
-                    catColor = categoryColors[cat] || 'blue';
-                }
+                const cat = depRecord ? getBeanCategory({ fullName: depName, meta: { type: depRecord.type } }) : null;
+                const catColor = categoryColors[cat] ?? 'blue';
 
                 return TEMPLATES.dependencyItem({ depName, displayName, catColor });
             }).join('');
@@ -522,20 +578,34 @@ export default class BeanGraph {
         $('#accordion-dependents-body').html(buildListHtml(dependents, 'No dependents'));
     }
 
-    findNodeInTree(node, fullName) {
-        if (node.data.fullName === fullName) {
-            return node;
-        }
-        const kids = node.children || node._children;
-        if (kids) {
-            for (const child of kids) {
-                const found = this.findNodeInTree(child, fullName);
-                if (found) return found;
+    /**
+     * Iteratively finds a hierarchy node by its full bean name without stack overflow risk.
+     * @param {d3.HierarchyNode} rootNode - Root node to start searching from.
+     * @param {string} fullName - Target full bean identifier.
+     * @returns {d3.HierarchyNode|null} Matched target node or null.
+     */
+    findNodeInTree(rootNode, fullName) {
+        if (!rootNode) return null;
+
+        const stack = [rootNode];
+
+        while (stack.length > 0) {
+            const currentNode = stack.pop();
+
+            if (currentNode.data?.fullName === fullName) {
+                return currentNode;
+            }
+
+            const children = currentNode.children || currentNode._children;
+            if (children) {
+                for (let i = children.length - 1; i >= 0; i--) {
+                    stack.push(children[i]);
+                }
             }
         }
+
         return null;
     }
-
     /**
      * Focuses on a target bean definition by expanding all its parent nodes
      * (if collapsed), panning the graph, zooming in on the target node,
@@ -551,12 +621,13 @@ export default class BeanGraph {
             return;
         }
 
+        // Expand collapsed parents along the upward ancestor path
         let currentNode = targetNode.parent;
         let needsUpdate = false;
+
         while (currentNode) {
-            const { _children, children } = currentNode;
-            if (_children && !children) {
-                currentNode.children = _children;
+            if (currentNode._children && !currentNode.children) {
+                currentNode.children = currentNode._children;
                 needsUpdate = true;
             }
             currentNode = currentNode.parent;
@@ -566,11 +637,14 @@ export default class BeanGraph {
             this.update(null, this.root);
         }
 
-        const width = $('#beanGraph').width() || 800;
-        const height = $('#beanGraph').height() || 600;
+        // Measure viewport dimensions once
+        const $graph = $('#beanGraph');
+        const width = $graph.width() || 800;
+        const height = $graph.height() || 600;
+
         const isTopBottom = this.mode === 'tb';
-        
         const { x: nodeX, y: nodeY } = targetNode;
+
         const targetX = isTopBottom ? nodeX : nodeY;
         const targetY = isTopBottom ? nodeY : nodeX;
 
@@ -595,30 +669,39 @@ export default class BeanGraph {
         localStorage.setItem('sl-layout', layoutMode);
 
         const isTopBottom = layoutMode === 'tb';
-        $('#btn-tb').toggleClass('bg-white text-gray-800 shadow-sm', isTopBottom)
-                    .toggleClass('text-gray-500 hover:text-gray-800', !isTopBottom);
-        $('#btn-lr').toggleClass('bg-white text-gray-800 shadow-sm', !isTopBottom)
-                    .toggleClass('text-gray-500 hover:text-gray-800', isTopBottom);
+        const activeClasses = 'bg-white text-gray-800 shadow-sm';
+        const inactiveClasses = 'text-gray-500 hover:text-gray-800';
 
-        if (this.root) {
-            this.root.eachBefore(node => {
-                node.x0 = node.x;
-                node.y0 = node.y;
-            });
-            const { x = 0, y = 0, x0 = 0, y0 = 0 } = this.root;
-            this.update(null, { x, y, x0, y0 });
-            this.fitView(500);
-        }
+        // Batch toggle button styling
+        $('#btn-tb')
+            .toggleClass(activeClasses, isTopBottom)
+            .toggleClass(inactiveClasses, !isTopBottom);
+
+        $('#btn-lr')
+            .toggleClass(activeClasses, !isTopBottom)
+            .toggleClass(inactiveClasses, isTopBottom);
+
+        if (!this.root) return;
+
+        // Cache previous positions before recalculating layout
+        this.root.eachBefore(node => {
+            node.x0 = node.x;
+            node.y0 = node.y;
+        });
+
+        const { x = 0, y = 0, x0 = 0, y0 = 0 } = this.root;
+
+        this.update(null, { x, y, x0, y0 });
+        this.fitView(500);
     }
 
     /**
      * Recomputes graph positions and centers the view upon browser window resizing.
      */
     handleResize() {
-        if (this.root) {
-            this.update(null, this.root);
-            this.fitView(100);
-        }
+        if (!this.root) return;
+        this.update(null, this.root);
+        this.fitView(100);
     }
 
     /**
@@ -626,113 +709,175 @@ export default class BeanGraph {
      * text search input/suggestions, layout modes, and collapsible drawers.
      */
     initEvents() {
-        $(document).on('click', '#btn-expand', () => {
-            if (!this.root) return;
-            this.root.eachBefore(node => node.children = node._children);
-            this.update(null, this.root);
-            this.fitView(500);
-        });
+        this._bindSearchHandlers();
+        this._bindClickActionRouter();
+        this._bindCustomEventHandlers();
+    }
 
-        $(document).on('click', '#btn-collapse', () => {
-            if (!this.root) return;
-            this.root.eachBefore(node => {
-                if (node.depth > 0) {
-                    node.children = null;
-                }
-            });
-            this.update(null, this.root);
-            this.fitView(500);
-        });
-
-        $(document).on('click', '#btn-reset', () => {
-            if (!this.root) return;
-            this.root.eachBefore(node => node.children = node.depth === 0 ? node._children : null);
-            this.update(null, this.root);
-            this.fitView(500);
-        });
-
-        $(document).on('click', '#btn-control-zoom-in', () => this.zoomBy(1.25));
-        $(document).on('click', '#btn-control-zoom-out', () => this.zoomBy(0.8));
-        $(document).on('click', '#btn-control-fit, #btn-pan-mode', () => this.fitView());
-
-        $(document).on('click', '#btn-highlight-path', (event) => {
-            const targetButton = $(event.currentTarget);
-            this.isHighlightPathActive = !this.isHighlightPathActive;
-            targetButton.toggleClass('bg-primary text-white border-primary hover:bg-primary/90', this.isHighlightPathActive)
-                        .toggleClass('bg-white text-gray-700 border-gray-200 hover:bg-gray-50', !this.isHighlightPathActive);
-            if (!this.isHighlightPathActive && this.svg) {
-                this.svg.selectAll('.node, .link').classed('dimmed', false).classed('highlighted', false);
-            }
-        });
+    /**
+     * Handles live search debouncing and search suggestions box updates.
+     * @private
+     */
+    _bindSearchHandlers() {
+        let searchDebounceTimer = null;
+        const $searchBox = $('.search-box');
+        const $suggestionsBox = $('#search-suggestions');
 
         $(document).on('input', '#search-input', (event) => {
-            const searchQuery = $(event.currentTarget).val().toLowerCase().trim();
-            const suggestionsBox = $('#search-suggestions');
+            clearTimeout(searchDebounceTimer);
 
-            if (!searchQuery) {
-                suggestionsBox.hide();
-                return;
-            }
+            searchDebounceTimer = setTimeout(() => {
+                const searchQuery = event.target.value.toLowerCase().trim();
 
-            if (!window.allBeansMap) return;
-
-            const matches = [];
-            for (const [fullName, record] of window.allBeansMap.entries()) {
-                const displayName = BeanTreeBuilder._displayName(fullName);
-                if (displayName.toLowerCase().includes(searchQuery) || fullName.toLowerCase().includes(searchQuery)) {
-                    matches.push({ fullName, displayName, type: record.type || '' });
-                    if (matches.length >= 10) break;
+                if (!searchQuery) {
+                    $suggestionsBox.hide();
+                    return;
                 }
-            }
 
-            if (matches.length === 0) {
-                suggestionsBox.html(
-                    '<div class="p-2 text-gray-400 text-xs">No matching beans</div>'
-                ).show();
-                return;
-            }
+                const beansMap = window.allBeansMap;
+                if (!beansMap) return;
 
-            const html = matches.map(match => TEMPLATES.suggestionItem(match)).join('');
-            suggestionsBox.html(html).show();
+                const matches = [];
+                for (const [fullName, record] of beansMap.entries()) {
+                    const displayName = BeanTreeBuilder._displayName(fullName);
+                    const matchesDisplay = displayName.toLowerCase().includes(searchQuery);
+                    const matchesFull = fullName.toLowerCase().includes(searchQuery);
+
+                    if (matchesDisplay || matchesFull) {
+                        matches.push({ fullName, displayName, type: record.type || '' });
+                        if (matches.length >= 10) break;
+                    }
+                }
+
+                if (matches.length === 0) {
+                    $suggestionsBox.html('<div class="p-2 text-gray-400 text-xs">No matching beans</div>').show();
+                    return;
+                }
+
+                const suggestionsHtml = matches.map(match => TEMPLATES.suggestionItem(match)).join('');
+                $suggestionsBox.html(suggestionsHtml).show();
+            }, 150);
         });
+
+        // Close search suggestions when clicking outside
+        $(document).on('click', (event) => {
+            if (!event.target.closest('.search-box')) {
+                $suggestionsBox.hide();
+            }
+        });
+    }
+
+    /**
+     * Single-pass delegated click event router for controls, tree states, and sidebar triggers.
+     * @private
+     */
+    _bindClickActionRouter() {
+        const activeHighlightClasses = 'bg-primary text-white border-primary hover:bg-primary/90';
+        const inactiveHighlightClasses = 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50';
 
         $(document).on('click', (event) => {
-            if (!$(event.target).closest('.search-box').length) {
-                $('#search-suggestions').hide();
+            const target = event.target;
+            const $target = $(target);
+
+            // 1. Interactive Bean Navigation Links
+            const $depLink = $target.closest('.suggestion-item, .dep-item-left, .dep-link');
+            if ($depLink.length > 0) {
+                event.stopPropagation();
+                const fullName = $depLink.data('fullname');
+
+                if ($depLink.hasClass('suggestion-item')) {
+                    $('#search-input').val('');
+                    $('#search-suggestions').hide();
+                }
+
+                if (fullName) this.focusOnBean(fullName);
+                return;
+            }
+
+            // 2. Accordion Drawer Toggles
+            const $accordionHeader = $target.closest('.accordion-header');
+            if ($accordionHeader.length > 0) {
+                $accordionHeader.toggleClass('open');
+                $accordionHeader.find('.material-symbols-outlined').toggleClass('rotate-90');
+                $accordionHeader.next('.accordion-body').slideToggle(200);
+                return;
+            }
+
+            // 3. UI Action Buttons
+            const $btn = $target.closest('button, [id^="btn-"]');
+            if ($btn.length === 0) return;
+
+            const btnId = $btn.attr('id');
+
+            switch (btnId) {
+                case 'btn-expand':
+                    this._mutateTreeNodes(node => node.children = node._children);
+                    break;
+
+                case 'btn-collapse':
+                    this._mutateTreeNodes(node => { if (node.depth > 0) node.children = null; });
+                    break;
+
+                case 'btn-reset':
+                    this._mutateTreeNodes(node => node.children = node.depth === 0 ? node._children : null);
+                    break;
+
+                case 'btn-control-zoom-in':
+                    this.zoomBy(1.25);
+                    break;
+
+                case 'btn-control-zoom-out':
+                    this.zoomBy(0.8);
+                    break;
+
+                case 'btn-control-fit':
+                case 'btn-pan-mode':
+                    this.fitView();
+                    break;
+
+                case 'btn-highlight-path':
+                    this.isHighlightPathActive = !this.isHighlightPathActive;
+                    $btn.toggleClass(activeHighlightClasses, this.isHighlightPathActive)
+                        .toggleClass(inactiveHighlightClasses, !this.isHighlightPathActive);
+
+                    if (!this.isHighlightPathActive && this.svg) {
+                        this.svg.selectAll('.node, .link').classed('dimmed', false).classed('highlighted', false);
+                    }
+                    break;
+
+                case 'btn-close-sidebar':
+                    $('#details-sidebar').hide();
+                    break;
+
+                case 'btn-tb':
+                    this.setMode('tb');
+                    break;
+
+                case 'btn-lr':
+                    this.setMode('lr');
+                    break;
             }
         });
+    }
 
-        $(document).on('click', '.suggestion-item', (event) => {
-            const fullName = $(event.currentTarget).data('fullname');
-            $('#search-input').val('');
-            $('#search-suggestions').hide();
-            this.focusOnBean(fullName);
-        });
-
-        $(document).on('click', '.dep-item-left, .dep-link', (event) => {
-            event.stopPropagation();
-            const fullName = $(event.currentTarget).data('fullname');
-            this.focusOnBean(fullName);
-        });
-
-        $(document).on('click', '#btn-close-sidebar', () => {
-            $('#details-sidebar').hide();
-        });
-
-        $(document).on('click', '.accordion-header', (event) => {
-            const header = $(event.currentTarget);
-            header.toggleClass('open');
-            header.find('.material-symbols-outlined').toggleClass('rotate-90');
-            header.next('.accordion-body').slideToggle(200);
-        });
-
-        $(document).on('click', '#btn-tb', () => this.setMode('tb'));
-        $(document).on('click', '#btn-lr', () => this.setMode('lr'));
-
+    /**
+     * Registers custom DOM events (e.g. global theme changes).
+     * @private
+     */
+    _bindCustomEventHandlers() {
         document.addEventListener('themechanged', () => {
-            if (this.root) {
-                this.update(null, this.root);
-            }
+            if (this.root) this.update(null, this.root);
         });
+    }
+
+    /**
+     * Helper to mutate node visibility state, update rendering, and re-fit view.
+     * @private
+     */
+    _mutateTreeNodes(mutatorFn) {
+        if (!this.root) return;
+        this.root.eachBefore(mutatorFn);
+        this.update(null, this.root);
+        this.fitView(500);
     }
 }
