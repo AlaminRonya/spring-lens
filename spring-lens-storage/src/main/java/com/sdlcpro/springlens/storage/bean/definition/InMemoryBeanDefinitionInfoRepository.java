@@ -3,6 +3,7 @@ package com.sdlcpro.springlens.storage.bean.definition;
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.model.bean.BeanInfoCompositeKey;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
+import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionSummary;
 import com.sdlcpro.springlens.query.Filter;
 import com.sdlcpro.springlens.query.PageRequest;
 import com.sdlcpro.springlens.query.PageResponse;
@@ -74,5 +75,10 @@ public class InMemoryBeanDefinitionInfoRepository implements BeanDefinitionInfoR
     @Override
     public long count() {
         return this.beanDefinitionInfoMap.size();
+    }
+
+    @Override
+    public BeanDefinitionSummary getBeanDefinitionSummary() {
+        return null;
     }
 }
