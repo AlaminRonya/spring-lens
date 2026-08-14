@@ -118,4 +118,20 @@ public class BeanDefinitionInfoRestController {
                 "No bean definition found with name '%s' in application context '%s'".formatted(beanName, contextId)
         );
     }
+
+    /**
+     * Retrieves aggregated bean definition summary metrics.
+     *
+     * <p>The summary contains aggregated bean definition distributions,
+     * including context, scope, role, loading mode, and total counts.</p>
+     *
+     * @return an HTTP response containing the bean definition summary
+     *         wrapped by the standardized {@link ApiResponseHandler}
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<?> getBeanDefinitionSummary() {
+        return ApiResponseHandler.handle(
+                this.beanDefinitionInfoRepository::getBeanDefinitionSummary
+        );
+    }
 }
