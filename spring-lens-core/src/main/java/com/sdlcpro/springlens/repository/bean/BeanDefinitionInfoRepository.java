@@ -3,6 +3,9 @@ package com.sdlcpro.springlens.repository.bean;
 import com.sdlcpro.springlens.model.bean.BeanInfoCompositeKey;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionSummary;
+import com.sdlcpro.springlens.model.bean.definition.BeanDependency;
+import com.sdlcpro.springlens.query.PageRequest;
+import com.sdlcpro.springlens.query.PageResponse;
 import com.sdlcpro.springlens.repository.PageableRepository;
 
 
@@ -23,4 +26,6 @@ public interface BeanDefinitionInfoRepository extends PageableRepository<BeanDef
      * @return the aggregated {@link BeanDefinitionSummary}
      */
     BeanDefinitionSummary getBeanDefinitionSummary();
+
+    PageResponse<BeanDependency> findBeanDependencies(PageRequest pageRequest);
 }
