@@ -1,12 +1,11 @@
 package com.sdlcpro.springlens.insight.http.request;
 
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
-import com.sdlcpro.springlens.util.NullSafe;
 
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.sdlcpro.springlens.util.NullSafe.emptyIfNull;
+import static com.sdlcpro.springlens.util.DefensiveCopies.emptyIfNull;
 
 
 /**

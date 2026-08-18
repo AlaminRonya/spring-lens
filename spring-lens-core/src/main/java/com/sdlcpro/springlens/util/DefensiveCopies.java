@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class NullSafe
+public final class DefensiveCopies
 {
-    private NullSafe() {
+    private DefensiveCopies() {
         throw new UnsupportedOperationException("CollectionSanitizer is an utility class and cannot be instantiated");
     }
 

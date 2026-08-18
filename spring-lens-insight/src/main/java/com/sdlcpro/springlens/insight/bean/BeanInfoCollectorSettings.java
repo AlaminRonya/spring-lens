@@ -2,7 +2,7 @@ package com.sdlcpro.springlens.insight.bean;
 
 import java.util.Set;
 
-import static com.sdlcpro.springlens.util.NullSafe.emptyIfNull;
+import static com.sdlcpro.springlens.util.DefensiveCopies.emptyIfNull;
 
 public record BeanInfoCollectorSettings(
         boolean includeInfraRole,
