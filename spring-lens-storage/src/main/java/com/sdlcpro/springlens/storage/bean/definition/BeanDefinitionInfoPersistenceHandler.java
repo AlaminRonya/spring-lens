@@ -26,6 +26,8 @@ public class BeanDefinitionInfoPersistenceHandler implements BeanDefinitionInfoC
 
     @Override
     public void onBeanDefinitionInfoCollect(BeanDefinitionInfo beanDefinitionInfo) {
-        this.beanDefinitionInfoRepository.save(beanDefinitionInfo);
+        if (beanDefinitionInfo != null) {
+            this.beanDefinitionInfoRepository.save(beanDefinitionInfo);
+        }
     }
 }
