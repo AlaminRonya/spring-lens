@@ -12,17 +12,17 @@ import com.sdlcpro.springlens.repository.bean.BeanInstanceInfoRepository;
  * event and persists it using the {@link BeanInstanceInfoRepository}.
  */
 @SpringLensInternalComponent
-public class BeanInstanceInfoPersistenceHandler implements BeanInstanceInfoCollectListener{
+public class BeanInstanceInfoPersistenceHandler implements BeanInstanceInfoCollectListener {
     private final BeanInstanceInfoRepository beanInstanceInfoRepository;
 
-    public BeanInstanceInfoPersistenceHandler(
-        BeanInstanceInfoRepository beanInstanceInfoRepository
-    ){
-        this.beanInstanceInfoRepository=beanInstanceInfoRepository;
+    public BeanInstanceInfoPersistenceHandler(BeanInstanceInfoRepository beanInstanceInfoRepository) {
+        this.beanInstanceInfoRepository = beanInstanceInfoRepository;
     }
 
     @Override
-    public void onBeanInstanceInfoCollect(BeanInstanceInfo beanInstanceInfo){
-        beanInstanceInfoRepository.save(beanInstanceInfo);
+    public void onBeanInstanceInfoCollect(BeanInstanceInfo beanInstanceInfo) {
+        if (beanInstanceInfo != null) {
+            beanInstanceInfoRepository.save(beanInstanceInfo);
+        }
     }
 }
