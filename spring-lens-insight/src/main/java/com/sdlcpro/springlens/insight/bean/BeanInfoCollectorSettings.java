@@ -1,7 +1,8 @@
 package com.sdlcpro.springlens.insight.bean;
 
-import java.util.Collections;
 import java.util.Set;
+
+import static com.sdlcpro.springlens.util.NullSafe.emptyIfNull;
 
 public record BeanInfoCollectorSettings(
         boolean includeInfraRole,
@@ -11,7 +12,7 @@ public record BeanInfoCollectorSettings(
 ) {
 
     public BeanInfoCollectorSettings {
-        excludePackagePatterns = excludePackagePatterns != null ? Set.copyOf(excludePackagePatterns) : Collections.emptySet();
-        excludeClasses = excludeClasses != null ? Set.copyOf(excludeClasses) : Collections.emptySet();
+        excludePackagePatterns = emptyIfNull(excludePackagePatterns);
+        excludeClasses = emptyIfNull(excludeClasses);
     }
 }

@@ -2,9 +2,12 @@ package com.sdlcpro.springlens.model.bean.definition;
 
 import com.sdlcpro.springlens.model.bean.BeanRole;
 import com.sdlcpro.springlens.model.bean.LoadingMode;
+import com.sdlcpro.springlens.util.NullSafe;
 import com.sdlcpro.springlens.util.Preconditions;
 
 import java.util.Map;
+
+import static com.sdlcpro.springlens.util.NullSafe.emptyIfNull;
 
 /**
  * Immutable summary of bean definition metrics across Spring application
@@ -29,21 +32,10 @@ public record BeanDefinitionSummary(
 ) {
 
     public BeanDefinitionSummary {
-        contextDistribution = contextDistribution == null
-                ? Map.of()
-                : Map.copyOf(contextDistribution);
-
-        scopeDistribution = scopeDistribution == null
-                ? Map.of()
-                : Map.copyOf(scopeDistribution);
-
-        roleDistribution = roleDistribution == null
-                ? Map.of()
-                : Map.copyOf(roleDistribution);
-
-        loadingModeDistribution = loadingModeDistribution == null
-                ? Map.of()
-                : Map.copyOf(loadingModeDistribution);
+        contextDistribution = NullSafe.emptyIfNull(contextDistribution);
+        scopeDistribution = NullSafe.emptyIfNull(scopeDistribution);
+        roleDistribution = NullSafe.emptyIfNull(roleDistribution);
+        loadingModeDistribution = NullSafe.emptyIfNull(loadingModeDistribution);
 
         Preconditions.isTrue(
                 totalBeanDefinitions >= 0,
