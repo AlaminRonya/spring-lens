@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spring Lens - Beans</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet"
@@ -78,7 +78,7 @@
                     class="flex items-center gap-3 px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link">
                     <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
                 </a>
-                <div class="menu-group pt-2">
+                <!--<div class="menu-group pt-2">
                     <a data-page="request" href="#/request"
                         class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                         <div class="flex items-center gap-3">
@@ -93,12 +93,12 @@
                         <a data-page="request-endpoint" href="#/request-endpoint"
                             class="block text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 py-1 nav-link">Endpoints</a>
                     </div>
-                </div>
+                </div>-->
                 <div class="menu-group pt-2">
                     <a data-page="definitions" href="#/definitions"
                         class="flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors nav-link parent-link">
                         <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-[20px]">view_in_ar</span> Beans
+                            <span class="material-symbols-outlined text-[20px]">view_in_ar</span> Bean
                         </div>
                         <span
                             class="material-symbols-outlined text-[18px] transition-transform duration-200 chevron-icon">expand_more</span>
@@ -106,16 +106,16 @@
                     <div class="submenu ml-10 space-y-1 mt-1 hidden">
                         <a data-page="definitions" href="#/definitions"
                             class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Definitions</a>
-                        <a data-page="graph" href="#/graph"
-                            class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Graph</a>
+                        <a data-page="timeline" href="#/timeline"
+                           class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Instances</a>
                         <a data-page="conditions" href="#/conditions"
                             class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Condition
                             Reports</a>
-                        <a data-page="timeline" href="#/timeline"
-                            class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Timeline</a>
+                        <a data-page="graph" href="#/graph"
+                            class="block text-xs font-medium text-gray-500 hover:text-gray-800 py-1 nav-link">Dependency Graph</a>
+
                     </div>
                 </div>
-
             </nav>
         </div>
     </aside>
