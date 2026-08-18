@@ -15,9 +15,7 @@ import com.sdlcpro.springlens.repository.bean.BeanInstanceInfoRepository;
 public class BeanInstanceInfoPersistenceHandler implements BeanInstanceInfoCollectListener {
     private final BeanInstanceInfoRepository beanInstanceInfoRepository;
 
-    public BeanInstanceInfoPersistenceHandler(
-            BeanInstanceInfoRepository beanInstanceInfoRepository
-    ) {
+    public BeanInstanceInfoPersistenceHandler(BeanInstanceInfoRepository beanInstanceInfoRepository) {
         this.beanInstanceInfoRepository = beanInstanceInfoRepository;
     }
 
