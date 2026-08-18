@@ -47,7 +47,7 @@
                     <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Bean Definitions</span>
                 </div>
                 <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1" id="def-total-count">-</div>
-                <div class="space-y-3 flex-1 flex flex-col justify-center animate-none" id="def-context-list">
+                <div class="space-y-2 flex-1 flex flex-col justify-center max-h-28 overflow-y-auto custom-scrollbar pr-1" id="def-context-list">
                     <!-- Dynamic context list -->
                 </div>
             </div>
@@ -396,6 +396,84 @@
                 id="def-view-graph-btn">
                 <span class="material-symbols-outlined text-[16px]">account_tree</span> View Bean Graph
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bean Dependency Graph Preview -->
+<div id="def-graph-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 hidden transition-all duration-300">
+    <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <header class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">account_tree</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 dark:text-white flex items-center gap-2">
+                        Dependency Graph
+                        <span id="modal-graph-bean-name" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-primary/10 text-primary dark:text-purple-300 border border-primary/20"></span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Viewing direct dependencies and dependents for this bean</p>
+                </div>
+            </div>
+
+            <!-- Toolbar Controls & Close -->
+            <div class="flex items-center gap-2">
+                <!-- Layout Toggle -->
+                <div class="flex items-center border border-gray-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 p-0.5">
+                    <button id="modal-btn-tb" class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm" title="Top → Bottom">
+                        <span class="material-symbols-outlined text-[16px]">south</span> Top-Down
+                    </button>
+                    <button id="modal-btn-lr" class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white" title="Left → Right">
+                        <span class="material-symbols-outlined text-[16px]">east</span> Left-Right
+                    </button>
+                </div>
+
+                <button id="modal-btn-reset" class="p-1.5 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer" title="Reset Zoom">
+                    <span class="material-symbols-outlined text-[18px]">center_focus_strong</span>
+                </button>
+
+                <div class="h-4 w-px bg-gray-200 dark:bg-slate-800 mx-1"></div>
+
+                <button id="btn-close-graph-modal" data-action="close-graph-modal" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Modal Body / SVG Canvas -->
+        <div class="relative flex-1 bg-gray-50/50 dark:bg-slate-950/50 overflow-hidden" id="modal-graph-container">
+            <svg id="modal-tree-svg" class="w-full h-full min-h-[400px]"></svg>
+
+            <!-- Navigation Controls floating in bottom-left -->
+            <div class="absolute bottom-4 left-4 flex flex-col gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-lg p-1.5 shadow-md z-10">
+                <button class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" id="modal-btn-zoom-in" title="Zoom In">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+                <button class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" id="modal-btn-zoom-out" title="Zoom Out">
+                    <span class="material-symbols-outlined text-[18px]">remove</span>
+                </button>
+                <button class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer" id="modal-btn-fit" title="Fit View">
+                    <span class="material-symbols-outlined text-[18px]">fit_screen</span>
+                </button>
+            </div>
+
+            <!-- Legend Panel in bottom-right -->
+            <div class="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-md z-10 flex flex-col gap-2 text-[11px] text-gray-600 dark:text-gray-450 w-44">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span class="font-bold">Target Bean</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    <span>Dependency (Depends on)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                    <span>Dependent (Used by)</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -6,12 +6,28 @@ import BeanDataLoader from './src/assets/bean-data-loader.js';
 import BeanDefinitions from './src/assets/bean-definitions.js';
 import RequestEndpoints from './src/assets/request-endpoints.js';
 import RequestDefinitions from './src/assets/request-definitions.js';
-import { getApiUrl } from './src/assets/utils.js';
 
 $(document).ready(() => {
 
-    const dataLoader = new BeanDataLoader(getApiUrl('/spring-lens/api/beans/definitions'));
-    const beanGraph = new BeanGraph(dataLoader);
+    // API Configuration
+    // Extract the current full pathname
+    const host = window.location.host;
+    const pathname = window.location.pathname;
+
+
+    const CONTEXT_PATH = pathname.replace("/spring-lens/ui/index.html", "")
+    const API_BASE_URL = host + CONTEXT_PATH + '/spring-lens/api/beans/definitions'
+
+    const ENDPOINTS = {
+        BEAN_DEFINITION_API_URL: API_BASE_URL,
+        SEARCH_BEAN: API_BASE_URL + "/find",
+        GRAPH_DEPENDENCIES: API_BASE_URL + "/dependencies",
+        SUMMARY_BEAN_DEFINITION: API_BASE_URL + "/summary"
+    }
+
+    const dataLoader = new BeanDataLoader(ENDPOINTS.BEAN_DEFINITION_API_URL);
+    const lightGraphDependencies = new BeanDataLoader(ENDPOINTS.GRAPH_DEPENDENCIES);
+    const beanGraph = new BeanGraph(lightGraphDependencies);
     const beanDefinitions = new BeanDefinitions(dataLoader);
     const requestDefinitions = new RequestDefinitions();
     const dashboard = new Dashboard(dataLoader);

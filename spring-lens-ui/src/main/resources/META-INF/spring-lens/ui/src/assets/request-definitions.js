@@ -25,11 +25,11 @@ export default class RequestDefinitions {
         const filterService = $('#request-filter-service').val();
 
         const filtered = requestsData.filter(({ url, ip, reqId, method, status, service }) => {
-            const matchesSearch = !searchVal || 
-                url.toLowerCase().includes(searchVal) || 
-                ip.includes(searchVal) || 
+            const matchesSearch = !searchVal ||
+                url.toLowerCase().includes(searchVal) ||
+                ip.includes(searchVal) ||
                 reqId.includes(searchVal);
-            
+
             return matchesSearch &&
                 (!filterMethod || method === filterMethod) &&
                 (!filterStatus || status === filterStatus) &&
@@ -74,7 +74,7 @@ export default class RequestDefinitions {
     initEvents() {
         $(document).on('input', '#request-search', () => this.renderRequestsTable());
         $(document).on('change', '#request-filter-method, #request-filter-status, #request-filter-service', () => this.renderRequestsTable());
-        
+
         $(document).on('click', '#btn-refresh-requests', (e) => {
             const $icon = $(e.currentTarget).find('span');
             $icon.addClass('animate-spin');

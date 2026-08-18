@@ -1,5 +1,3 @@
-export const BEAN_DEFINITION_API_URL = "spring-lens/api/beans/definitions";
-
 // UI layout constants for Spring Lens
 export const NW = 196;
 export const NH = 44;
@@ -23,6 +21,7 @@ export const STATUS_PILL_STYLES = {
 
 export const NODE_STYLES = {
     root: { fill: '#eff6ff', stroke: '#3b82f6', icon: '#3b82f6', text: '#1d4ed8' },
+    context: { fill: '#eef2ff', stroke: '#6366f1', icon: '#6366f1', text: '#4338ca' },
     leaf: { fill: '#fffbeb', stroke: '#eab308', icon: '#eab308', text: '#a16207' },
     intermediate: { fill: '#f0fdf4', stroke: '#22c55e', icon: '#22c55e', text: '#15803d' }
 };
@@ -79,13 +78,14 @@ export const TEMPLATES = {
         const color = isDark ? '#475569' : '#cbd5e1';
         return `<span class="material-symbols-outlined text-[18px]" style="color: ${color};">radio_button_unchecked</span>`;
     },
-    dashboardRow: ({ activeRowClass, beanName, color, icon, displayName, type, scopeStyle, displayScope, displayRole, primaryIcon, lazyIcon, contextId }) => {
+    beanDefinitionTable: ({ activeRowClass, beanName, color, icon, displayName, type, scopeStyle, displayScope, displayRole, primaryIcon, lazyIcon, contextId, beanId }) => {
         const isDark = document.documentElement.classList.contains('dark');
         const bg = isDark ? (scopeStyle.darkBg || 'rgba(71, 85, 105, 0.15)') : scopeStyle.bg;
         const fg = isDark ? (scopeStyle.darkFg || '#cbd5e1') : scopeStyle.fg;
         const border = isDark ? (scopeStyle.darkBorder || 'rgba(71, 85, 105, 0.3)') : scopeStyle.border;
+        const uniqueBeanId = beanId || `${contextId || 'default'}:${beanName}`;
         return `
-        <tr data-action="select-bean" class="hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors bean-row ${activeRowClass}" data-bean-name="${beanName}">
+        <tr data-action="select-bean" class="hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors bean-row ${activeRowClass}" data-bean-id="${uniqueBeanId}" data-bean-name="${beanName}" data-context-id="${contextId || ''}">
             <td class="px-5 py-3">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]" style="color: ${color}">${icon}</span>
@@ -101,8 +101,8 @@ export const TEMPLATES = {
             <td class="px-5 py-3 text-center">${lazyIcon}</td>
             <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400">${contextId || 'N/A'}</td>
             <td class="px-5 py-3 text-right">
-                <button data-action="select-bean" class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary dark:text-purple-300 rounded-md text-xs font-semibold transition-colors cursor-pointer btn-bean-view animate-none" data-bean-name="${beanName}">
-                    View
+                <button data-action="select-bean" class="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary dark:text-purple-300 rounded-md text-xs font-semibold transition-colors cursor-pointer btn-bean-view animate-none inline-flex items-center gap-1" data-bean-id="${uniqueBeanId}" data-bean-name="${beanName}" data-context-id="${contextId || ''}">
+                    <span class="material-symbols-outlined text-[14px]">visibility</span> View
                 </button>
             </td>
         </tr>
@@ -133,13 +133,13 @@ export const TEMPLATES = {
             <span class="text-[10px] text-gray-400 dark:text-gray-500 block font-mono truncate">${type}</span>
         </div>
     `,
-    contextListItem: ({ ctxId, colorClass, pct }) => `
+    contextListItem: ({ ctxId, colorClass, pct, count }) => `
         <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-600 dark:text-gray-400 w-16 truncate" title="${ctxId}">${ctxId}</span>
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate" title="${ctxId}">${ctxId}</span>
             <div class="flex-1 h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div class="h-full ${colorClass} rounded-full" style="width: ${pct}%"></div>
+                <div class="h-full ${colorClass} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
-            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold w-8 text-right">${pct}%</span>
+            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold text-right whitespace-nowrap">${pct}%${count !== undefined ? ` (${count})` : ''}</span>
         </div>
     `,
     chartLegendItem: ({ color, lbl, count, pctStr }) => `

@@ -14,12 +14,12 @@ export default class Route {
     };
 
     constructor(config = {}) {
-        this.routes = config.routes ?? {};
-        this.container = $(config.container ?? '#main-content');
-        this.pagesDir = config.pagesDir ?? './src/pages/';
-        this.defaultRoute = config.defaultRoute ?? 'definitions';
-        this.templateCache = new Map();
         this.activeRouteKey = null;
+        this.templateCache  = new Map();
+        this.routes         = config.routes ?? {};
+        this.pagesDir       = config.pagesDir ?? './src/pages/';
+        this.container      = $(config.container ?? '#main-content');
+        this.defaultRoute   = config.defaultRoute ?? 'definitions';
     }
 
     init() {

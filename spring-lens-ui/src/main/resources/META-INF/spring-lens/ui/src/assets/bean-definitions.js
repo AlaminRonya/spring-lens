@@ -5,14 +5,23 @@ import {
     ROLE_COLORS,
     SCOPE_STYLES,
     DEFAULT_SCOPE_STYLE,
-    DEPENDENCY_CATEGORY_COLORS
+    DEPENDENCY_CATEGORY_COLORS,
+    NW,
+    NH,
+    RX,
+    GAP_X,
+    GAP_Y,
+    ICON,
+    ZOOM_SCALE_EXTENT
 } from './constants.js';
 import {
     getBeanCategory,
-    getApiUrl,
     capitalize,
     formatPercentage,
-    resolveBeanMetadata
+    resolveBeanMetadata,
+    tbLink,
+    lrLink,
+    tree
 } from './utils.js';
 
 /**
@@ -27,6 +36,7 @@ export default class BeanDefinitionsController {
 
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
+        this.summaryData = null;
 
         this.activeCharts = {
             scopeChart: null,
@@ -64,8 +74,37 @@ export default class BeanDefinitionsController {
         this.sortColumn = '';
         this.sortDirection = 'asc';
 
+        this.selectedBeanId = null;
         this.selectedBeanName = null;
+        this.selectedContextId = null;
         this.activeSidebarTab = 'properties'; // 'properties' | 'dependencies' | 'dependents'
+
+        this.modalGraphMode = 'tb';
+        this.modalZoom = null;
+        this.modalSvg = null;
+        this.modalGraphRoot = null;
+    }
+
+    /**
+     * Fetches summary distribution metrics from the summary API endpoint (/summary).
+     */
+    async fetchSummaryData() {
+        try {
+            const baseUrl = this.dataLoader?.dataUrl || 'http://localhost:8082/spring-lens/api/beans/definitions';
+            const cleanUrl = baseUrl.split('?')[0].replace(/\/$/, '');
+            const summaryUrl = cleanUrl.endsWith('/summary') ? cleanUrl : `${cleanUrl}/summary`;
+
+            const response = await fetch(summaryUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            this.summaryData = await response.json();
+            this.refreshKeyPerformanceIndicators();
+            this.initializeCharts();
+        } catch (error) {
+            console.error('Error fetching bean summary metrics:', error);
+        }
     }
 
     /**
@@ -78,16 +117,17 @@ export default class BeanDefinitionsController {
             this.allBeans = window.allBeansMap ? Array.from(window.allBeansMap.values()) : [];
 
             this.initializeFilterDropdowns();
-            this.refreshKeyPerformanceIndicators();
-            this.initializeCharts();
             this.bindEvents();
 
-            await this.fetchTableData();
+            await Promise.all([
+                this.fetchSummaryData(),
+                this.fetchTableData()
+            ]);
 
             // Select the first bean as default details if available
             const defaultBean = this.currentPageBeans[0] || this.allBeans[0];
             if (defaultBean) {
-                this.selectBean(defaultBean.beanName);
+                this.selectBean(defaultBean.beanName, defaultBean.contextId);
             }
         } catch (error) {
             console.error('Error entering BeanDefinitions view:', error);
@@ -99,6 +139,7 @@ export default class BeanDefinitionsController {
      */
     leave() {
         this.destroyCharts();
+        this.closeGraphModal();
         if (this._searchDebounceTimer) {
             clearTimeout(this._searchDebounceTimer);
         }
@@ -166,26 +207,36 @@ export default class BeanDefinitionsController {
      * Computes and updates metrics cards (total counts, context distributions, lazy percentage).
      */
     refreshKeyPerformanceIndicators() {
-        if (this.allBeans.length === 0) return;
-
         this._updateTotalBeanCountKPI();
         this._updateContextDistributionKPI();
         this._updateLazyInitializationKPI();
     }
 
     _updateTotalBeanCountKPI() {
-        const hasValidPagination = this.paginationState &&
-            typeof this.paginationState.totalElements === 'number' &&
-            (this.paginationState.totalElements > 0 || this._hasFetchedTableData);
-
-        const totalCount = hasValidPagination
-            ? this.paginationState.totalElements
-            : this.allBeans.length;
+        const totalCount = this.summaryData?.totalBeanDefinitions
+            ?? (this.paginationState?.totalElements || this.allBeans.length);
 
         $('#def-total-count').text(totalCount.toLocaleString());
     }
 
     _updateContextDistributionKPI() {
+        const contextDistribution = this.summaryData?.contextDistribution;
+        const themeColors = ['bg-primary', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-indigo-500', 'bg-purple-500', 'bg-rose-500', 'bg-teal-500'];
+
+        if (contextDistribution) {
+            const totalBeans = this.summaryData?.totalBeanDefinitions || 1;
+            const sortedContextEntries = Object.entries(contextDistribution).sort((a, b) => b[1] - a[1]);
+
+            const contextListHtml = sortedContextEntries.map(([ctxId, count], index) => {
+                const percentage = Math.round((count / totalBeans) * 100);
+                const colorClass = themeColors[index % themeColors.length];
+                return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage, count });
+            }).join('');
+
+            $('#def-context-list').html(contextListHtml);
+            return;
+        }
+
         if (!this.allBeans || this.allBeans.length === 0) return;
 
         const totalBeans = this.allBeans.length;
@@ -197,19 +248,29 @@ export default class BeanDefinitionsController {
         });
 
         const sortedContextEntries = Object.entries(contextCounts).sort((a, b) => b[1] - a[1]);
-        $('#def-context-count').text(`${sortedContextEntries.length} Total`);
-
-        const themeColors = ['bg-primary', 'bg-blue-500', 'bg-success'];
         const contextListHtml = sortedContextEntries.map(([ctxId, count], index) => {
             const percentage = Math.round((count / totalBeans) * 100);
-            const colorClass = themeColors[index] || 'bg-gray-400';
-            return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage });
+            const colorClass = themeColors[index % themeColors.length];
+            return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage, count });
         }).join('');
 
         $('#def-context-list').html(contextListHtml);
     }
 
     _updateLazyInitializationKPI() {
+        const loadingModeDist = this.summaryData?.loadingModeDistribution;
+        if (loadingModeDist) {
+            const totalBeans = this.summaryData?.totalBeanDefinitions
+                || ((loadingModeDist.LAZY || 0) + (loadingModeDist.EAGER || 0))
+                || 1;
+            const lazyBeanCount = loadingModeDist.LAZY || 0;
+            const lazyPercentage = Math.round((lazyBeanCount / totalBeans) * 100);
+
+            $('#def-lazy-percent').text(`${lazyPercentage}%`);
+            $('#def-lazy-bar').css('width', `${lazyPercentage}%`);
+            return;
+        }
+
         if (!this.allBeans || this.allBeans.length === 0) return;
 
         const totalBeans = this.allBeans.length;
@@ -221,30 +282,86 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Initializes scope and role distribution charts with live computed frequencies.
+     * Initializes scope and role distribution charts with live computed frequencies from summary API.
      */
     initializeCharts() {
         this.destroyCharts();
-        if (this.allBeans.length === 0) return;
 
-        // Scope distribution
-        this._createDistributionChart(
-            'scopeChart',
-            'scopeChart',
-            '#def-scope-legend',
-            bean => capitalize(bean.scope || 'unknown'),
-            SCOPE_COLORS,
-            '#a855f7'
-        );
+        // Scope distribution from summary API or fallback
+        const scopeDist = this.summaryData?.scopeDistribution;
+        if (scopeDist) {
+            this._createChartFromDistribution(
+                'scopeChart',
+                'scopeChart',
+                '#def-scope-legend',
+                scopeDist,
+                key => capitalize(key),
+                SCOPE_COLORS,
+                '#a855f7'
+            );
+        } else if (this.allBeans.length > 0) {
+            this._createDistributionChart(
+                'scopeChart',
+                'scopeChart',
+                '#def-scope-legend',
+                bean => capitalize(bean.scope || 'unknown'),
+                SCOPE_COLORS,
+                '#a855f7'
+            );
+        }
 
-        // Role distribution
-        this._createDistributionChart(
-            'roleChart',
-            'roleChart',
-            '#def-role-legend',
-            bean => capitalize((bean.role || 'unknown').replace(/^ROLE_/, '')),
-            ROLE_COLORS,
-            '#cbd5e1'
+        // Role distribution from summary API or fallback
+        const roleDist = this.summaryData?.roleDistribution;
+        if (roleDist) {
+            this._createChartFromDistribution(
+                'roleChart',
+                'roleChart',
+                '#def-role-legend',
+                roleDist,
+                key => capitalize(key.replace(/^ROLE_/, '')),
+                ROLE_COLORS,
+                '#cbd5e1'
+            );
+        } else if (this.allBeans.length > 0) {
+            this._createDistributionChart(
+                'roleChart',
+                'roleChart',
+                '#def-role-legend',
+                bean => capitalize((bean.role || 'unknown').replace(/^ROLE_/, '')),
+                ROLE_COLORS,
+                '#cbd5e1'
+            );
+        }
+    }
+
+    _createChartFromDistribution(chartKey, canvasId, legendContainerId, distributionObj, keyFormatter, colorMap, fallbackColor) {
+        const itemFrequencies = {};
+        let totalCount = 0;
+
+        for (const [rawKey, count] of Object.entries(distributionObj)) {
+            const formattedKey = keyFormatter(rawKey) || 'unknown';
+            itemFrequencies[formattedKey] = (itemFrequencies[formattedKey] || 0) + count;
+            totalCount += count;
+        }
+
+        const chartLabels = Object.keys(itemFrequencies);
+        const chartData = Object.values(itemFrequencies);
+        const segmentColors = chartLabels.map(label => colorMap[label] || fallbackColor);
+
+        const legendHtml = chartLabels.map((label, index) => {
+            const count = chartData[index];
+            const pctStr = formatPercentage(count, totalCount);
+            const color = segmentColors[index];
+            return TEMPLATES.chartLegendItem({ color, lbl: label, count, pctStr });
+        }).join('');
+
+        $(legendContainerId).html(legendHtml);
+
+        this.activeCharts[chartKey] = this._instantiateDoughnutChart(
+            canvasId,
+            chartLabels,
+            chartData,
+            segmentColors
         );
     }
 
@@ -367,8 +484,10 @@ export default class BeanDefinitionsController {
         this.showTableLoading();
 
         const queryParams = this._buildApiQueryParams();
-        const baseUrl = getApiUrl(this.dataLoader?.dataUrl || '/spring-lens/api/beans/definitions');
-        const requestUrl = `${baseUrl}?${queryParams.toString()}`;
+        const baseUrl = this.dataLoader?.dataUrl;
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        const queryString = queryParams.toString();
+        const requestUrl = queryString ? `${baseUrl}${separator}${queryString}` : baseUrl;
 
         try {
             const response = await fetch(requestUrl);
@@ -513,6 +632,7 @@ export default class BeanDefinitionsController {
 
     _generateTableRowHtml(bean) {
         const { beanName, role, scope, type, primary, lazyInit, contextId } = bean;
+        const beanId = this._getBeanUniqueId(contextId, beanName);
 
         // Format display values
         const displayName = BeanTreeBuilder._displayName(beanName);
@@ -522,12 +642,14 @@ export default class BeanDefinitionsController {
 
         // Style resolutions
         const scopeStyle = SCOPE_STYLES[scope?.toLowerCase()] ?? DEFAULT_SCOPE_STYLE;
-        const activeRowClass = this.selectedBeanName === beanName
+        const isSelected = this.selectedBeanId === beanId;
+        const activeRowClass = isSelected
             ? 'bg-primary-light/40 border-l-2 border-primary font-medium'
             : '';
 
-        return TEMPLATES.dashboardRow({
+        return TEMPLATES.beanDefinitionTable({
             activeRowClass,
+            beanId,
             beanName,
             displayName,
             type,
@@ -541,6 +663,17 @@ export default class BeanDefinitionsController {
             lazyIcon: lazyInit ? TEMPLATES.checkCircle : TEMPLATES.uncheckedCircle
         });
     }
+
+    _getBeanUniqueId(contextIdOrBean, beanName) {
+        if (typeof contextIdOrBean === 'object' && contextIdOrBean !== null) {
+            const ctx = contextIdOrBean.contextId || 'default';
+            const name = contextIdOrBean.beanName || '';
+            return `${ctx}:${name}`;
+        }
+        const ctx = contextIdOrBean || 'default';
+        return `${ctx}:${beanName || ''}`;
+    }
+
 
     /**
      * Renders dynamic pagination navigation controls driven by pagination metadata.
@@ -599,15 +732,21 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Selects a bean, updates UI highlighting, and populates the details sidebar.
-     * @param {string} beanName - Unique identifier for the target bean.
+     * Selects a bean, updates UI highlighting using the unique bean ID (${contextId}:${beanName}),
+     * and populates the details sidebar.
+     * @param {string} beanName - Target bean name or unique bean ID.
+     * @param {string} [contextId] - Optional context identifier for the target bean.
      */
-    selectBean(beanName) {
+    selectBean(beanName, contextId = null) {
+        const beanId = this._getBeanUniqueId(contextId, beanName);
+
+        this.selectedBeanId = beanId;
         this.selectedBeanName = beanName;
+        this.selectedContextId = contextId;
 
-        this._updateRowSelectionStyles(beanName);
+        this._updateRowSelectionStyles(beanId);
 
-        const targetBean = this._findBeanByName(beanName);
+        const targetBean = this._findBeanById(beanId) || this._findBeanByName(beanName, contextId);
         if (!targetBean) return;
 
         $('#def-details-sidebar').show();
@@ -617,17 +756,31 @@ export default class BeanDefinitionsController {
         this.renderActiveTab();
     }
 
-    _updateRowSelectionStyles(activeBeanName) {
+    _updateRowSelectionStyles(activeBeanId) {
         const activeClass = 'bg-primary-light/40 border-l-2 border-primary font-medium';
 
         $('.bean-row').each((_, element) => {
             const $row = $(element);
-            const isSelected = $row.attr('data-bean-name') === activeBeanName;
+            const rowBeanId = $row.attr('data-bean-id');
+            const isSelected = rowBeanId === activeBeanId;
             $row.toggleClass(activeClass, isSelected);
         });
     }
 
-    _findBeanByName(beanName) {
+    _findBeanById(beanId) {
+        return this.currentPageBeans?.find(bean => this._getBeanUniqueId(bean) === beanId)
+            ?? this.allBeans?.find(bean => this._getBeanUniqueId(bean) === beanId);
+    }
+
+    _findBeanByName(beanName, contextId = null) {
+        if (contextId) {
+            const pageMatch = this.currentPageBeans?.find(bean => bean.beanName === beanName && bean.contextId === contextId);
+            if (pageMatch) return pageMatch;
+
+            const allMatch = this.allBeans?.find(bean => bean.beanName === beanName && bean.contextId === contextId);
+            if (allMatch) return allMatch;
+        }
+
         return this.currentPageBeans?.find(bean => bean.beanName === beanName)
             ?? window.allBeansMap?.get(beanName)
             ?? this.allBeans?.find(bean => bean.beanName === beanName);
@@ -766,6 +919,7 @@ export default class BeanDefinitionsController {
         this._bindSearchInput();
         this._bindFilterChangeEvents();
         this._bindClickActionDelegation();
+        this.bindModalControls();
     }
 
     _bindSearchInput() {
@@ -851,7 +1005,8 @@ export default class BeanDefinitionsController {
             },
             'select-bean': () => {
                 const beanName = $target.data('bean-name');
-                if (beanName) this.selectBean(beanName);
+                const contextId = $target.data('context-id');
+                if (beanName) this.selectBean(beanName, contextId);
             },
             'select-dependency': () => {
                 const dependencyName = $target.data('fullname');
@@ -884,14 +1039,18 @@ export default class BeanDefinitionsController {
             },
             'close-sidebar': () => {
                 $('#def-details-sidebar').hide();
+                this.selectedBeanId = null;
                 this.selectedBeanName = null;
+                this.selectedContextId = null;
                 $('.bean-row').removeClass('bg-primary-light/40 border-l-2 border-primary font-medium');
             },
             'view-graph': () => {
                 if (this.selectedBeanName) {
-                    window.focusBeanOnNextGraphEnter = this.selectedBeanName;
-                    window.location.hash = '#/graph';
+                    this.openGraphModal();
                 }
+            },
+            'close-graph-modal': () => {
+                this.closeGraphModal();
             }
         };
 
@@ -928,5 +1087,322 @@ export default class BeanDefinitionsController {
                 this.activeCharts[key] = null;
             }
         }
+    }
+
+    openGraphModal() {
+        if (!this.selectedBeanName) return;
+
+        const targetBean = this._findBeanById(this.selectedBeanId) || this._findBeanByName(this.selectedBeanName, this.selectedContextId);
+        if (!targetBean) return;
+
+        $('#modal-graph-bean-name').text(BeanTreeBuilder._displayName(targetBean.beanName));
+        $('#def-graph-modal').removeClass('hidden');
+
+        $(document).off('keydown.graphModal').on('keydown.graphModal', (e) => {
+            if (e.key === 'Escape') this.closeGraphModal();
+        });
+
+        $('#def-graph-modal').off('click.backdrop').on('click.backdrop', (e) => {
+            if (e.target.id === 'def-graph-modal') this.closeGraphModal();
+        });
+
+        this.renderModalGraph(targetBean);
+    }
+
+    closeGraphModal() {
+        $('#def-graph-modal').addClass('hidden');
+        $(document).off('keydown.graphModal');
+        const $tip = $('#tip');
+        if ($tip.length > 0) $tip.removeClass('show');
+    }
+
+    _buildModalGraphHierarchy(targetBean) {
+        const displayName = BeanTreeBuilder._displayName(targetBean.beanName);
+        const children = [];
+
+        // 1. Dependencies (Beans targetBean depends on)
+        const deps = targetBean.dependencies || [];
+        if (deps.length > 0) {
+            deps.forEach(depName => {
+                const depBean = window.allBeansMap?.get(depName);
+                children.push({
+                    name: BeanTreeBuilder._displayName(depName),
+                    fullName: depName,
+                    meta: {
+                        type: depBean?.type || 'N/A',
+                        scope: depBean?.scope || 'N/A',
+                        role: depBean?.role || 'N/A',
+                        kind: 'dependency'
+                    }
+                });
+            });
+        }
+
+        // 2. Dependents (Beans depending on targetBean)
+        const dependents = targetBean.dependents || [];
+        if (dependents.length > 0) {
+            dependents.forEach(depName => {
+                const depBean = window.allBeansMap?.get(depName);
+                children.push({
+                    name: BeanTreeBuilder._displayName(depName),
+                    fullName: depName,
+                    meta: {
+                        type: depBean?.type || 'N/A',
+                        scope: depBean?.scope || 'N/A',
+                        role: depBean?.role || 'N/A',
+                        kind: 'dependent'
+                    }
+                });
+            });
+        }
+
+        return {
+            name: displayName,
+            fullName: targetBean.beanName,
+            meta: {
+                type: targetBean.type || 'N/A',
+                scope: targetBean.scope || 'N/A',
+                role: targetBean.role || 'N/A',
+                kind: 'target'
+            },
+            children: children.length > 0 ? children : undefined
+        };
+    }
+
+    renderModalGraph(targetBean) {
+        const svg = d3.select('#modal-tree-svg');
+        if (!svg.node()) return;
+
+        svg.selectAll('*').remove();
+
+        svg.append('defs')
+            .append('marker')
+            .attr('id', 'modal-dot')
+            .attr('viewBox', '0 0 10 10')
+            .attr('refX', 9)
+            .attr('refY', 5)
+            .attr('markerUnits', 'userSpaceOnUse')
+            .attr('markerWidth', 10)
+            .attr('markerHeight', 10)
+            .attr('orient', 'auto')
+            .append('circle')
+            .attr('cx', 5)
+            .attr('cy', 5)
+            .attr('r', 4)
+            .attr('fill', '#94a3b8');
+
+        const gMain = svg.append('g').attr('id', 'modal-g-main');
+        const gLink = gMain.append('g').attr('class', 'links');
+        const gNode = gMain.append('g').attr('class', 'nodes');
+
+        const zoom = d3.zoom()
+            .scaleExtent(ZOOM_SCALE_EXTENT || [0.05, 4])
+            .on('zoom', ({ transform }) => gMain.attr('transform', transform));
+
+        svg.call(zoom);
+        this.modalZoom = zoom;
+        this.modalSvg = svg;
+
+        const rawData = this._buildModalGraphHierarchy(targetBean);
+        const root = d3.hierarchy(rawData);
+
+        this.modalGraphRoot = root;
+        this.modalGraphMode = this.modalGraphMode || 'tb';
+
+        this._drawModalTree(root, gNode, gLink, svg, zoom);
+    }
+
+    _drawModalTree(root, gNode, gLink, svg, zoom) {
+        const isTB = this.modalGraphMode === 'tb';
+        const descendants = root.descendants();
+
+        descendants.forEach((node, i) => {
+            node.id = i;
+            const nameLen = node.data.name?.length || 0;
+            node.width = Math.max(170, nameLen * 7.5 + 60);
+        });
+
+        const maxWidth = d3.max(descendants, d => d.width) || NW;
+        tree.nodeSize(isTB ? [maxWidth + GAP_X, NH + GAP_Y] : [NH + 32, maxWidth + GAP_Y]);
+        tree(root);
+
+        const linkFn = isTB ? tbLink : lrLink;
+        gLink.selectAll('path.link')
+            .data(root.links(), d => d.target.id)
+            .join('path')
+            .attr('class', 'link')
+            .attr('fill', 'none')
+            .attr('stroke', '#94a3b8')
+            .attr('stroke-width', 1.5)
+            .attr('marker-end', 'url(#modal-dot)')
+            .attr('d', linkFn);
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const getModalNodeStyle = (node) => {
+            const kind = node.data.meta?.kind;
+            if (kind === 'target') {
+                return isDark
+                    ? { fill: 'rgba(59, 130, 246, 0.2)', stroke: '#3b82f6', icon: '#60a5fa', text: '#93c5fd' }
+                    : { fill: '#eff6ff', stroke: '#3b82f6', icon: '#3b82f6', text: '#1d4ed8' };
+            }
+            if (kind === 'dependency') {
+                return isDark
+                    ? { fill: 'rgba(34, 197, 94, 0.2)', stroke: '#22c55e', icon: '#4ade80', text: '#86efac' }
+                    : { fill: '#f0fdf4', stroke: '#22c55e', icon: '#22c55e', text: '#15803d' };
+            }
+            if (kind === 'dependent') {
+                return isDark
+                    ? { fill: 'rgba(168, 85, 247, 0.2)', stroke: '#a855f7', icon: '#c084fc', text: '#e9d5ff' }
+                    : { fill: '#faf5ff', stroke: '#a855f7', icon: '#a855f7', text: '#7e22ce' };
+            }
+            return isDark
+                ? { fill: 'rgba(148, 163, 184, 0.2)', stroke: '#94a3b8', icon: '#cbd5e1', text: '#f1f5f9' }
+                : { fill: '#f8fafc', stroke: '#94a3b8', icon: '#64748b', text: '#334155' };
+        };
+
+        const getNodePos = ({ x, y }) => isTB ? `translate(${x},${y})` : `translate(${y},${x})`;
+
+        const nodes = gNode.selectAll('g.node')
+            .data(descendants, d => d.id)
+            .join('g')
+            .attr('class', 'node')
+            .attr('cursor', 'pointer')
+            .attr('transform', getNodePos);
+
+        nodes.append('rect')
+            .attr('class', 'node-rect')
+            .attr('x', d => -d.width / 2)
+            .attr('y', -NH / 2)
+            .attr('width', d => d.width)
+            .attr('height', NH)
+            .attr('rx', RX)
+            .attr('fill', d => getModalNodeStyle(d).fill)
+            .attr('stroke', d => getModalNodeStyle(d).stroke)
+            .attr('stroke-width', d => d.data.meta?.kind === 'target' ? 2.5 : 1.8);
+
+        nodes.append('g')
+            .attr('class', 'node-icon')
+            .attr('transform', d => `translate(${-d.width / 2 + 14}, -10)`)
+            .append('path')
+            .attr('d', ICON)
+            .attr('stroke', d => getModalNodeStyle(d).icon)
+            .attr('stroke-width', 1.5)
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-linejoin', 'round')
+            .attr('fill', 'none');
+
+        nodes.append('text')
+            .attr('class', 'node-text')
+            .attr('x', d => -d.width / 2 + 42)
+            .attr('y', 1)
+            .attr('dy', '0.35em')
+            .attr('font-size', 13)
+            .attr('font-weight', d => d.data.meta?.kind === 'target' ? 700 : 500)
+            .attr('font-family', 'Inter, sans-serif')
+            .attr('fill', d => getModalNodeStyle(d).text)
+            .text(d => d.data.name);
+
+        const $tip = $('#tip');
+        if ($('#tip').length === 0) {
+            $('body').append(TEMPLATES.tooltip);
+        }
+
+        nodes
+            .on('click', (event, node) => {
+                event.stopPropagation();
+                if (node.data.fullName && node.data.fullName !== this.selectedBeanName) {
+                    this.selectBean(node.data.fullName);
+                    this.openGraphModal();
+                }
+            })
+            .on('mouseenter', (event, node) => {
+                const { name, fullName, meta = {} } = node.data;
+                const { type, scope, role, kind } = meta;
+                const typeLabel = type ? `Type: ${type.slice(type.lastIndexOf('.') + 1)}` : '';
+                const scopeLabel = scope ? `Scope: ${scope}${role ? ` · ${role}` : ''}` : '';
+                const kindLabel = kind ? `Role in view: ${kind.toUpperCase()}` : '';
+
+                $('#tip-name').text(fullName || name);
+                $('#tip-type').text(typeLabel);
+                $('#tip-scope').text(scopeLabel);
+                $('#tip-meta').text(kindLabel);
+                $tip.addClass('show').css({ left: event.pageX + 14, top: event.pageY - 10 });
+            })
+            .on('mousemove', (event) => $tip.css({ left: event.pageX + 14, top: event.pageY - 10 }))
+            .on('mouseleave', () => $tip.removeClass('show'));
+
+        setTimeout(() => this.fitModalView(), 50);
+    }
+
+    fitModalView() {
+        if (!this.modalSvg || !this.modalZoom || !this.modalGraphRoot) return;
+
+        const container = $('#modal-graph-container');
+        const width = container.width() || 800;
+        const height = container.height() || 500;
+
+        const nodes = this.modalGraphRoot.descendants();
+        const isTB = this.modalGraphMode === 'tb';
+
+        const minX = d3.min(nodes, d => isTB ? d.x - d.width / 2 : d.y - d.width / 2);
+        const maxX = d3.max(nodes, d => isTB ? d.x + d.width / 2 : d.y + d.width / 2);
+        const minY = d3.min(nodes, d => isTB ? d.y - NH / 2 : d.x - NH / 2);
+        const maxY = d3.max(nodes, d => isTB ? d.y + NH / 2 : d.x + NH / 2);
+
+        const graphWidth = maxX - minX || 1;
+        const graphHeight = maxY - minY || 1;
+
+        const scale = Math.min(0.9, Math.min(width / graphWidth, height / graphHeight));
+        const translateX = width / 2 - ((minX + maxX) / 2) * scale;
+        const translateY = height / 2 - ((minY + maxY) / 2) * scale;
+
+        const transform = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
+        this.modalSvg.transition().duration(400).call(this.modalZoom.transform, transform);
+    }
+
+    bindModalControls() {
+        $('#modal-btn-tb').off('click').on('click', () => {
+            this.modalGraphMode = 'tb';
+            $('#modal-btn-tb').addClass('bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm')
+                .removeClass('text-gray-500 dark:text-gray-400');
+            $('#modal-btn-lr').removeClass('bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm')
+                .addClass('text-gray-500 dark:text-gray-400');
+
+            if (this.modalGraphRoot && this.modalSvg) {
+                const gNode = this.modalSvg.select('g.nodes');
+                const gLink = this.modalSvg.select('g.links');
+                this._drawModalTree(this.modalGraphRoot, gNode, gLink, this.modalSvg, this.modalZoom);
+            }
+        });
+
+        $('#modal-btn-lr').off('click').on('click', () => {
+            this.modalGraphMode = 'lr';
+            $('#modal-btn-lr').addClass('bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm')
+                .removeClass('text-gray-500 dark:text-gray-400');
+            $('#modal-btn-tb').removeClass('bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm')
+                .addClass('text-gray-500 dark:text-gray-400');
+
+            if (this.modalGraphRoot && this.modalSvg) {
+                const gNode = this.modalSvg.select('g.nodes');
+                const gLink = this.modalSvg.select('g.links');
+                this._drawModalTree(this.modalGraphRoot, gNode, gLink, this.modalSvg, this.modalZoom);
+            }
+        });
+
+        $('#modal-btn-zoom-in').off('click').on('click', () => {
+            if (this.modalSvg && this.modalZoom) {
+                this.modalSvg.transition().duration(300).call(this.modalZoom.scaleBy, 1.25);
+            }
+        });
+
+        $('#modal-btn-zoom-out').off('click').on('click', () => {
+            if (this.modalSvg && this.modalZoom) {
+                this.modalSvg.transition().duration(300).call(this.modalZoom.scaleBy, 0.8);
+            }
+        });
+
+        $('#modal-btn-reset, #modal-btn-fit').off('click').on('click', () => {
+            this.fitModalView();
+        });
     }
 }

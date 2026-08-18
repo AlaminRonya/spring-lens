@@ -32,6 +32,22 @@ export default class BeanGraph {
         const gMain = this._setupSvgContainers();
         this._setupZoom(gMain);
 
+        if (this.dataLoader) {
+            this.dataLoader.onChunkLoaded = (updatedRoot) => {
+                this.root = updatedRoot;
+                this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
+                this._updateToolbarCounts();
+            };
+
+            this.dataLoader.onProgress = (status) => {
+                this._updateProgressBadge(status);
+            };
+        }
+
+        $('#btn-reload-graph').off('click').on('click', async () => {
+            await this.reloadGraphData();
+        });
+
         try {
             this.root = await this.dataLoader.load();
             this._updateToolbarCounts();
@@ -878,6 +894,51 @@ export default class BeanGraph {
         if (!this.root) return;
         this.root.eachBefore(mutatorFn);
         this.update(null, this.root);
-        this.fitView(500);
+        this.fitView();
+    }
+
+    _updateProgressBadge({ loaded = 0, total = 0, isComplete = false, hasError = false, errorMsg = '' } = {}) {
+        const $badge = $('#chunk-progress-badge');
+        const $dot = $('#chunk-progress-dot');
+        const $text = $('#chunk-progress-text');
+
+        if ($badge.length === 0) return;
+
+        if (hasError) {
+            $badge
+                .removeClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30')
+                .addClass('bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30');
+            $dot.removeClass('bg-amber-500 animate-pulse bg-emerald-500').addClass('bg-red-500');
+            $text.html(`Failed <span class="text-[11px] opacity-85">(${errorMsg || 'Retry'})</span>`);
+        } else if (isComplete) {
+            $badge
+                .removeClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30')
+                .addClass('bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30');
+            $dot.removeClass('bg-amber-500 animate-pulse bg-red-500').addClass('bg-emerald-500');
+            $text.text(`Loaded (${loaded})`);
+        } else {
+            $badge
+                .removeClass('bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30')
+                .addClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30');
+            $dot.removeClass('bg-emerald-500 bg-red-500').addClass('bg-amber-500 animate-pulse');
+            $text.text(`Loading: ${loaded} / ${total}`);
+        }
+    }
+
+    async reloadGraphData() {
+        const $btn = $('#btn-reload-graph');
+        const $icon = $btn.find('.material-symbols-outlined');
+        $icon.addClass('animate-spin');
+
+        try {
+            this.root = await this.dataLoader.reload();
+            this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
+            this._updateToolbarCounts();
+            this.fitView(0);
+        } catch (error) {
+            console.error('Error reloading graph data:', error);
+        } finally {
+            setTimeout(() => $icon.removeClass('animate-spin'), 600);
+        }
     }
 }

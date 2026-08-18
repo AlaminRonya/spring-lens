@@ -94,9 +94,9 @@ export default class RequestEndpoints {
         const rowsHtml = filtered.map(ep => {
             const methodClass = ep.method.toLowerCase();
             const methodColor = methodClass === 'get' ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-900/30' :
-                                methodClass === 'post' ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-900/30' :
-                                methodClass === 'put' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900/30' :
-                                'bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-300 border-red-200 dark:border-red-900/30';
+                methodClass === 'post' ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-900/30' :
+                    methodClass === 'put' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900/30' :
+                        'bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-300 border-red-200 dark:border-red-900/30';
 
             return `
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors border-b border-gray-100 dark:border-slate-800">
@@ -117,7 +117,7 @@ export default class RequestEndpoints {
 
     initEvents() {
         $(document).on('input', '#endpoint-search', () => this.renderEndpointsTable());
-        
+
         $(document).on('click', '#btn-refresh-endpoints', (e) => {
             const $icon = $(e.currentTarget).find('span');
             $icon.addClass('animate-spin');
