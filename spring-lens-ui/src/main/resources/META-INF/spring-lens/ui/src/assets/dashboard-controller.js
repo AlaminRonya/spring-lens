@@ -1,6 +1,6 @@
 import { requestsData } from './mock-data.js';
 
-export default class Dashboard {
+export default class DashboardController {
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
         this.chart = null;

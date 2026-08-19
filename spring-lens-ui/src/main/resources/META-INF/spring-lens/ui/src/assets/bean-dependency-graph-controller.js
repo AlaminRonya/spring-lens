@@ -1,18 +1,20 @@
-import { NW, NH, RX, GAP_X, GAP_Y, ICON, ZOOM_SCALE_EXTENT, TEMPLATES } from './constants.js';
-import { getBeanCategory, nodeStyle, tbLink, lrLink, tree } from './utils.js';
-import { BeanTreeBuilder } from './bean-data-loader.js';
+import {GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT} from './constants.js';
+import {getBeanCategory, lrLink, nodeStyle, tbLink, tree} from './utils.js';
+import {BeanTreeBuilder} from './bean-tree-builder.js';
+import httpClient from "./http-client.js";
 
-export default class BeanGraph {
+export class BeanDependencyGraphController {
 
-    constructor(dataLoader) {
-        this.dataLoader = dataLoader;
+    constructor(dependencyGraphApi) {
         this.root = null;
-        this.mode = localStorage.getItem('sl-layout') ?? 'tb';
         this.svg = null;
         this.gLink = null;
         this.gNode = null;
         this.zoom = null;
+        this.beanDependencies = null;
         this.isHighlightPathActive = false;
+        this.dependencyGraphApi = dependencyGraphApi;
+        this.mode = localStorage.getItem('sl-layout') ?? 'tb';
 
         this.initEvents();
     }
@@ -23,6 +25,7 @@ export default class BeanGraph {
      * and performs the initial draw/fit.
      */
     async enter() {
+
         this.svg = d3.select('#tree-svg');
         if (!this.svg.node()) return;
 
@@ -32,24 +35,13 @@ export default class BeanGraph {
         const gMain = this._setupSvgContainers();
         this._setupZoom(gMain);
 
-        if (this.dataLoader) {
-            this.dataLoader.onChunkLoaded = (updatedRoot) => {
-                this.root = updatedRoot;
-                this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
-                this._updateToolbarCounts();
-            };
-
-            this.dataLoader.onProgress = (status) => {
-                this._updateProgressBadge(status);
-            };
-        }
 
         $('#btn-reload-graph').off('click').on('click', async () => {
             await this.reloadGraphData();
         });
 
         try {
-            this.root = await this.dataLoader.load();
+            await this._fetchBeanDependencies();
             this._updateToolbarCounts();
         } catch (error) {
             $('#beanGraph').html(
@@ -68,6 +60,10 @@ export default class BeanGraph {
         const targetBean = window.focusBeanOnNextGraphEnter;
         window.focusBeanOnNextGraphEnter = null;
         setTimeout(() => this.focusOnBean(targetBean), 300);
+    }
+
+    async _fetchBeanDependencies() {
+        this.beanDependencies = await httpClient.get(this.dependencyGraphApi);
     }
 
     /**
@@ -283,26 +279,12 @@ export default class BeanGraph {
         $('#nodeCount strong').text(visibleCount);
     }
 
-    /**
-     * Computes the positions and dimensions of the tree layout.
-     * @private
-     * @param {d3.HierarchyNode[]} nodes - All hierarchy nodes.
-     * @param {boolean} isTB - Whether layout direction is top-to-bottom.
-     */
     _calculateLayout(nodes, isTB) {
         const maxWidth = d3.max(nodes, node => node.width) || NW;
         tree.nodeSize(isTB ? [maxWidth + GAP_X, NH + GAP_Y] : [NH + 28, maxWidth + GAP_Y]);
         tree(this.root);
     }
 
-    /**
-     * Draws/updates SVG node elements (rect, icon, text) with transition animations.
-     * @private
-     * @param {d3.HierarchyNode[]} nodes - Active hierarchy nodes.
-     * @param {d3.Transition} transition - D3 transition instance.
-     * @param {boolean} isTB - Layout direction (top-to-bottom).
-     * @param {Object} source - Animated origin/destination source coordinates.
-     */
     _drawNodes(nodes, transition, isTB, source) {
         const $tip = $('#tip');
 
@@ -382,11 +364,6 @@ export default class BeanGraph {
             .attr('fill-opacity', 0);
     }
 
-    /**
-     * Updates layout dimensions, styles, and text content of nodes inside a transition or selection.
-     * @private
-     * @param {d3.Selection|d3.Transition} selection - Target D3 selection/transition container.
-     */
     _updateNodeStylesAndContent(selection) {
         // Single sub-element queries with cached nodeStyle evaluations
         selection.select('.node-rect')
@@ -407,15 +384,6 @@ export default class BeanGraph {
             .text(({ data }) => data.name);
     }
 
-    /**
-     * Draws/updates SVG path connection links with transition animations.
-     * @private
-     * @param {Object[]} links - Array of source/target hierarchy link pairs.
-     * @param {d3.Transition} transition - D3 transition instance.
-     * @param {boolean} isTB - Layout direction (top-to-bottom).
-     * @param {Object} source - Origin/destination source coordinates.
-     * @param {string} linkColor - Stroke color of the connection path.
-     */
     _drawLinks(links, transition, isTB, source, linkColor) {
         const linkFn = isTB ? tbLink : lrLink;
 
@@ -448,11 +416,6 @@ export default class BeanGraph {
             .attr('d', exitPathD);
     }
 
-    /**
-     * Adjusts the current zoom level by a specified scale factor.
-     * @param {number} factor - Scale factor multiplier.
-     * @param {number} [duration=300] - Animation duration in milliseconds.
-     */
     zoomBy(factor, duration = 300) {
         if (!this.svg || !this.zoom) return;
 
@@ -461,13 +424,6 @@ export default class BeanGraph {
             .call(this.zoom.scaleBy, factor);
     }
 
-    /**
-     * Rescales and pans the SVG canvas so that all nodes are visible and centered.
-     * @param {number} [duration=500] - Animation duration in milliseconds.
-     * @param {number} [padding=60] - Padding around the graph boundary.
-     * @param {number} [minScale=0.15] - Minimum zoom scale allowed when fitting.
-     * @param {number} [maxScale=1.5] - Maximum zoom scale allowed when fitting.
-     */
     fitView(duration = 500, padding = 60, minScale = 0.15, maxScale = 1.5) {
         if (!this.svg?.node() || !this.root) return;
 
@@ -516,19 +472,10 @@ export default class BeanGraph {
             .call(this.zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
     }
 
-    /**
-     * Updates the UI zoom level indicator percentage text.
-     * @param {number} k - Current transform scale factor.
-     */
     updateZoomPercent(k) {
         $('#zoom-percent').text(`${Math.round(k * 100)}%`);
     }
 
-    /**
-     * Focuses on a specific node, showing the details sidebar with metadata,
-     * dependency lists, and category tags.
-     * @param {d3.HierarchyNode} node - The selected node.
-     */
     selectNode(node) {
         const { data: { name, fullName, meta: { type = 'N/A', scope = 'singleton' } = {} } } = node;
 
@@ -594,12 +541,6 @@ export default class BeanGraph {
         $('#accordion-dependents-body').html(buildListHtml(dependents, 'No dependents'));
     }
 
-    /**
-     * Iteratively finds a hierarchy node by its full bean name without stack overflow risk.
-     * @param {d3.HierarchyNode} rootNode - Root node to start searching from.
-     * @param {string} fullName - Target full bean identifier.
-     * @returns {d3.HierarchyNode|null} Matched target node or null.
-     */
     findNodeInTree(rootNode, fullName) {
         if (!rootNode) return null;
 
@@ -622,12 +563,7 @@ export default class BeanGraph {
 
         return null;
     }
-    /**
-     * Focuses on a target bean definition by expanding all its parent nodes
-     * (if collapsed), panning the graph, zooming in on the target node,
-     * and displaying its details in the sidebar.
-     * @param {string} fullName - Full identifier name of the bean definition.
-     */
+
     focusOnBean(fullName) {
         if (!this.root) return;
 
@@ -675,11 +611,6 @@ export default class BeanGraph {
         this.selectNode(targetNode);
     }
 
-    /**
-     * Toggles layout direction mode ('tb' for top-to-bottom or 'lr' for left-to-right),
-     * persists it in localStorage, updates button styles, and redraws the graph.
-     * @param {string} layoutMode - The target direction mode ('tb' or 'lr').
-     */
     setMode(layoutMode) {
         this.mode = layoutMode;
         localStorage.setItem('sl-layout', layoutMode);
@@ -711,29 +642,19 @@ export default class BeanGraph {
         this.fitView(500);
     }
 
-    /**
-     * Recomputes graph positions and centers the view upon browser window resizing.
-     */
+
     handleResize() {
         if (!this.root) return;
         this.update(null, this.root);
         this.fitView(100);
     }
 
-    /**
-     * Binds document-level event listeners for graph controls, sidebar actions,
-     * text search input/suggestions, layout modes, and collapsible drawers.
-     */
     initEvents() {
         this._bindSearchHandlers();
         this._bindClickActionRouter();
         this._bindCustomEventHandlers();
     }
 
-    /**
-     * Handles live search debouncing and search suggestions box updates.
-     * @private
-     */
     _bindSearchHandlers() {
         let searchDebounceTimer = null;
         const $searchBox = $('.search-box');
@@ -831,7 +752,9 @@ export default class BeanGraph {
                     break;
 
                 case 'btn-collapse':
-                    this._mutateTreeNodes(node => { if (node.depth > 0) node.children = null; });
+                    this._mutateTreeNodes(node => {
+                        if (node.depth > 0) node.children = null;
+                    });
                     break;
 
                 case 'btn-reset':

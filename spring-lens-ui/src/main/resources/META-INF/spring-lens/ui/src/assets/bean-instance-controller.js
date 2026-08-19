@@ -1,8 +1,8 @@
-import BeanDataLoader, { BeanTreeBuilder } from './bean-data-loader.js';
+import { BeanTreeBuilder } from './bean-tree-builder.js';
 
-export default class BeanTimeline {
+export default class BeanInstanceController {
     constructor() {
-        this.dataLoader = new BeanDataLoader();
+
         this.beans = []; // Raw beans
         this.solvedBeans = []; // Solved timeline bean objects
         this.filteredBeans = []; // Filtered/sorted timeline bean objects
@@ -41,7 +41,7 @@ export default class BeanTimeline {
                 this.selectBean(sortedBySlowest[0].beanName);
             }
         } catch (error) {
-            console.error('Error in BeanTimeline enter:', error);
+            console.error('Error in BeanInstanceController enter:', error);
         }
     }
 

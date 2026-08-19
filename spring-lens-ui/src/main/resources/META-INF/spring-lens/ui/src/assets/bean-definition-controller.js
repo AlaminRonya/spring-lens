@@ -1,4 +1,6 @@
-import { BeanTreeBuilder } from './bean-data-loader.js';
+import httpClient from './http-client.js';
+import { BeanTreeBuilder } from "./bean-tree-builder.js";
+import beanDataStore from './bean-data-store.js';
 import {
     TEMPLATES,
     SCOPE_COLORS,
@@ -34,16 +36,15 @@ export default class BeanDefinitionsController {
     _hasFetchedTableData = false;
     _searchDebounceTimer = null;
 
-    constructor(dataLoader) {
-        this.dataLoader = dataLoader;
-        this.summaryData = null;
+    constructor(beanDefinitionsEndpoint, beanDefinitionSummaryEndpoint) {
+        this.beanDefinitionEndpoint = beanDefinitionsEndpoint;
+        this.beanDefinitionSummaryEndpoint = beanDefinitionSummaryEndpoint;
 
         this.activeCharts = {
             scopeChart: null,
             roleChart: null
         };
 
-        // All beans dataset (used for overall KPIs, charts, dropdown options)
         this.allBeans = [];
 
         // Server-paginated data for current table view
@@ -86,37 +87,11 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Fetches summary distribution metrics from the summary API endpoint (/summary).
-     */
-    async fetchSummaryData() {
-        try {
-            const baseUrl = this.dataLoader?.dataUrl || 'http://localhost:8082/spring-lens/api/beans/definitions';
-            const cleanUrl = baseUrl.split('?')[0].replace(/\/$/, '');
-            const summaryUrl = cleanUrl.endsWith('/summary') ? cleanUrl : `${cleanUrl}/summary`;
-
-            const response = await fetch(summaryUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            this.summaryData = await response.json();
-            this.refreshKeyPerformanceIndicators();
-            this.initializeCharts();
-        } catch (error) {
-            console.error('Error fetching bean summary metrics:', error);
-        }
-    }
-
-    /**
      * Initializes the view by loading the overall bean dataset, setting up filters,
      * building charts, fetching paginated table data, and binding event handlers.
      */
     async enter() {
         try {
-            await this.dataLoader.load();
-            this.allBeans = window.allBeansMap ? Array.from(window.allBeansMap.values()) : [];
-
-            this.initializeFilterDropdowns();
             this.bindEvents();
 
             await Promise.all([
@@ -135,199 +110,78 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Cleans up resources (charts, timers) when transitioning away from the view.
+     * Fetches summary distribution metrics from the summary API endpoint (/summary).
      */
-    leave() {
-        this.destroyCharts();
-        this.closeGraphModal();
-        if (this._searchDebounceTimer) {
-            clearTimeout(this._searchDebounceTimer);
+    async fetchSummaryData() {
+        try {
+            let beanSummary = await httpClient.get(this.beanDefinitionSummaryEndpoint);
+            this.refreshBeanSummaryStatistics(beanSummary);
+            this.initializeScopeAndRoleDistributionCharts(beanSummary);
+        } catch (error) {
+            console.error('Error fetching bean summary metrics:', error);
         }
-    }
-
-    /**
-     * Populates filter dropdowns with unique options aggregated from the dataset.
-     */
-    initializeFilterDropdowns() {
-        const $contextDropdown = $('#def-filter-context');
-        const $scopeDropdown = $('#def-filter-scope');
-        const $roleDropdown = $('#def-filter-role');
-
-        const uniqueContexts = new Set();
-        const uniqueScopes = new Set();
-        const uniqueRoles = new Set();
-
-        this.allBeans.forEach(bean => {
-            if (bean.contextId) uniqueContexts.add(bean.contextId);
-            if (bean.scope) uniqueScopes.add(bean.scope);
-            if (bean.role) uniqueRoles.add(bean.role);
-        });
-
-        if ($contextDropdown.length > 0) {
-            this._populateSelectDropdown(
-                $contextDropdown,
-                uniqueContexts,
-                'Context: All',
-                contextId => contextId
-            );
-            $contextDropdown.val(this.filterCriteria.contextId);
-        }
-
-        this._populateSelectDropdown(
-            $scopeDropdown,
-            uniqueScopes,
-            'Scope: All',
-            scope => capitalize(scope)
-        );
-
-        this._populateSelectDropdown(
-            $roleDropdown,
-            uniqueRoles,
-            'Role: All',
-            role => capitalize(role.replace(/^ROLE_/, ''))
-        );
-
-        // Sync dropdown selectors with active filter state
-        $scopeDropdown.val(this.filterCriteria.scope);
-        $roleDropdown.val(this.filterCriteria.role);
-        $('#def-filter-primary').val(this.filterCriteria.isPrimary);
-        $('#def-filter-lazy').val(this.filterCriteria.isLazy);
-        $('#def-filter-size').val(this.itemsPerPage);
-        $('#def-search-input').val(this.searchQuery);
-    }
-
-    _populateSelectDropdown($selectElement, optionsSet, defaultLabel, labelFormatter) {
-        $selectElement.html(`<option value="">${defaultLabel}</option>`);
-        Array.from(optionsSet).sort().forEach(value => {
-            $selectElement.append(`<option value="${value}">${labelFormatter(value)}</option>`);
-        });
     }
 
     /**
      * Computes and updates metrics cards (total counts, context distributions, lazy percentage).
      */
-    refreshKeyPerformanceIndicators() {
-        this._updateTotalBeanCountKPI();
-        this._updateContextDistributionKPI();
-        this._updateLazyInitializationKPI();
+    refreshBeanSummaryStatistics(beanSummaryData) {
+        const { contextDistribution, scopeDistribution, loadingModeDistribution, totalBeanDefinitions } = beanSummaryData;
+        this._updateTotalBeanCount(totalBeanDefinitions);
+        this._updateContextDistribution(contextDistribution, totalBeanDefinitions);
+        this._updateScopeDistribution(scopeDistribution, loadingModeDistribution, totalBeanDefinitions);
     }
 
-    _updateTotalBeanCountKPI() {
-        const totalCount = this.summaryData?.totalBeanDefinitions
-            ?? (this.paginationState?.totalElements || this.allBeans.length);
-
-        $('#def-total-count').text(totalCount.toLocaleString());
+    _updateTotalBeanCount(totalBeanDefinitions) {
+        $('#def-total-count').text(totalBeanDefinitions);
     }
 
-    _updateContextDistributionKPI() {
-        const contextDistribution = this.summaryData?.contextDistribution;
+    _updateContextDistribution(contextDistribution, totalBeanDefinitions) {
         const themeColors = ['bg-primary', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-indigo-500', 'bg-purple-500', 'bg-rose-500', 'bg-teal-500'];
-
         if (contextDistribution) {
-            const totalBeans = this.summaryData?.totalBeanDefinitions || 1;
-            const sortedContextEntries = Object.entries(contextDistribution).sort((a, b) => b[1] - a[1]);
-
-            const contextListHtml = sortedContextEntries.map(([ctxId, count], index) => {
-                const percentage = Math.round((count / totalBeans) * 100);
+            const contextListHtml = Object.entries(contextDistribution).map(([contextId, count], index) => {
+                const percentage = Math.round((count / totalBeanDefinitions) * 100);
                 const colorClass = themeColors[index % themeColors.length];
-                return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage, count });
+                return TEMPLATES.contextListItem({ contextId, colorClass, pct: percentage, count });
             }).join('');
 
             $('#def-context-list').html(contextListHtml);
-            return;
         }
-
-        if (!this.allBeans || this.allBeans.length === 0) return;
-
-        const totalBeans = this.allBeans.length;
-        const contextCounts = {};
-
-        this.allBeans.forEach(bean => {
-            const contextId = bean.contextId || 'unknown';
-            contextCounts[contextId] = (contextCounts[contextId] || 0) + 1;
-        });
-
-        const sortedContextEntries = Object.entries(contextCounts).sort((a, b) => b[1] - a[1]);
-        const contextListHtml = sortedContextEntries.map(([ctxId, count], index) => {
-            const percentage = Math.round((count / totalBeans) * 100);
-            const colorClass = themeColors[index % themeColors.length];
-            return TEMPLATES.contextListItem({ ctxId, colorClass, pct: percentage, count });
-        }).join('');
-
-        $('#def-context-list').html(contextListHtml);
     }
 
-    _updateLazyInitializationKPI() {
-        const loadingModeDist = this.summaryData?.loadingModeDistribution;
-        if (loadingModeDist) {
-            const totalBeans = this.summaryData?.totalBeanDefinitions
-                || ((loadingModeDist.LAZY || 0) + (loadingModeDist.EAGER || 0))
-                || 1;
-            const lazyBeanCount = loadingModeDist.LAZY || 0;
-            const lazyPercentage = Math.round((lazyBeanCount / totalBeans) * 100);
+    _updateScopeDistribution(scopeDistribution, loadingModeDistribution, totalBeanDefinitions) {
+        if (loadingModeDistribution) {
+            const lazyBeanCount = loadingModeDistribution.LAZY || 0;
+            const lazyPercentage = Math.round((lazyBeanCount / totalBeanDefinitions) * 100);
 
             $('#def-lazy-percent').text(`${lazyPercentage}%`);
             $('#def-lazy-bar').css('width', `${lazyPercentage}%`);
-            return;
         }
-
-        if (!this.allBeans || this.allBeans.length === 0) return;
-
-        const totalBeans = this.allBeans.length;
-        const lazyBeanCount = this.allBeans.filter(bean => bean.lazyInit).length;
-        const lazyPercentage = Math.round((lazyBeanCount / totalBeans) * 100);
-
-        $('#def-lazy-percent').text(`${lazyPercentage}%`);
-        $('#def-lazy-bar').css('width', `${lazyPercentage}%`);
     }
 
-    /**
-     * Initializes scope and role distribution charts with live computed frequencies from summary API.
-     */
-    initializeCharts() {
+    initializeScopeAndRoleDistributionCharts(beanSummary) {
         this.destroyCharts();
+        const  {scopeDistribution, roleDistribution} = beanSummary;
 
-        // Scope distribution from summary API or fallback
-        const scopeDist = this.summaryData?.scopeDistribution;
-        if (scopeDist) {
+        if (scopeDistribution) {
             this._createChartFromDistribution(
                 'scopeChart',
                 'scopeChart',
                 '#def-scope-legend',
-                scopeDist,
+                scopeDistribution,
                 key => capitalize(key),
                 SCOPE_COLORS,
                 '#a855f7'
             );
-        } else if (this.allBeans.length > 0) {
-            this._createDistributionChart(
-                'scopeChart',
-                'scopeChart',
-                '#def-scope-legend',
-                bean => capitalize(bean.scope || 'unknown'),
-                SCOPE_COLORS,
-                '#a855f7'
-            );
         }
 
-        // Role distribution from summary API or fallback
-        const roleDist = this.summaryData?.roleDistribution;
-        if (roleDist) {
+        if (roleDistribution) {
             this._createChartFromDistribution(
                 'roleChart',
                 'roleChart',
                 '#def-role-legend',
-                roleDist,
+                roleDistribution,
                 key => capitalize(key.replace(/^ROLE_/, '')),
-                ROLE_COLORS,
-                '#cbd5e1'
-            );
-        } else if (this.allBeans.length > 0) {
-            this._createDistributionChart(
-                'roleChart',
-                'roleChart',
-                '#def-role-legend',
-                bean => capitalize((bean.role || 'unknown').replace(/^ROLE_/, '')),
                 ROLE_COLORS,
                 '#cbd5e1'
             );
@@ -344,11 +198,11 @@ export default class BeanDefinitionsController {
             totalCount += count;
         }
 
-        const chartLabels = Object.keys(itemFrequencies);
+        const chartTitles = Object.keys(itemFrequencies);
         const chartData = Object.values(itemFrequencies);
-        const segmentColors = chartLabels.map(label => colorMap[label] || fallbackColor);
+        const segmentColors = chartTitles.map(label => colorMap[label] || fallbackColor);
 
-        const legendHtml = chartLabels.map((label, index) => {
+        const legendHtml = chartTitles.map((label, index) => {
             const count = chartData[index];
             const pctStr = formatPercentage(count, totalCount);
             const color = segmentColors[index];
@@ -359,35 +213,7 @@ export default class BeanDefinitionsController {
 
         this.activeCharts[chartKey] = this._instantiateDoughnutChart(
             canvasId,
-            chartLabels,
-            chartData,
-            segmentColors
-        );
-    }
-
-    _createDistributionChart(chartKey, canvasId, legendContainerId, valueExtractor, colorMap, fallbackColor) {
-        const itemFrequencies = {};
-        this.allBeans.forEach(bean => {
-            const categoryKey = valueExtractor(bean) || 'unknown';
-            itemFrequencies[categoryKey] = (itemFrequencies[categoryKey] || 0) + 1;
-        });
-
-        const chartLabels = Object.keys(itemFrequencies);
-        const chartData = Object.values(itemFrequencies);
-        const segmentColors = chartLabels.map(label => colorMap[label] || fallbackColor);
-
-        const legendHtml = chartLabels.map((label, index) => {
-            const count = chartData[index];
-            const pctStr = formatPercentage(count, this.allBeans.length);
-            const color = segmentColors[index];
-            return TEMPLATES.chartLegendItem({ color, lbl: label, count, pctStr });
-        }).join('');
-
-        $(legendContainerId).html(legendHtml);
-
-        this.activeCharts[chartKey] = this._instantiateDoughnutChart(
-            canvasId,
-            chartLabels,
+            chartTitles,
             chartData,
             segmentColors
         );
@@ -420,8 +246,60 @@ export default class BeanDefinitionsController {
         });
     }
 
-    showTableLoading() {
-        const $tbody = $('#beanTableBody');
+    /**
+     * Fetches paginated bean definitions from backend API using active filters and pagination state.
+     */
+    async fetchTableData() {
+        this._loadingBeanDefinitionTable();
+
+        const queryParams = this._buildApiQueryParams();
+
+        try {
+            const beanData = await httpClient.getWithQuery(
+                this.beanDefinitionEndpoint,
+                queryParams.toString()
+            );
+
+            this._hasFetchedTableData = true;
+            this._uniqueContextIdDropdown(beanData)
+            this._processPaginatedResponse(beanData);
+            this.renderTable();
+            this.renderPagination();
+            this.updateSortHeaderIcons();
+        } catch (error) {
+            console.error('Error fetching bean definitions table data:', error);
+            this.renderTableError(error.message);
+        }
+    }
+
+    _uniqueContextIdDropdown(beanData) {
+        const $contextDropdown = $('#bean-definition-filter-context');
+        const uniqueContexts = new Set();
+
+        Object.entries(beanData.content).forEach(([key, value]) => {
+            uniqueContexts.add(value.contextId);
+        })
+
+        if ($contextDropdown.length > 0) {
+            this._populateSelectDropdown(
+                $contextDropdown,
+                uniqueContexts,
+                'Context: All',
+                contextId => contextId
+            );
+            $contextDropdown.val(this.filterCriteria.contextId);
+        }
+    }
+
+    _populateSelectDropdown($selectElement, optionsSet, defaultLabel, labelFormatter) {
+        $selectElement.html(`<option value="">${defaultLabel}</option>`);
+        Array.from(optionsSet).sort().forEach(value => {
+            $selectElement.append(`<option value="${value}">${labelFormatter(value)}</option>`);
+        });
+    }
+
+    _loadingBeanDefinitionTable() {
+        const $tbody = $('#beanDefinitionTableBody');
         if ($tbody.length === 0) return;
 
         $tbody.html(`
@@ -461,8 +339,8 @@ export default class BeanDefinitionsController {
             beanName: this.filterCriteria.beanName,
             scope: this.filterCriteria.scope,
             role: this.filterCriteria.role,
-            primary: this.filterCriteria.isPrimary,
-            lazyInit: this.filterCriteria.isLazy,
+            primary: this.filterCriteria.primary,
+            lazyInit: this.filterCriteria.lazyInit,
             sortBy: this.sortColumn,
             sortDir: this.sortDirection
         };
@@ -477,93 +355,35 @@ export default class BeanDefinitionsController {
         return new URLSearchParams(entries);
     }
 
-    /**
-     * Fetches paginated bean definitions from backend API using active filters and pagination state.
-     */
-    async fetchTableData() {
-        this.showTableLoading();
 
-        const queryParams = this._buildApiQueryParams();
-        const baseUrl = this.dataLoader?.dataUrl;
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        const queryString = queryParams.toString();
-        const requestUrl = queryString ? `${baseUrl}${separator}${queryString}` : baseUrl;
-
-        try {
-            const response = await fetch(requestUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            const data = await response.json();
-
-            this._processPaginatedResponse(data);
-
-            this._hasFetchedTableData = true;
-            this.renderTable();
-            this.renderPagination();
-            this.updateSortHeaderIcons();
-            this._updateTotalBeanCountKPI();
-        } catch (error) {
-            console.error('Error fetching bean definitions table data:', error);
-            this.renderTableError(error.message);
-        }
-    }
-
-    /**
-     * Processes API responses (paginated objects or raw arrays) and updates component state.
-     * @param {Object|Array} responseData - The API response payload.
-     */
     _processPaginatedResponse(responseData) {
         const isPaginatedPayload = Array.isArray(responseData?.content);
-        const isFlatArrayPayload = Array.isArray(responseData);
 
         if (isPaginatedPayload) {
             this._applyPaginatedPayload(responseData);
-        } else if (isFlatArrayPayload) {
-            this._applyFlatArrayPayload(responseData);
         } else {
             this._resetPaginationState();
         }
 
-        // Sync UI display page (1-indexed) and items per page
         this.currentPage = this.paginationState.pageNumber + 1;
         this.itemsPerPage = this.paginationState.pageSize;
-
-        this._cacheFetchedBeans();
     }
 
-    _applyPaginatedPayload(data) {
-        const { content, totalElements, totalPages, pageNumber, pageSize, first, last } = data;
+    _applyPaginatedPayload(responseData) {
+        const { content, totalElements, totalPages, pageNumber, pageSize, first, last } = responseData;
         const computedTotalPages = totalPages ?? 1;
         const computedPageNumber = pageNumber ?? 0;
 
-        this.currentPageBeans = content;
+        this.currentPageBeans = content || [];
+        beanDataStore.addBeans(this.currentPageBeans);
+
         this.paginationState = {
-            totalElements: totalElements ?? content.length,
+            totalElements: totalElements ?? this.currentPageBeans.length,
             totalPages: computedTotalPages,
             pageNumber: computedPageNumber,
             pageSize: pageSize ?? this.itemsPerPage,
             isFirstPage: first ?? (computedPageNumber === 0),
             isLastPage: last ?? (computedPageNumber >= computedTotalPages - 1)
-        };
-    }
-
-    _applyFlatArrayPayload(items) {
-        const totalElements = items.length;
-        const totalPages = Math.max(1, Math.ceil(totalElements / this.itemsPerPage));
-        const pageIndex = Math.max(0, Math.min(this.currentPage - 1, totalPages - 1));
-
-        const startIndex = pageIndex * this.itemsPerPage;
-        const endIndex = startIndex + this.itemsPerPage;
-
-        this.currentPageBeans = items.slice(startIndex, endIndex);
-        this.paginationState = {
-            totalElements,
-            totalPages,
-            pageNumber: pageIndex,
-            pageSize: this.itemsPerPage,
-            isFirstPage: pageIndex === 0,
-            isLastPage: pageIndex >= totalPages - 1
         };
     }
 
@@ -579,40 +399,11 @@ export default class BeanDefinitionsController {
         };
     }
 
-    _cacheFetchedBeans() {
-        if (!window.allBeansMap) return;
-
-        for (const bean of this.currentPageBeans) {
-            if (bean.beanName && !window.allBeansMap.has(bean.beanName)) {
-                window.allBeansMap.set(bean.beanName, bean);
-            }
-        }
-    }
-
-    updateSortHeaderIcons() {
-        $('.sort-icon').text('unfold_more').removeClass('text-primary font-bold');
-        if (this.sortColumn) {
-            const $sortIcon = $(`.sort-icon[data-col="${this.sortColumn}"]`);
-            if ($sortIcon.length > 0) {
-                const iconName = this.sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward';
-                $sortIcon.text(iconName).addClass('text-primary font-bold');
-            }
-        }
-    }
-
-    getBeanIcon(bean) {
-        return resolveBeanMetadata(bean).icon;
-    }
-
-    getBeanColor(bean) {
-        return resolveBeanMetadata(bean).color;
-    }
-
     /**
      * Renders the bean definitions list table for the current page.
      */
     renderTable() {
-        const $tbody = $('#beanTableBody');
+        const $tbody = $('#beanDefinitionTableBody');
         if ($tbody.length === 0) return;
 
         if (this.currentPageBeans.length === 0) {
@@ -630,32 +421,30 @@ export default class BeanDefinitionsController {
         $tbody.html(rowsHtml.join(''));
     }
 
-    _generateTableRowHtml(bean) {
-        const { beanName, role, scope, type, primary, lazyInit, contextId } = bean;
-        const beanId = this._getBeanUniqueId(contextId, beanName);
+    _generateTableRowHtml(beanInformation) {
+        const { beanName, role, scope, type, primary, lazyInit, contextId } = beanInformation;
+        const uniqueBeanId = this._generateBeanUniqueId(contextId, beanName);
 
         // Format display values
-        const displayName = BeanTreeBuilder._displayName(beanName);
         const cleanRole = role?.replace(/^ROLE_/, '');
         const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
         const displayScope = scope ? capitalize(scope) : 'N/A';
 
         // Style resolutions
         const scopeStyle = SCOPE_STYLES[scope?.toLowerCase()] ?? DEFAULT_SCOPE_STYLE;
-        const isSelected = this.selectedBeanId === beanId;
+        const isSelected = this.selectedBeanId === uniqueBeanId;
         const activeRowClass = isSelected
             ? 'bg-primary-light/40 border-l-2 border-primary font-medium'
             : '';
 
         return TEMPLATES.beanDefinitionTable({
             activeRowClass,
-            beanId,
+            uniqueBeanId,
             beanName,
-            displayName,
             type,
             contextId,
-            color: this.getBeanColor(bean),
-            icon: this.getBeanIcon(bean),
+            color: this.getBeanColor(beanInformation),
+            icon: this.getBeanIcon(beanInformation),
             scopeStyle,
             displayScope,
             displayRole,
@@ -664,35 +453,28 @@ export default class BeanDefinitionsController {
         });
     }
 
-    _getBeanUniqueId(contextIdOrBean, beanName) {
-        if (typeof contextIdOrBean === 'object' && contextIdOrBean !== null) {
-            const ctx = contextIdOrBean.contextId || 'default';
-            const name = contextIdOrBean.beanName || '';
-            return `${ctx}:${name}`;
-        }
-        const ctx = contextIdOrBean || 'default';
-        return `${ctx}:${beanName || ''}`;
+    _generateBeanUniqueId(contextIdOrBean, beanName) {
+        return `${contextIdOrBean}:${beanName}`;
     }
-
 
     /**
      * Renders dynamic pagination navigation controls driven by pagination metadata.
      */
     renderPagination() {
+        const $paginationContainer = $('#bean-definition-pagination-buttons');
+        if (!$paginationContainer.length) return;
+
         const { totalElements, totalPages, pageNumber, pageSize, isFirstPage, isLastPage } = this.paginationState;
 
         this._updatePaginationInfoText(totalElements, pageNumber, pageSize);
 
-        const $paginationContainer = $('#def-pagination-buttons');
-        if ($paginationContainer.length === 0) return;
-
-        const activeDisplayPage = pageNumber + 1;
+        const currentPage = pageNumber + 1;
         const maxPages = Math.max(1, totalPages);
-        const pageRange = this._calculatePaginationRange(activeDisplayPage, maxPages);
+        const pageRange = this._calculatePaginationRange(currentPage, maxPages);
 
         const paginationButtonsHtml = [
             TEMPLATES.paginationPrevBtn({ isDisabled: isFirstPage }),
-            ...pageRange.map(page => this._renderPaginationButton(page, activeDisplayPage)),
+            ...pageRange.map(page => this._renderPaginationButton(page, currentPage)),
             TEMPLATES.paginationNextBtn({ isDisabled: isLastPage })
         ].join('');
 
@@ -700,11 +482,18 @@ export default class BeanDefinitionsController {
     }
 
     _updatePaginationInfoText(totalElements, pageNumber, pageSize) {
-        const startIndex = totalElements === 0 ? 0 : (pageNumber * pageSize) + 1;
-        const endIndex = Math.min((pageNumber + 1) * pageSize, totalElements);
+        const $paginationInfoContainer = $('#bean-definition-pagination-info');
 
+        if (totalElements === 0) {
+            $paginationInfoContainer.text('No beans found');
+            return;
+        }
+
+        const startIndex = (pageNumber * pageSize) + 1;
+        const endIndex = Math.min((pageNumber + 1) * pageSize, totalElements);
         const infoText = `Showing ${startIndex} to ${endIndex} of ${totalElements.toLocaleString()} beans`;
-        $('#def-pagination-info').text(infoText);
+
+        $paginationInfoContainer.text(infoText);
     }
 
     _renderPaginationButton(page, activeDisplayPage) {
@@ -717,199 +506,33 @@ export default class BeanDefinitionsController {
         });
     }
 
-    _calculatePaginationRange(currentPage, totalPages) {
-        const delta = 2;
-        const range = [];
+    _calculatePaginationRange(currentPage, totalPages, delta = 2) {
+        if (totalPages <= 1) return [1];
 
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
-                range.push(i);
-            } else if (range[range.length - 1] !== '...') {
-                range.push('...');
-            }
+        const left = Math.max(2, currentPage - delta);
+        const right = Math.min(totalPages - 1, currentPage + delta);
+
+        const range = [1];
+
+        if (left > 2 ) range.push("...");
+        for (let i = left; i <= right; i++) {
+            range.push(i);
         }
+        if (right < totalPages - 1) range.push('...');
+
+        range.push(totalPages);
         return range;
     }
 
-    /**
-     * Selects a bean, updates UI highlighting using the unique bean ID (${contextId}:${beanName}),
-     * and populates the details sidebar.
-     * @param {string} beanName - Target bean name or unique bean ID.
-     * @param {string} [contextId] - Optional context identifier for the target bean.
-     */
-    selectBean(beanName, contextId = null) {
-        const beanId = this._getBeanUniqueId(contextId, beanName);
-
-        this.selectedBeanId = beanId;
-        this.selectedBeanName = beanName;
-        this.selectedContextId = contextId;
-
-        this._updateRowSelectionStyles(beanId);
-
-        const targetBean = this._findBeanById(beanId) || this._findBeanByName(beanName, contextId);
-        if (!targetBean) return;
-
-        $('#def-details-sidebar').show();
-
-        this._populateSidebarDetails(targetBean);
-        this._populateSidebarLists(targetBean);
-        this.renderActiveTab();
-    }
-
-    _updateRowSelectionStyles(activeBeanId) {
-        const activeClass = 'bg-primary-light/40 border-l-2 border-primary font-medium';
-
-        $('.bean-row').each((_, element) => {
-            const $row = $(element);
-            const rowBeanId = $row.attr('data-bean-id');
-            const isSelected = rowBeanId === activeBeanId;
-            $row.toggleClass(activeClass, isSelected);
-        });
-    }
-
-    _findBeanById(beanId) {
-        return this.currentPageBeans?.find(bean => this._getBeanUniqueId(bean) === beanId)
-            ?? this.allBeans?.find(bean => this._getBeanUniqueId(bean) === beanId);
-    }
-
-    _findBeanByName(beanName, contextId = null) {
-        if (contextId) {
-            const pageMatch = this.currentPageBeans?.find(bean => bean.beanName === beanName && bean.contextId === contextId);
-            if (pageMatch) return pageMatch;
-
-            const allMatch = this.allBeans?.find(bean => bean.beanName === beanName && bean.contextId === contextId);
-            if (allMatch) return allMatch;
+    updateSortHeaderIcons() {
+        $('.sort-icon').text('unfold_more').removeClass('text-primary font-bold');
+        if (this.sortColumn) {
+            const $sortIcon = $(`.sort-icon[data-col="${this.sortColumn}"]`);
+            if ($sortIcon.length > 0) {
+                const iconName = this.sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward';
+                $sortIcon.text(iconName).addClass('text-primary font-bold');
+            }
         }
-
-        return this.currentPageBeans?.find(bean => bean.beanName === beanName)
-            ?? window.allBeansMap?.get(beanName)
-            ?? this.allBeans?.find(bean => bean.beanName === beanName);
-    }
-
-    /**
-     * Updates the text properties and factory/lifecycle info in the details sidebar.
-     * @param {Object} bean - The bean definition object.
-     */
-    _populateSidebarDetails(bean) {
-        const {
-            beanName,
-            type = 'N/A',
-            scope,
-            role,
-            primary,
-            lazyInit,
-            autowireCandidate,
-            contextId = 'N/A',
-            factoryBeanName = '-',
-            factoryMethodName = '-',
-            initMethodName = '-',
-            destroyMethodName = '-'
-        } = bean;
-
-        const displayName = BeanTreeBuilder._displayName(beanName);
-        const cleanRole = role?.replace(/^ROLE_/, '');
-        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
-        const displayScope = scope ? capitalize(scope) : 'N/A';
-
-        // Batch text updates to prevent repetitive DOM queries
-        const textMap = {
-            '#def-sidebar-name': displayName,
-            '#def-sidebar-type': type,
-            '#def-sidebar-scope': displayScope,
-            '#def-sidebar-role': displayRole,
-            '#def-sidebar-prop-primary': primary ? 'TRUE' : 'FALSE',
-            '#def-sidebar-prop-lazy': lazyInit ? 'TRUE' : 'FALSE',
-            '#def-sidebar-prop-autowired': autowireCandidate ? 'TRUE' : 'FALSE',
-            '#def-sidebar-prop-context': contextId,
-            '#def-sidebar-factory-bean': factoryBeanName,
-            '#def-sidebar-factory-method': factoryMethodName,
-            '#def-sidebar-init-method': initMethodName,
-            '#def-sidebar-destroy-method': destroyMethodName
-        };
-
-        Object.entries(textMap).forEach(([selector, textValue]) => {
-            $(selector).text(textValue);
-        });
-
-        $('#def-sidebar-name').attr('title', beanName);
-        $('#def-sidebar-type').attr('title', type);
-
-        this._updateSidebarIcon(bean);
-    }
-
-    _updateSidebarIcon(bean) {
-        const icon = this.getBeanIcon(bean);
-        const color = this.getBeanColor(bean);
-
-        $('#def-sidebar-icon').text(icon);
-        $('#def-sidebar-icon-container').css({
-            backgroundColor: `${color}10`,
-            color,
-            borderColor: `${color}33`
-        });
-    }
-
-    /**
-     * Renders dependency and dependent lists in the details sidebar.
-     * @param {Object} bean - The selected bean definition object.
-     */
-    _populateSidebarLists(bean) {
-        const { dependencies = [], dependents = [] } = bean;
-
-        $('#def-sidebar-deps-count').text(dependencies.length);
-        $('#def-sidebar-dependents-count').text(dependents.length);
-
-        $('#def-sidebar-deps-list').html(this._generateSidebarListHtml(dependencies));
-        $('#def-sidebar-dependents-list').html(this._generateSidebarListHtml(dependents));
-    }
-
-    _generateSidebarListHtml(beanNames) {
-        if (beanNames.length === 0) return TEMPLATES.sidebarEmptyList;
-
-        return beanNames
-            .map(depName => this._renderSidebarListItem(depName))
-            .join('');
-    }
-
-    _renderSidebarListItem(dependencyName) {
-        const displayName = BeanTreeBuilder._displayName(dependencyName);
-        const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
-
-        return TEMPLATES.sidebarListItem({
-            depName: dependencyName,
-            dispName: displayName,
-            catColor: categoryColor
-        });
-    }
-
-    _resolveDependencyCategoryColor(dependencyName) {
-        const dependencyRecord = window.allBeansMap?.get(dependencyName);
-        if (!dependencyRecord) return 'blue';
-
-        const category = getBeanCategory({
-            fullName: dependencyName,
-            meta: { type: dependencyRecord.type }
-        });
-
-        return DEPENDENCY_CATEGORY_COLORS[category] ?? 'blue';
-    }
-
-    /**
-     * Refreshes the active tab button style and toggles visible tab pane.
-     */
-    renderActiveTab() {
-        const activeClasses = 'text-primary border-b-2 border-primary font-bold';
-        const inactiveClasses = 'text-gray-500 hover:text-gray-700 font-medium';
-
-        $('#def-sidebar-tabs button').each((_, element) => {
-            const isSelected = element.id === `def-tab-${this.activeSidebarTab}`;
-            $(element)
-                .toggleClass(activeClasses, isSelected)
-                .toggleClass(inactiveClasses, !isSelected);
-        });
-
-        $('.tab-pane').addClass('hidden');
-        $(`#def-pane-${this.activeSidebarTab}`).removeClass('hidden');
     }
 
     /**
@@ -923,7 +546,7 @@ export default class BeanDefinitionsController {
     }
 
     _bindSearchInput() {
-        $('#def-search-input').off('input').on('input', (e) => {
+        $('#bean-definition-search-input').off('input').on('input', (e) => {
             clearTimeout(this._searchDebounceTimer);
             this.searchQuery = e.target.value.trim();
             this.currentPage = 1;
@@ -934,11 +557,11 @@ export default class BeanDefinitionsController {
 
     _bindFilterChangeEvents() {
         const filterKeyMap = {
-            '#def-filter-context': 'contextId',
-            '#def-filter-scope': 'scope',
-            '#def-filter-role': 'role',
-            '#def-filter-primary': 'isPrimary',
-            '#def-filter-lazy': 'isLazy'
+            '#bean-definition-filter-context'   : 'contextId',
+            '#bean-definition-filter-scope'     : 'scope',
+            '#bean-definition-filter-role'      : 'role',
+            '#bean-definition-filter-primary'   : 'primary',
+            '#bean-definition-filter-lazy'      : 'lazyInit'
         };
 
         // Consolidated filter change router
@@ -953,7 +576,7 @@ export default class BeanDefinitionsController {
         });
 
         // Page size dropdown handler
-        $('#def-filter-size').off('change').on('change', (e) => {
+        $('#bean-definition-filter-size').off('change').on('change', (e) => {
             this.itemsPerPage = parseInt(e.target.value, 10) || 10;
             this.currentPage = 1;
             this.fetchTableData();
@@ -979,9 +602,6 @@ export default class BeanDefinitionsController {
                 const $icon = $target.find('.material-symbols-outlined');
                 $icon.addClass('animate-spin');
                 try {
-                    if (this.dataLoader) {
-                        this.dataLoader.rootPromise = null;
-                    }
                     await this.enter();
                 } catch (err) {
                     console.error('Error refreshing bean definitions:', err);
@@ -991,7 +611,7 @@ export default class BeanDefinitionsController {
             },
             'reset-filters': () => {
                 this._resetFilterState();
-                this.initializeFilterDropdowns();
+                this._uniqueContextIdDropdown();
                 this.fetchTableData();
             },
             'sort-column': () => {
@@ -1010,7 +630,7 @@ export default class BeanDefinitionsController {
             },
             'select-dependency': () => {
                 const dependencyName = $target.data('fullname');
-                if (dependencyName && window.allBeansMap?.has(dependencyName)) {
+                if (dependencyName && beanDataStore.has(dependencyName)) {
                     this.selectBean(dependencyName);
                 }
             },
@@ -1061,6 +681,178 @@ export default class BeanDefinitionsController {
         }
     }
 
+
+    getBeanIcon(bean) {
+        return resolveBeanMetadata(bean).icon;
+    }
+
+    getBeanColor(bean) {
+        return resolveBeanMetadata(bean).color;
+    }
+
+    selectBean(beanName, contextId = null) {
+        const beanId = this._generateBeanUniqueId(contextId, beanName);
+        this.selectedBeanId = beanId;
+        this.selectedBeanName = beanName;
+        this.selectedContextId = contextId;
+
+        this._updateRowSelectionStyles(beanId);
+
+        const targetBean = this._findBeanById(beanId) || this._findBeanByName(beanName, contextId);
+        if (!targetBean) return;
+
+        $('#def-details-sidebar').show();
+
+        this._populateSidebarDetails(targetBean);
+        this._populateSidebarLists(targetBean);
+        this.renderActiveTab();
+    }
+
+    _updateRowSelectionStyles(activeBeanId) {
+        const activeClass = 'bg-primary-light/40 border-l-2 border-primary font-medium';
+
+        $('.bean-row').each((_, element) => {
+            const $row = $(element);
+            const rowBeanId = $row.attr('data-bean-id');
+            const isSelected = rowBeanId === activeBeanId;
+            $row.toggleClass(activeClass, isSelected);
+        });
+    }
+
+    _findBeanById(beanId) {
+        return this.currentPageBeans?.find(bean => this._generateBeanUniqueId(bean) === beanId)
+            ?? beanDataStore.findBeanById(beanId)
+            ?? this.allBeans?.find(bean => this._generateBeanUniqueId(bean) === beanId);
+    }
+
+    _findBeanByName(beanName, contextId = null) {
+        return beanDataStore.findBeanByName(beanName, contextId)
+            ?? this.currentPageBeans?.find(bean => bean.beanName === beanName)
+            ?? this.allBeans?.find(bean => bean.beanName === beanName);
+    }
+
+    _populateSidebarDetails(beanInformation) {
+        const {
+            beanName,
+            type = 'N/A',
+            scope,
+            role,
+            primary,
+            lazyInit,
+            autowireCandidate,
+            contextId = 'N/A',
+            factoryBeanName = '-',
+            factoryMethodName = '-',
+            initMethodName = '-',
+            destroyMethodName = '-'
+        } = beanInformation;
+
+        const displayName = beanName;
+        const cleanRole = role?.replace(/^ROLE_/, '');
+        const displayRole = cleanRole ? capitalize(cleanRole) : 'N/A';
+        const displayScope = scope ? capitalize(scope) : 'N/A';
+
+        // Batch text updates to prevent repetitive DOM queries
+        const textMap = {
+            '#def-sidebar-name': displayName,
+            '#def-sidebar-type': type,
+            '#def-sidebar-scope': displayScope,
+            '#def-sidebar-role': displayRole,
+            '#def-sidebar-prop-primary': primary ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-lazy': lazyInit ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-autowired': autowireCandidate ? 'TRUE' : 'FALSE',
+            '#def-sidebar-prop-context': contextId,
+            '#def-sidebar-factory-bean': factoryBeanName,
+            '#def-sidebar-factory-method': factoryMethodName,
+            '#def-sidebar-init-method': initMethodName,
+            '#def-sidebar-destroy-method': destroyMethodName
+        };
+
+        Object.entries(textMap).forEach(([selector, textValue]) => {
+            $(selector).text(textValue);
+        });
+
+        $('#def-sidebar-name').attr('title', beanName);
+        $('#def-sidebar-type').attr('title', type);
+
+        this._updateSidebarIcon(beanInformation);
+    }
+
+    _updateSidebarIcon(bean) {
+        const icon = this.getBeanIcon(bean);
+        const color = this.getBeanColor(bean);
+
+        $('#def-sidebar-icon').text(icon);
+        $('#def-sidebar-icon-container').css({
+            backgroundColor: `${color}10`,
+            color,
+            borderColor: `${color}33`
+        });
+    }
+
+    /**
+     * Renders dependency and dependent lists in the details sidebar.
+     * @param {Object} bean - The selected bean definition object.
+     */
+    _populateSidebarLists(bean) {
+        const { dependencies = [], dependents = [] } = bean;
+
+        $('#def-sidebar-deps-count').text(dependencies.length);
+        $('#def-sidebar-dependents-count').text(dependents.length);
+
+        $('#def-sidebar-deps-list').html(this._generateSidebarListHtml(dependencies));
+        $('#def-sidebar-dependents-list').html(this._generateSidebarListHtml(dependents));
+    }
+
+    _generateSidebarListHtml(beanNames) {
+        if (beanNames.length === 0) return TEMPLATES.sidebarEmptyList;
+
+        return beanNames
+            .map(depName => this._renderSidebarListItem(depName))
+            .join('');
+    }
+
+    _renderSidebarListItem(dependencyName) {
+        const displayName = BeanTreeBuilder._displayName(dependencyName);
+        const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
+
+        return TEMPLATES.sidebarListItem({
+            depName: dependencyName,
+            dispName: displayName,
+            catColor: categoryColor
+        });
+    }
+
+    _resolveDependencyCategoryColor(dependencyName) {
+        const dependencyRecord = beanDataStore.getBean(dependencyName);
+        if (!dependencyRecord) return 'blue';
+
+        const category = getBeanCategory({
+            fullName: dependencyName,
+            meta: { type: dependencyRecord.type }
+        });
+
+        return DEPENDENCY_CATEGORY_COLORS[category] ?? 'blue';
+    }
+
+    /**
+     * Refreshes the active tab button style and toggles visible tab pane.
+     */
+    renderActiveTab() {
+        const activeClasses = 'text-primary border-b-2 border-primary font-bold';
+        const inactiveClasses = 'text-gray-500 hover:text-gray-700 font-medium';
+
+        $('#def-sidebar-tabs button').each((_, element) => {
+            const isSelected = element.id === `def-tab-${this.activeSidebarTab}`;
+            $(element)
+                .toggleClass(activeClasses, isSelected)
+                .toggleClass(inactiveClasses, !isSelected);
+        });
+
+        $('.tab-pane').addClass('hidden');
+        $(`#def-pane-${this.activeSidebarTab}`).removeClass('hidden');
+    }
+
     _resetFilterState() {
         this.searchQuery = '';
         this.filterCriteria = {
@@ -1090,41 +882,63 @@ export default class BeanDefinitionsController {
     }
 
     openGraphModal() {
+        const $beanGraphModalContainer = $("#bean-dependency-graph-modal");
+        const $beanNameModalGraphContainer = $('#modal-graph-bean-name');
+        const $modalCard = $('#modal-graph-card');
+
         if (!this.selectedBeanName) return;
 
         const targetBean = this._findBeanById(this.selectedBeanId) || this._findBeanByName(this.selectedBeanName, this.selectedContextId);
         if (!targetBean) return;
 
-        $('#modal-graph-bean-name').text(BeanTreeBuilder._displayName(targetBean.beanName));
-        $('#def-graph-modal').removeClass('hidden');
+        $beanNameModalGraphContainer.text(targetBean.beanName);
+        
+        $beanGraphModalContainer.removeClass('hidden');
+        requestAnimationFrame(() => {
+            $beanGraphModalContainer.removeClass('opacity-0 pointer-events-none').addClass('opacity-100');
+            $modalCard.removeClass('scale-95 opacity-0').addClass('scale-100 opacity-100');
+        });
 
         $(document).off('keydown.graphModal').on('keydown.graphModal', (e) => {
             if (e.key === 'Escape') this.closeGraphModal();
         });
 
-        $('#def-graph-modal').off('click.backdrop').on('click.backdrop', (e) => {
-            if (e.target.id === 'def-graph-modal') this.closeGraphModal();
+        $beanGraphModalContainer.off('click.backdrop').on('click.backdrop', (e) => {
+            if (e.target.id === 'bean-dependency-graph-modal' || e.target.id === 'def-graph-modal') this.closeGraphModal();
+        });
+
+        $('#btn-close-graph-modal').off('click.closeModal').on('click.closeModal', () => {
+            this.closeGraphModal();
         });
 
         this.renderModalGraph(targetBean);
     }
 
     closeGraphModal() {
-        $('#def-graph-modal').addClass('hidden');
+        const $beanGraphModalContainer = $("#bean-dependency-graph-modal");
+        const $modalCard = $('#modal-graph-card');
+
+        $beanGraphModalContainer.removeClass('opacity-100').addClass('opacity-0 pointer-events-none');
+        $modalCard.removeClass('scale-100 opacity-100').addClass('scale-95 opacity-0');
+
         $(document).off('keydown.graphModal');
         const $tip = $('#tip');
         if ($tip.length > 0) $tip.removeClass('show');
+
+        setTimeout(() => {
+            $beanGraphModalContainer.addClass('hidden');
+        }, 250);
     }
 
     _buildModalGraphHierarchy(targetBean) {
-        const displayName = BeanTreeBuilder._displayName(targetBean.beanName);
+        const displayName = targetBean.beanName;
         const children = [];
 
         // 1. Dependencies (Beans targetBean depends on)
         const deps = targetBean.dependencies || [];
         if (deps.length > 0) {
             deps.forEach(depName => {
-                const depBean = window.allBeansMap?.get(depName);
+                const depBean = beanDataStore.getBean(depName);
                 children.push({
                     name: BeanTreeBuilder._displayName(depName),
                     fullName: depName,
@@ -1142,7 +956,7 @@ export default class BeanDefinitionsController {
         const dependents = targetBean.dependents || [];
         if (dependents.length > 0) {
             dependents.forEach(depName => {
-                const depBean = window.allBeansMap?.get(depName);
+                const depBean = beanDataStore.getBean(depName);
                 children.push({
                     name: BeanTreeBuilder._displayName(depName),
                     fullName: depName,
@@ -1302,7 +1116,6 @@ export default class BeanDefinitionsController {
             .attr('fill', d => getModalNodeStyle(d).text)
             .text(d => d.data.name);
 
-        const $tip = $('#tip');
         if ($('#tip').length === 0) {
             $('body').append(TEMPLATES.tooltip);
         }
@@ -1404,5 +1217,16 @@ export default class BeanDefinitionsController {
         $('#modal-btn-reset, #modal-btn-fit').off('click').on('click', () => {
             this.fitModalView();
         });
+    }
+
+    /**
+     * Cleans up resources (charts, timers) when transitioning away from the view.
+     */
+    leave() {
+        this.destroyCharts();
+        this.closeGraphModal();
+        if (this._searchDebounceTimer) {
+            clearTimeout(this._searchDebounceTimer);
+        }
     }
 }

@@ -78,7 +78,7 @@ export const TEMPLATES = {
         const color = isDark ? '#475569' : '#cbd5e1';
         return `<span class="material-symbols-outlined text-[18px]" style="color: ${color};">radio_button_unchecked</span>`;
     },
-    beanDefinitionTable: ({ activeRowClass, beanName, color, icon, displayName, type, scopeStyle, displayScope, displayRole, primaryIcon, lazyIcon, contextId, beanId }) => {
+    beanDefinitionTable: ({ activeRowClass, beanName, color, icon, type, scopeStyle, displayScope, displayRole, primaryIcon, lazyIcon, contextId, beanId }) => {
         const isDark = document.documentElement.classList.contains('dark');
         const bg = isDark ? (scopeStyle.darkBg || 'rgba(71, 85, 105, 0.15)') : scopeStyle.bg;
         const fg = isDark ? (scopeStyle.darkFg || '#cbd5e1') : scopeStyle.fg;
@@ -89,7 +89,7 @@ export const TEMPLATES = {
             <td class="px-5 py-3">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]" style="color: ${color}">${icon}</span>
-                    <span class="font-medium text-gray-800 dark:text-white truncate max-w-[150px]" title="${displayName}">${displayName}</span>
+                    <span class="font-medium text-gray-800 dark:text-white truncate max-w-[150px]" title="${beanName}">${beanName}</span>
                 </div>
             </td>
             <td class="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[200px]" title="${type}">${type || 'N/A'}</td>
@@ -133,9 +133,9 @@ export const TEMPLATES = {
             <span class="text-[10px] text-gray-400 dark:text-gray-500 block font-mono truncate">${type}</span>
         </div>
     `,
-    contextListItem: ({ ctxId, colorClass, pct, count }) => `
+    contextListItem: ({ contextId, colorClass, pct, count }) => `
         <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate" title="${ctxId}">${ctxId}</span>
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate" title="${contextId}">${contextId}</span>
             <div class="flex-1 h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div class="h-full ${colorClass} rounded-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
