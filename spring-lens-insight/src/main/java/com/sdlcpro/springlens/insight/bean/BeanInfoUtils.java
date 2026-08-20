@@ -93,12 +93,6 @@ public final class BeanInfoUtils {
     public static String resolveBeanType(ConfigurableListableBeanFactory beanFactory, String beanName) {
         Preconditions.notNull(beanFactory, "ConfigurableListableBeanFactory must not be null");
         Preconditions.hasText(beanName, "Bean name must not be blank");
-
-        String beanClassName = beanFactory.getBeanDefinition(beanName).getBeanClassName();
-        if (beanClassName != null) {
-            return beanClassName;
-        }
-
         Class<?> clazz = beanFactory.getType(beanName);
         if (clazz != null) {
             return clazz.getTypeName();
