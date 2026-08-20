@@ -10,9 +10,10 @@ public interface BeanProxyInfoInspector {
     /**
      * Inspects the specified bean and extracts its proxy metadata.
      *
-     * @param beanName the name of the Spring bean to inspect
+     * @param contextId the id of the application context
+     * @param beanName  the name of the Spring bean to inspect
      * @return proxy information for the bean, or {@code null} if the bean
-     *         does not exist or is not proxied
+     * does not exist or is not proxied
      */
-    BeanInstanceProxyInfo inspectBeanInstanceProxyInfo(String beanName);
+    BeanInstanceProxyInfo inspectBeanInstanceProxyInfo(String contextId, String beanName);
 }
