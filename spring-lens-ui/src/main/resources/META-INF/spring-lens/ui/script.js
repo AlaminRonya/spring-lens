@@ -1,18 +1,18 @@
-import Route from './src/assets/route.js';
-import DashboardController from './src/assets/dashboard-controller.js';
-import BeanDefinitions from './src/assets/bean-definition-controller.js';
-import BeanInstanceController from './src/assets/bean-instance-controller.js';
+import Route from './src/route/route.js';
+import DashboardController from './src/controller/dashboard/dashboard-controller.js';
+import BeanDefinitions from './src/controller/bean/definition-controller.js';
+import InstanceController from './src/controller/bean/instance-controller.js';
 import {
-    BeanDependencyGraphController
-} from './src/assets/bean-dependency-graph-controller.js';
+    DependencyGraphController
+} from './src/controller/bean/dependency-graph-controller.js';
 
 $(document).ready(() => {
 
-    const host = window.location.host;
+    const origin = window.location.origin;
     const pathname = window.location.pathname;
 
-    const CONTEXT_PATH = pathname.replace("/spring-lens/ui/index.html", "")
-    const API_BASE_URL = host + CONTEXT_PATH + '/spring-lens/api/beans/definitions'
+    const CONTEXT_PATH = pathname.split('/spring-lens/ui')[0];
+    const API_BASE_URL = origin + CONTEXT_PATH + '/spring-lens/api/beans/definitions';
 
     const ENDPOINTS = {
         SEARCH_BEAN             : API_BASE_URL + "/find",
@@ -22,9 +22,9 @@ $(document).ready(() => {
     }
 
     const dashboard = new DashboardController();
-    const beanTimeline = new BeanInstanceController();
+    const beanTimeline = new InstanceController();
     const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
-    const beanDependencyGraph = new BeanDependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
+    const beanDependencyGraph = new DependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
 
     // Configure routes and instantiate Route
     const appRouter = new Route({
@@ -37,22 +37,22 @@ $(document).ready(() => {
                 onLeave: () => dashboard.leave()
             },
             'definitions': {
-                template: 'bean-definitions',
+                template: 'bean/definitions',
                 onEnter: () => beanDefinitions.enter(),
                 onLeave: () => beanDefinitions.leave()
             },
             'graph': {
-                template: 'bean-graph',
+                template: 'bean/graph',
                 onEnter: () => beanDependencyGraph.enter(),
                 onLeave: () => beanDependencyGraph.leave()
             },
             'conditions': {
-                template: 'bean-condition-reports',
+                template: 'bean/condition-reports',
                 onEnter: () => beanDefinitions.enter(),
                 onLeave: () => beanDefinitions.leave()
             },
             'timeline': {
-                template: 'bean-timeline',
+                template: 'bean/instance',
                 onEnter: () => beanTimeline.enter(),
                 onLeave: () => beanTimeline.leave()
             },

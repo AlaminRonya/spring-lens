@@ -1,6 +1,6 @@
-import httpClient from './http-client.js';
-import { BeanGraphTreeBuilder } from "./bean-graph-tree-builder.js";
-import beanDataStore from './bean-data-store.js';
+import httpClient from '../../client/http-client.js';
+import { GraphTreeBuilder } from "../../builder/graph-tree-builder.js";
+import beanDataStore from '../../storage/bean-data-store.js';
 import {
     TEMPLATES,
     SCOPE_COLORS,
@@ -15,7 +15,7 @@ import {
     GAP_Y,
     ICON,
     ZOOM_SCALE_EXTENT
-} from './constants.js';
+} from '../../utils/constants.js';
 import {
     getBeanCategory,
     capitalize,
@@ -24,7 +24,7 @@ import {
     tbLink,
     lrLink,
     tree
-} from './utils.js';
+} from '../../utils/utils.js';
 
 /**
  * Controller class for the Beans Definitions dashboard tab.
@@ -161,7 +161,7 @@ export default class BeanDefinitionsController {
 
     initializeScopeAndRoleDistributionCharts(beanSummary) {
         this.destroyCharts();
-        const  {scopeDistribution, roleDistribution} = beanSummary;
+        const { scopeDistribution, roleDistribution } = beanSummary;
 
         if (scopeDistribution) {
             this._createChartFromDistribution(
@@ -514,7 +514,7 @@ export default class BeanDefinitionsController {
 
         const range = [1];
 
-        if (left > 2 ) range.push("...");
+        if (left > 2) range.push("...");
         for (let i = left; i <= right; i++) {
             range.push(i);
         }
@@ -557,11 +557,11 @@ export default class BeanDefinitionsController {
 
     _bindFilterChangeEvents() {
         const filterKeyMap = {
-            '#bean-definition-filter-context'   : 'contextId',
-            '#bean-definition-filter-scope'     : 'scope',
-            '#bean-definition-filter-role'      : 'role',
-            '#bean-definition-filter-primary'   : 'primary',
-            '#bean-definition-filter-lazy'      : 'lazyInit'
+            '#bean-definition-filter-context': 'contextId',
+            '#bean-definition-filter-scope': 'scope',
+            '#bean-definition-filter-role': 'role',
+            '#bean-definition-filter-primary': 'primary',
+            '#bean-definition-filter-lazy': 'lazyInit'
         };
 
         // Consolidated filter change router
@@ -813,7 +813,7 @@ export default class BeanDefinitionsController {
     }
 
     _renderSidebarListItem(dependencyName) {
-        const displayName = BeanGraphTreeBuilder._displayName(dependencyName);
+        const displayName = GraphTreeBuilder._displayName(dependencyName);
         const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
 
         return TEMPLATES.sidebarListItem({
@@ -881,18 +881,29 @@ export default class BeanDefinitionsController {
         }
     }
 
-    openGraphModal() {
+    async openGraphModal() {
         const $beanGraphModalContainer = $("#bean-dependency-graph-modal");
         const $beanNameModalGraphContainer = $('#modal-graph-bean-name');
         const $modalCard = $('#modal-graph-card');
 
         if (!this.selectedBeanName) return;
 
-        const targetBean = this._findBeanById(this.selectedBeanId) || this._findBeanByName(this.selectedBeanName, this.selectedContextId);
+        let targetBean = this._findBeanById(this.selectedBeanId) || this._findBeanByName(this.selectedBeanName, this.selectedContextId);
+        if (!targetBean && this.selectedBeanName) {
+            try {
+                const fetched = await httpClient.get(`${this.beanDefinitionEndpoint}/find?contextId=${encodeURIComponent(this.selectedContextId || '')}&beanName=${encodeURIComponent(this.selectedBeanName)}`);
+                if (fetched) {
+                    beanDataStore.addBeans([fetched]);
+                    targetBean = fetched;
+                }
+            } catch (e) {
+                console.warn('Failed to fetch missing target bean:', e);
+            }
+        }
         if (!targetBean) return;
 
         $beanNameModalGraphContainer.text(targetBean.beanName);
-        
+
         $beanGraphModalContainer.removeClass('hidden');
         requestAnimationFrame(() => {
             $beanGraphModalContainer.removeClass('opacity-0 pointer-events-none').addClass('opacity-100');
@@ -910,6 +921,29 @@ export default class BeanDefinitionsController {
         $('#btn-close-graph-modal').off('click.closeModal').on('click.closeModal', () => {
             this.closeGraphModal();
         });
+
+        // Ensure child dependencies and dependents details (type, scope, role) are loaded into beanDataStore
+        const ctxId = targetBean.contextId || this.selectedContextId || '';
+        const relatedNames = [...(targetBean.dependencies || []), ...(targetBean.dependents || [])];
+        const missingNames = relatedNames.filter(name => !this._findBeanByName(name, ctxId));
+
+        if (missingNames.length > 0) {
+            try {
+                const results = await Promise.allSettled(
+                    missingNames.map(name =>
+                        httpClient.get(`${this.beanDefinitionEndpoint}/find?contextId=${encodeURIComponent(ctxId)}&beanName=${encodeURIComponent(name)}`)
+                    )
+                );
+                const fetchedBeans = results
+                    .filter(r => r.status === 'fulfilled' && r.value)
+                    .map(r => r.value);
+                if (fetchedBeans.length > 0) {
+                    beanDataStore.addBeans(fetchedBeans);
+                }
+            } catch (e) {
+                console.warn('Failed to pre-fetch related bean details:', e);
+            }
+        }
 
         this.renderModalGraph(targetBean);
     }
@@ -938,9 +972,9 @@ export default class BeanDefinitionsController {
         const deps = targetBean.dependencies || [];
         if (deps.length > 0) {
             deps.forEach(depName => {
-                const depBean = beanDataStore.getBean(depName);
+                const depBean = this._findBeanByName(depName, targetBean.contextId);
                 children.push({
-                    name: BeanGraphTreeBuilder._displayName(depName),
+                    name: GraphTreeBuilder._displayName(depName),
                     fullName: depName,
                     meta: {
                         type: depBean?.type || 'N/A',
@@ -956,9 +990,9 @@ export default class BeanDefinitionsController {
         const dependents = targetBean.dependents || [];
         if (dependents.length > 0) {
             dependents.forEach(depName => {
-                const depBean = beanDataStore.getBean(depName);
+                const depBean = this._findBeanByName(depName, targetBean.contextId);
                 children.push({
-                    name: BeanGraphTreeBuilder._displayName(depName),
+                    name: GraphTreeBuilder._displayName(depName),
                     fullName: depName,
                     meta: {
                         type: depBean?.type || 'N/A',
@@ -1119,6 +1153,7 @@ export default class BeanDefinitionsController {
         if ($('#tip').length === 0) {
             $('body').append(TEMPLATES.tooltip);
         }
+        const $tip = $('#tip');
 
         nodes
             .on('click', (event, node) => {
@@ -1131,17 +1166,24 @@ export default class BeanDefinitionsController {
             .on('mouseenter', (event, node) => {
                 const { name, fullName, meta = {} } = node.data;
                 const { type, scope, role, kind } = meta;
-                const typeLabel = type ? `Type: ${type.slice(type.lastIndexOf('.') + 1)}` : '';
-                const scopeLabel = scope ? `Scope: ${scope}${role ? ` · ${role}` : ''}` : '';
+
+                const shortType = (type && type !== 'N/A')
+                    ? (type.includes('.') ? type.slice(type.lastIndexOf('.') + 1) : type)
+                    : (type || 'N/A');
+                const typeLabel = `Type: ${shortType}`;
+
+                const cleanRole = (role && role !== 'N/A') ? role.replace(/^ROLE_/, '') : '';
+                const displayScope = (scope && scope !== 'N/A') ? scope : 'N/A';
+                const scopeLabel = `Scope: ${displayScope}${cleanRole ? ` · ${cleanRole}` : ''}`;
                 const kindLabel = kind ? `Role in view: ${kind.toUpperCase()}` : '';
 
                 $('#tip-name').text(fullName || name);
                 $('#tip-type').text(typeLabel);
                 $('#tip-scope').text(scopeLabel);
                 $('#tip-meta').text(kindLabel);
-                $tip.addClass('show').css({ left: event.pageX + 14, top: event.pageY - 10 });
+                $tip.addClass('show').css({ left: event.pageX + 14, top: event.pageY + 16 });
             })
-            .on('mousemove', (event) => $tip.css({ left: event.pageX + 14, top: event.pageY - 10 }))
+            .on('mousemove', (event) => $tip.css({ left: event.pageX + 14, top: event.pageY + 16 }))
             .on('mouseleave', () => $tip.removeClass('show'));
 
         setTimeout(() => this.fitModalView(), 50);

@@ -1,4 +1,4 @@
-export class BeanGraphTreeBuilder {
+export class GraphTreeBuilder {
     static _displayName(beanName) {
         if (!beanName) return '';
         const lastPart = beanName.split('.').pop() || '';
@@ -8,14 +8,14 @@ export class BeanGraphTreeBuilder {
 
     static buildByContext(beans = []) {
         if (!beans || beans.length === 0) {
-            return BeanGraphTreeBuilder._createEmptyRootNode();
+            return GraphTreeBuilder._createEmptyRootNode();
         }
 
-        const beansByContextMap = BeanGraphTreeBuilder._groupBeansByContext(beans);
+        const beansByContextMap = GraphTreeBuilder._groupBeansByContext(beans);
         const contextSubtreeNodes = [];
 
         for (const [contextId, contextBeans] of beansByContextMap.entries()) {
-            const contextSubtree = BeanGraphTreeBuilder._buildContextSubtree(contextId, contextBeans);
+            const contextSubtree = GraphTreeBuilder._buildContextSubtree(contextId, contextBeans);
             contextSubtreeNodes.push(contextSubtree);
         }
 
@@ -23,7 +23,7 @@ export class BeanGraphTreeBuilder {
             return contextSubtreeNodes[0];
         }
 
-        return BeanGraphTreeBuilder._createCompositeRootNode(beansByContextMap, contextSubtreeNodes);
+        return GraphTreeBuilder._createCompositeRootNode(beansByContextMap, contextSubtreeNodes);
     }
 
     static _createEmptyRootNode() {
@@ -50,14 +50,14 @@ export class BeanGraphTreeBuilder {
 
     static _buildContextSubtree(contextId, contextBeans) {
         const beanMap = new Map(contextBeans.map(bean => [bean.beanName, bean]));
-        const { childrenOfMap, hasParentBeanSet } = BeanGraphTreeBuilder._buildDependencyAdjacencyGraph(contextBeans, beanMap);
+        const { childrenOfMap, hasParentBeanSet } = GraphTreeBuilder._buildDependencyAdjacencyGraph(contextBeans, beanMap);
 
         const rootBeanNames = contextBeans
             .map(({ beanName }) => beanName)
             .filter(beanName => !hasParentBeanSet.has(beanName));
 
         const contextChildren = rootBeanNames.map(rootBeanName =>
-            BeanGraphTreeBuilder._buildHierarchyNode(rootBeanName, contextId, beanMap, childrenOfMap, new Set())
+            GraphTreeBuilder._buildHierarchyNode(rootBeanName, contextId, beanMap, childrenOfMap, new Set())
         );
 
         return {
@@ -91,7 +91,7 @@ export class BeanGraphTreeBuilder {
 
     static _buildHierarchyNode(beanName, contextId, beanMap, childrenOfMap, visitedAncestors = new Set()) {
         const bean = beanMap.get(beanName);
-        const displayName = BeanGraphTreeBuilder._displayName(beanName);
+        const displayName = GraphTreeBuilder._displayName(beanName);
 
         if (!bean) {
             return {
@@ -134,8 +134,8 @@ export class BeanGraphTreeBuilder {
         const nextVisitedAncestors = new Set(visitedAncestors).add(beanName);
         node.children = Array.from(directChildNames).map(childName =>
             nextVisitedAncestors.has(childName)
-                ? { name: BeanGraphTreeBuilder._displayName(childName), fullName: childName, contextId, meta: { note: 'cycle', contextId } }
-                : BeanGraphTreeBuilder._buildHierarchyNode(childName, contextId, beanMap, childrenOfMap, nextVisitedAncestors)
+                ? { name: GraphTreeBuilder._displayName(childName), fullName: childName, contextId, meta: { note: 'cycle', contextId } }
+                : GraphTreeBuilder._buildHierarchyNode(childName, contextId, beanMap, childrenOfMap, nextVisitedAncestors)
         );
 
         return node;
