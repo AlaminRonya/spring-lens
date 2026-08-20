@@ -7,6 +7,7 @@ import com.sdlcpro.springlens.insight.support.matcher.PackageMatcher;
 import com.sdlcpro.springlens.matcher.CompositeMatcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
 import com.sdlcpro.springlens.util.ClassInspector;
+import com.sdlcpro.springlens.util.Preconditions;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
@@ -49,6 +50,8 @@ public final class BeanInfoUtils {
      * @return the resolved bean role
      */
     public static BeanRole resolveBeanRole(ConfigurableListableBeanFactory beanFactory, String beanName) {
+        Preconditions.notNull(beanFactory, "ConfigurableListableBeanFactory must not be null");
+        Preconditions.hasText(beanName, "Bean name must not be blank");
         return BeanRole.from(beanFactory.getBeanDefinition(beanName).getRole());
     }
 
@@ -62,7 +65,17 @@ public final class BeanInfoUtils {
         return bean != null && ClassInspector.hasAnnotation(bean.getClass(), SpringLensInternalComponent.class);
     }
 
+    /**
+     * Resolve the bean scope like singleton, prototype etc
+     *
+     * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
+     * @param beanName the name of the bean, must not be null
+     * @return the scope of the bean, if the value from {@link ConfigurableListableBeanFactory} get null or empty
+     * it simply return {@link ConfigurableListableBeanFactory}.SCOPE_SINGLETON
+     */
     public static String resolveBeanScope(ConfigurableListableBeanFactory beanFactory, String beanName) {
+        Preconditions.notNull(beanFactory, "ConfigurableListableBeanFactory must not be null");
+        Preconditions.hasText(beanName, "Bean name must not be blank");
         BeanDefinition definition = beanFactory.getBeanDefinition(beanName);
         var scope = definition.getScope();
         return scope == null || scope.isEmpty()
@@ -70,12 +83,16 @@ public final class BeanInfoUtils {
                 : scope;
     }
 
+    /**
+     * Resolve the bean class type from @link ConfigurableListableBeanFactory}
+     *
+     * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
+     * @param beanName the name of the bean, must not be null
+     * @return the bean class type, it is just defined type not the actual runtime type
+     */
     public static String resolveBeanType(ConfigurableListableBeanFactory beanFactory, String beanName) {
-        String beanClassName = beanFactory.getBeanDefinition(beanName).getBeanClassName();
-        if (beanClassName != null) {
-            return beanClassName;
-        }
-
+        Preconditions.notNull(beanFactory, "ConfigurableListableBeanFactory must not be null");
+        Preconditions.hasText(beanName, "Bean name must not be blank");
         Class<?> clazz = beanFactory.getType(beanName);
         if (clazz != null) {
             return clazz.getTypeName();
@@ -84,9 +101,15 @@ public final class BeanInfoUtils {
         return null;
     }
 
+    /**
+     * Generate the composite matcher from given {@link BeanInfoCollectorSettings}
+     *
+     * @param settings user configuration regarding bean info collection, must not be null
+     * @return {@link CompositeMatcher} of context type {@link BeanInfoCollectionContext}
+     */
     public static CompositeMatcher<BeanInfoCollectionContext> createCollectionMatcher(BeanInfoCollectorSettings settings) {
+        Preconditions.notNull(settings, "BeanInfoCollectorSettings must not be null");
         var matcher = new CompositeMatcher<BeanInfoCollectionContext>();
-
         if (!settings.includeInfraRole()) {
             matcher.addExcludeMatcher(new InfraBeanRoleMatcher<>());
         }
