@@ -8,8 +8,6 @@ import {
 
 $(document).ready(() => {
 
-    // API Configuration
-    // Extract the current full pathname
     const host = window.location.host;
     const pathname = window.location.pathname;
 
@@ -23,14 +21,10 @@ $(document).ready(() => {
         SUMMARY_BEAN_DEFINITION : API_BASE_URL + "/summary"
     }
 
-    let defintionTestURL = "http://localhost:8082/spring-lens/api/beans/definitions";
-    let defintionTestSummar = "http://localhost:8082/spring-lens/api/beans/definitions/summary";
-
     const dashboard = new DashboardController();
     const beanTimeline = new BeanInstanceController();
-    // const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
-    const beanDefinitions = new BeanDefinitions(defintionTestURL, defintionTestSummar);
-    const beanDependencyGraph = new BeanDependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES);
+    const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
+    const beanDependencyGraph = new BeanDependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
 
     // Configure routes and instantiate Route
     const appRouter = new Route({

@@ -1,4 +1,4 @@
-import { BeanTreeBuilder } from './bean-tree-builder.js';
+import { BeanGraphTreeBuilder } from './bean-graph-tree-builder.js';
 
 export default class BeanInstanceController {
     constructor() {
@@ -137,7 +137,7 @@ export default class BeanInstanceController {
 
             const result = {
                 beanName,
-                displayName: BeanTreeBuilder._displayName(beanName),
+                displayName: BeanGraphTreeBuilder._displayName(beanName),
                 type: bean ? bean.type : 'N/A',
                 start,
                 duration,

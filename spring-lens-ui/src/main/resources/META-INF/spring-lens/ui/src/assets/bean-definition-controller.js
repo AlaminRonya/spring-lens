@@ -1,5 +1,5 @@
 import httpClient from './http-client.js';
-import { BeanTreeBuilder } from "./bean-tree-builder.js";
+import { BeanGraphTreeBuilder } from "./bean-graph-tree-builder.js";
 import beanDataStore from './bean-data-store.js';
 import {
     TEMPLATES,
@@ -813,7 +813,7 @@ export default class BeanDefinitionsController {
     }
 
     _renderSidebarListItem(dependencyName) {
-        const displayName = BeanTreeBuilder._displayName(dependencyName);
+        const displayName = BeanGraphTreeBuilder._displayName(dependencyName);
         const categoryColor = this._resolveDependencyCategoryColor(dependencyName);
 
         return TEMPLATES.sidebarListItem({
@@ -940,7 +940,7 @@ export default class BeanDefinitionsController {
             deps.forEach(depName => {
                 const depBean = beanDataStore.getBean(depName);
                 children.push({
-                    name: BeanTreeBuilder._displayName(depName),
+                    name: BeanGraphTreeBuilder._displayName(depName),
                     fullName: depName,
                     meta: {
                         type: depBean?.type || 'N/A',
@@ -958,7 +958,7 @@ export default class BeanDefinitionsController {
             dependents.forEach(depName => {
                 const depBean = beanDataStore.getBean(depName);
                 children.push({
-                    name: BeanTreeBuilder._displayName(depName),
+                    name: BeanGraphTreeBuilder._displayName(depName),
                     fullName: depName,
                     meta: {
                         type: depBean?.type || 'N/A',

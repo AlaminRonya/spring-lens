@@ -127,6 +127,17 @@ export const TEMPLATES = {
             </span>
         </div>
     `,
+    dependencyItem: ({ depName, displayName, catColor }) => `
+        <div class="dep-item flex items-center justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800/50 px-2 rounded-md transition-colors">
+            <div data-action="select-dependency" class="dep-item-left flex items-center gap-2 cursor-pointer def-sidebar-item-click" data-fullname="${depName}">
+                <span class="w-2 h-2 rounded-full bg-${catColor}-500"></span>
+                <span class="font-medium text-gray-700 dark:text-gray-300 font-mono text-[11px]">${displayName}</span>
+            </div>
+            <span data-action="select-dependency" class="dep-link flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-350 cursor-pointer" data-fullname="${depName}" title="Focus in graph">
+                <span class="material-symbols-outlined text-[16px]">east</span>
+            </span>
+        </div>
+    `,
     suggestionItem: ({ fullName, displayName, type }) => `
         <div class="suggestion-item p-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors border-b border-gray-50 dark:border-slate-800/50 last:border-b-0" data-fullname="${fullName}">
             <strong class="text-xs font-semibold text-gray-700 dark:text-gray-300 block">${displayName}</strong>

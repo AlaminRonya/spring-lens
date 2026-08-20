@@ -1,86 +1,452 @@
 import {GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT} from './constants.js';
 import {getBeanCategory, lrLink, nodeStyle, tbLink, tree} from './utils.js';
-import {BeanTreeBuilder} from './bean-tree-builder.js';
+import {BeanGraphTreeBuilder} from './bean-graph-tree-builder.js';
 import httpClient from "./http-client.js";
+import beanDataStore from './bean-data-store.js';
 
 export class BeanDependencyGraphController {
 
-    constructor(dependencyGraphApi) {
+    constructor(dependencyGraphApi, findBeanApi) {
         this.root = null;
         this.svg = null;
         this.gLink = null;
         this.gNode = null;
         this.zoom = null;
+        this.totalElements = 0;
         this.beanDependencies = null;
-        this.isHighlightPathActive = false;
+        this.accumulatedBeans = [];
+        this.beanDetailsCache = new Map();
+        this.selectedContextId = '';
+        this.isLoadingRemaining = false;
+        this.findBeanDetailsApi = findBeanApi;
         this.dependencyGraphApi = dependencyGraphApi;
+        this.isHighlightPathActive = false;
         this.mode = localStorage.getItem('sl-layout') ?? 'tb';
 
         this.initEvents();
     }
 
-    /**
-     * Entry point for the D3 Bean Graph view.
-     * Sets up SVG structural elements, registers zoom/drag handlers, loads data,
-     * and performs the initial draw/fit.
-     */
-    async enter() {
+    initEvents() {
+        this._bindSearchHandlers();
+        this._bindClickActionRouter();
+        this._bindCustomEventHandlers();
+    }
 
+    async enter() {
+        if (!this._initializeCanvas()) return;
+
+        this._bindControls();
+
+        const isDataLoaded = await this._loadInitialData();
+        if (!isDataLoaded) return;
+
+        this._renderInitialGraph();
+        this._handlePendingBeanFocus();
+    }
+
+    _initializeCanvas() {
         this.svg = d3.select('#tree-svg');
-        if (!this.svg.node()) return;
+        if (!this.svg.node()) return false;
 
         this.svg.selectAll('*').remove();
-
         this._injectTooltip();
-        const gMain = this._setupSvgContainers();
-        this._setupZoom(gMain);
 
+        const mainContainer = this._setupSvgContainers();
+        this._setupZoom(mainContainer);
+        return true;
+    }
 
-        $('#btn-reload-graph').off('click').on('click', async () => {
-            await this.reloadGraphData();
-        });
+    _bindControls() {
+        $('#btn-reload-graph')
+            .off('click')
+            .on('click', () => this.reloadGraphData());
+    }
+
+    async reloadGraphData() {
+        const $btn = $('#btn-reload-graph');
+        const $icon = $btn.find('.material-symbols-outlined');
+        $icon.addClass('animate-spin');
 
         try {
-            await this._fetchBeanDependencies();
-            this._updateToolbarCounts();
+            await this._fetchBeanGraphDependencies();
+            this._buildHierarchyFromDependencies();
+            this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
+            this._updateTotalBeanCount();
+            this.fitView(0);
         } catch (error) {
-            $('#beanGraph').html(
-                `<div class="p-5 text-red-500 font-semibold">❌ Failed to load bean definitions: ${error.message}</div>`
-            );
-            return;
+            console.error('Error reloading graph data:', error);
+        } finally {
+            setTimeout(() => $icon.removeClass('animate-spin'), 600);
         }
+    }
 
-        /* Initial render */
+    async _loadInitialData() {
+        try {
+            await this._fetchBeanGraphDependencies();
+            this._buildHierarchyFromDependencies();
+            this._updateTotalBeanCount();
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize graph data:', error);
+            $('#beanGraph').html(`
+            <div class="p-5 text-red-500 font-semibold flex items-center gap-2">
+                <span>❌ Failed to load bean definitions:</span>
+                <span>${error.message}</span>
+            </div>
+        `);
+            return false;
+        }
+    }
+
+    _renderInitialGraph() {
         this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
         this.fitView(0);
         this.setMode(this.mode);
+    }
 
-        if (!window.focusBeanOnNextGraphEnter) return;
-
+    _handlePendingBeanFocus() {
         const targetBean = window.focusBeanOnNextGraphEnter;
+        if (!targetBean) return;
+
         window.focusBeanOnNextGraphEnter = null;
         setTimeout(() => this.focusOnBean(targetBean), 300);
     }
 
-    async _fetchBeanDependencies() {
-        this.beanDependencies = await httpClient.get(this.dependencyGraphApi);
+
+    async fetchBeanDetails(contextId, beanName) {
+        if (!contextId || !beanName || !this.findBeanDetailsApi) return null;
+
+        const cacheKey = `${contextId}:${beanName}`;
+        if (this.beanDetailsCache.has(cacheKey)) {
+            return this.beanDetailsCache.get(cacheKey);
+        }
+
+        try {
+            const [baseUrl] = this.findBeanDetailsApi.split('?');
+            const queryParams = new URLSearchParams({ contextId, beanName });
+            const requestUrl = `${baseUrl}?${queryParams.toString()}`;
+
+            const beanDetails = await httpClient.get(requestUrl);
+            if (!beanDetails) return null;
+
+            this._updateBeanCaches(beanDetails, cacheKey);
+            return beanDetails;
+        } catch (error) {
+            console.error(`Failed to fetch bean details for ${beanName}:`, error);
+            return null;
+        }
     }
 
-    /**
-     * Injects the floating HTML tooltip if it doesn't already exist in the DOM.
-     * @private
-     */
+    _updateBeanCaches(beanDetails, primaryCacheKey) {
+        this.beanDetailsCache.set(primaryCacheKey, beanDetails);
+        beanDataStore.addBeans([beanDetails]);
+    }
+
+    _mergeBeanDetailsIntoTree(node, details) {
+        if (!node || !details) return;
+
+        // 1. Update node metadata in place
+        node.data.meta = {
+            ...node.data.meta,
+            ...(details.type && { type: details.type }),
+            ...(details.scope && { scope: details.scope })
+        };
+
+        const dependencies = details.dependencies;
+        if (!dependencies?.length) return;
+
+        // Ensure _children backing array exists
+        node._children ??= [];
+
+        // 2. Pre-index existing children names for O(1) existence checks
+        const existingChildNames = new Set();
+        const existingChildren = node._children;
+
+        for (let i = 0; i < existingChildren.length; i++) {
+            const childData = existingChildren[i].data;
+
+            if (childData?.fullName)
+                existingChildNames.add(childData.fullName);
+
+            if (childData?.name)
+                existingChildNames.add(childData.name);
+        }
+
+        let hasAddedNewChild = false;
+        const contextId = details.contextId ?? node.data?.contextId;
+
+        // 3. Append missing dependency nodes
+        for (let i = 0; i < dependencies.length; i++) {
+            const dependencyName = dependencies[i];
+            if (existingChildNames.has(dependencyName)) continue;
+
+            const dependencyNode = this._createDynamicHierarchyChild(node, dependencyName, contextId);
+            node._children.push(dependencyNode);
+            existingChildNames.add(dependencyName);
+            hasAddedNewChild = true;
+        }
+
+        // 4. Synchronize active visible children if node is currently expanded
+        if (hasAddedNewChild && node.children) {
+            node.children = node._children;
+        }
+    }
+
+    _createDynamicHierarchyChild(parentNode, beanName, contextId) {
+        const beanRecord = beanDataStore.findBeanByName(beanName, contextId);
+        const displayName = BeanGraphTreeBuilder._displayName(beanName);
+
+        const childData = {
+            name: displayName,
+            fullName: beanName,
+            contextId,
+            meta: {
+                type: beanRecord?.type ?? 'N/A',
+                scope: beanRecord?.scope ?? 'singleton',
+                contextId
+            }
+        };
+
+        const childNode = d3.hierarchy(childData);
+        childNode.depth = parentNode.depth + 1;
+        childNode.parent = parentNode;
+        childNode.id = `dyn_${parentNode.id}_${beanName}`;
+        childNode._children = null;
+        childNode.children = null;
+
+        return childNode;
+    }
+
+    async _fetchBeanGraphDependencies() {
+        this._updateProgressBadge({ loaded: 0, total: 0, isComplete: false });
+
+        const serverResponse = await httpClient.get(this.dependencyGraphApi);
+        this.beanDependencies = serverResponse;
+
+        const initialBeanDefinitions = Array.isArray(serverResponse)
+            ? serverResponse
+            : (serverResponse?.content ?? []);
+
+        this.accumulatedBeans = [...initialBeanDefinitions];
+        this.totalElements = serverResponse?.totalElements ?? initialBeanDefinitions.length;
+
+        const hasRemainingPages = this._hasSubsequentPages(serverResponse);
+
+        this._updateProgressBadge({
+            loaded: this.accumulatedBeans.length,
+            total: this.totalElements,
+            isComplete: !hasRemainingPages
+        });
+
+        if (hasRemainingPages) {
+            setTimeout(() => this._loadRemainingDataLazily(serverResponse), 50);
+        }
+    }
+
+    _hasSubsequentPages(paginationPayload) {
+        if (!paginationPayload || Array.isArray(paginationPayload)) return false;
+
+        const { totalPages = 1, pageNumber = 0, last = true } = paginationPayload;
+        return !last && pageNumber < totalPages - 1;
+    }
+
+    async _loadRemainingDataLazily(firstPageData) {
+        if (this.isLoadingRemaining) return;
+        this.isLoadingRemaining = true;
+
+        try {
+            const { totalPages = 1, pageNumber = 0, pageSize = 20 } = firstPageData;
+            const [baseApiEndpoint] = this.dependencyGraphApi.split('?');
+
+            for (let targetPageIndex = pageNumber + 1; targetPageIndex < totalPages; targetPageIndex++) {
+                const searchParams = new URLSearchParams({
+                    pageNumber: targetPageIndex,
+                    pageSize
+                });
+                const paginatedEndpointUrl = `${baseApiEndpoint}?${searchParams.toString()}`;
+                const fetchedPagePayload = await httpClient.get(paginatedEndpointUrl);
+                const fetchedBeanDefinitions = fetchedPagePayload?.content ?? [];
+
+                if (fetchedBeanDefinitions.length === 0) break;
+
+                this.accumulatedBeans.push(...fetchedBeanDefinitions);
+                this._buildHierarchyFromDependencies(this.accumulatedBeans);
+
+                this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
+                this._updateTotalBeanCount();
+
+                const isFinalPageBatch = targetPageIndex === totalPages - 1;
+                this._updateProgressBadge({
+                    loaded: this.accumulatedBeans.length,
+                    total: this.totalElements,
+                    isComplete: isFinalPageBatch
+                });
+
+                await this._yieldThreadToEventLoop(50);
+            }
+        } catch (networkStreamingError) {
+            console.error('Error loading lazy background bean graph data:', networkStreamingError);
+            this._updateProgressBadge({ hasError: true, errorMsg: networkStreamingError.message });
+        } finally {
+            this.isLoadingRemaining = false;
+        }
+    }
+
+    _yieldThreadToEventLoop(delayDurationInMilliseconds = 50) {
+        return new Promise(resolveEventLoopYield => setTimeout(resolveEventLoopYield, delayDurationInMilliseconds));
+    }
+
+    _populateContextFilter(beanDefinitions = []) {
+        const $contextFilterSelectElement = $('#context-filter');
+        if ($contextFilterSelectElement.length === 0) return;
+
+        const uniqueContextIdentifiers = this._extractUniqueContextIdentifiers(beanDefinitions);
+        const $filterContainerElement = $contextFilterSelectElement.parent();
+
+        if (uniqueContextIdentifiers.length <= 1) {
+            $filterContainerElement.addClass('hidden');
+            return;
+        }
+
+        $filterContainerElement.removeClass('hidden');
+
+        const renderedOptionsHtml = this._buildContextFilterOptionsHtml(
+            uniqueContextIdentifiers,
+            this.selectedContextId
+        );
+
+        $contextFilterSelectElement.html(renderedOptionsHtml);
+    }
+
+    _extractUniqueContextIdentifiers(beanDefinitions) {
+        const uniqueContextSet = new Set();
+        for (let i = 0; i < beanDefinitions.length; i++) {
+            const contextIdentifier = beanDefinitions[i]?.contextId;
+            if (contextIdentifier) {
+                uniqueContextSet.add(contextIdentifier);
+            }
+        }
+        return Array.from(uniqueContextSet);
+    }
+
+    _buildContextFilterOptionsHtml(uniqueContextIdentifiers, currentlySelectedContextIdentifier) {
+        const isDefaultOptionSelected = !currentlySelectedContextIdentifier ? 'selected' : '';
+        const defaultOptionHtml = `<option value="" ${isDefaultOptionSelected}>All Contexts (${uniqueContextIdentifiers.length})</option>`;
+
+        const contextOptionsHtml = uniqueContextIdentifiers.map(contextIdentifier => {
+            const isSelected = contextIdentifier === currentlySelectedContextIdentifier ? 'selected' : '';
+            return `<option value="${contextIdentifier}" ${isSelected}>${contextIdentifier}</option>`;
+        }).join('');
+
+        return `${defaultOptionHtml}${contextOptionsHtml}`;
+    }
+
+    _buildHierarchyFromDependencies(providedBeanDefinitions = null) {
+        const rawBeanDefinitions = this._resolveRawBeanDefinitions(providedBeanDefinitions);
+        if (!rawBeanDefinitions || rawBeanDefinitions.length === 0) {
+            this.root = null;
+            return;
+        }
+
+        this._populateContextFilter(rawBeanDefinitions);
+
+        const scopedBeanDefinitions = this._filterBeanDefinitionsByActiveContext(rawBeanDefinitions);
+        this._buildAndCrossLinkBeanDependencies(scopedBeanDefinitions);
+
+        const rawTreeHierarchyData = BeanGraphTreeBuilder.buildByContext(scopedBeanDefinitions);
+        if (!rawTreeHierarchyData) {
+            this.root = null;
+            return;
+        }
+
+        this.root = this._createD3HierarchyRootNode(rawTreeHierarchyData);
+    }
+
+    _resolveRawBeanDefinitions(providedBeanDefinitions) {
+        if (providedBeanDefinitions) {
+            return providedBeanDefinitions;
+        }
+
+        if (Array.isArray(this.beanDependencies)) {
+            return this.beanDependencies;
+        }
+
+        return this.beanDependencies?.content ?? [];
+    }
+
+    _filterBeanDefinitionsByActiveContext(beanDefinitions) {
+        if (!this.selectedContextId) {
+            return beanDefinitions;
+        }
+
+        return beanDefinitions.filter(bean => bean?.contextId === this.selectedContextId);
+    }
+
+    _buildAndCrossLinkBeanDependencies(beanDefinitions) {
+        beanDataStore.addBeans(beanDefinitions);
+        const beanCount = beanDefinitions.length;
+
+        // Cross-link inverse dependent relationships
+        for (let i = 0; i < beanCount; i++) {
+            const upstreamBean = beanDefinitions[i];
+            const dependencyNames = upstreamBean?.dependencies ?? [];
+
+            for (let j = 0; j < dependencyNames.length; j++) {
+                const dependencyName = dependencyNames[j];
+                const targetDependencyBean = beanDataStore.findBeanByName(dependencyName);
+
+                if (targetDependencyBean) {
+                    targetDependencyBean.dependents ??= [];
+                    if (!targetDependencyBean.dependents.includes(upstreamBean.beanName)) {
+                        targetDependencyBean.dependents.push(upstreamBean.beanName);
+                    }
+                }
+            }
+        }
+    }
+
+    _createD3HierarchyRootNode(treeData) {
+        const rootHierarchyNode = d3.hierarchy(treeData);
+        const descendantNodes = rootHierarchyNode.descendants();
+        const totalDescendants = descendantNodes.length;
+
+        for (let i = 0; i < totalDescendants; i++) {
+            const node = descendantNodes[i];
+            node.id = i;
+            node._children = node.children;
+
+            if (node.depth > 0) {
+                node.children = null;
+            }
+        }
+
+        rootHierarchyNode.x0 = 0;
+        rootHierarchyNode.y0 = 0;
+
+        return rootHierarchyNode;
+    }
+
+    _updateTotalBeanCount() {
+        const beanList = this.accumulatedBeans.length > 0
+            ? this.accumulatedBeans
+            : (Array.isArray(this.beanDependencies) ? this.beanDependencies : (this.beanDependencies?.content || []));
+
+        const totalElements = this.totalElements || this.beanDependencies?.totalElements || beanList.length;
+        $('#beans-count').text(totalElements);
+
+        let totalDeps = 0;
+        for (const bean of beanList) {
+            totalDeps += bean.dependencies?.length ?? 0;
+        }
+        $('#deps-count').text(totalDeps);
+    }
+
     _injectTooltip() {
         if ($('#tip').length === 0) {
             $('body').append(TEMPLATES.tooltip);
         }
     }
 
-    /**
-     * Appends markers (defs) and container groups to the SVG canvas.
-     * @private
-     * @returns {d3.Selection} The main zoomable container group.
-     */
     _setupSvgContainers() {
         const gMain = this.svg.append('g').attr('id', 'g-main');
 
@@ -101,12 +467,6 @@ export class BeanDependencyGraphController {
         return gMain;
     }
 
-    /**
-     * Declaratively appends an SVG marker definition to the defs container.
-     * @private
-     * @param {string} id - Unique HTML identifier for the marker.
-     * @param {Object} config - Attribute mapping config, containing nested element definitions (like circle).
-     */
     _createMarker(id, config) {
         const { circle, ...markerAttrs } = config;
         const marker = this.svg.append('defs')
@@ -125,11 +485,6 @@ export class BeanDependencyGraphController {
         }
     }
 
-    /**
-     * Configures the zoom behavior and registers it to the SVG canvas.
-     * @private
-     * @param {d3.Selection} gMain - The main container group to transform.
-     */
     _setupZoom(gMain) {
         this.zoom = d3.zoom()
             .scaleExtent(ZOOM_SCALE_EXTENT)
@@ -142,32 +497,6 @@ export class BeanDependencyGraphController {
             .on('click', () => $('#details-sidebar').hide());
     }
 
-    /**
-     * Updates the toolbar with total bean count and dependency count if definitions are loaded.
-     * @private
-     */
-    _updateToolbarCounts() {
-        if (!window.allBeansMap) return;
-
-        $('#beans-count').text(window.allBeansMap.size);
-
-        let totalDeps = 0;
-        for (const bean of window.allBeansMap.values()) {
-            totalDeps += bean.dependencies?.length ?? 0;
-        }
-        $('#deps-count').text(totalDeps);
-    }
-
-    leave() {
-        $('#details-sidebar').hide();
-        $('#tip').removeClass('show');
-    }
-
-    /**
-     * Displays the tooltip for a hovered tree node with its metadata and updates its position.
-     * @param {MouseEvent} event - The triggering mouse event.
-     * @param {d3.HierarchyNode} node - Hovered node object.
-     */
     showTip({ pageX, pageY }, node) {
         const { data, depth, _children = [] } = node;
         const { name, meta = {} } = data;
@@ -181,7 +510,7 @@ export class BeanDependencyGraphController {
 
         let metaText = `Leaf · depth ${depth}`;
         if (deps !== undefined) {
-            metaText = `Deps: ${deps} · Dependents: ${dependents} · Children: ${childrenCount}`;
+            metaText = `Deps: ${deps} · Dependents: ${dependents}`;
         } else if (childrenCount > 0) {
             metaText = `${childrenCount} child bean(s) · depth ${depth}`;
         }
@@ -194,53 +523,38 @@ export class BeanDependencyGraphController {
 
         $('#tip')
             .addClass('show')
-            .css({ left: pageX + 14, top: pageY - 10 });
+            .css({ left: pageX + 12, top: pageY + 20 });
     }
 
-    /**
-     * Highlights the upward ancestor path and downward descendant path for a node,
-     * dimming all other nodes and links in the graph.
-     * @param {d3.HierarchyNode} node - The target node to highlight path for.
-     */
     highlightPathForNode(node) {
-        if (!this.isHighlightPathActive) return;
+        if (!this.isHighlightPathActive || !node || !this.svg) return;
 
         // Collect all ancestor and descendant nodes in a single set
         const pathNodes = new Set([...node.ancestors(), ...node.descendants()]);
 
-        // Single-pass node state updates using D3 .classed() function overload
-        this.svg.selectAll('.node').classed({
-            highlighted: targetNode => pathNodes.has(targetNode),
-            dimmed: targetNode => !pathNodes.has(targetNode)
-        });
+        // Explicit D3 selection class toggling for nodes
+        this.svg.selectAll('g.node')
+            .classed('highlighted', targetNode => pathNodes.has(targetNode))
+            .classed('dimmed', targetNode => !pathNodes.has(targetNode));
 
-        // Single-pass link state updates
-        this.svg.selectAll('.link').classed({
-            highlighted: ({ source, target }) => pathNodes.has(source) && pathNodes.has(target),
-            dimmed: ({ source, target }) => !pathNodes.has(source) || !pathNodes.has(target)
-        });
+        // Explicit D3 selection class toggling for links
+        this.svg.selectAll('path.link')
+            .classed('highlighted', ({ source, target }) => pathNodes.has(source) && pathNodes.has(target))
+            .classed('dimmed', ({ source, target }) => !pathNodes.has(source) || !pathNodes.has(target));
     }
 
-    /**
-     * Clears any active path highlights and restores original opacity/colors.
-     */
     resetPathHighlight() {
-        if (!this.isHighlightPathActive) return;
-        this.svg.selectAll('.node, .link')
+        if (!this.svg) return;
+        this.svg.selectAll('g.node, path.link')
             .classed('dimmed', false)
             .classed('highlighted', false);
     }
 
-    /**
-     * Re-renders the SVG graph nodes and links based on the current layout state.
-     * @param {Event|null} event - The triggering UI event (if any).
-     * @param {Object} source - The source coordinate origin/destination for transition animations.
-     */
     update(event, source) {
         if (!this.svg?.node() || !this.root) return;
 
         const isTB = this.mode === 'tb';
-        const duration = event?.altKey ? 2500 : 300;
+        const duration = event?.altKey ? 4000 : 950;
         const linkColor = '#94a3b8';
 
         const descendants = this.root.descendants();
@@ -288,16 +602,17 @@ export class BeanDependencyGraphController {
     _drawNodes(nodes, transition, isTB, source) {
         const $tip = $('#tip');
 
-        // Pre-calculate position transform helpers
-        const getSourcePos = ({ x, y, x0, y0 }) => {
-            const posX = x0 ?? x;
-            const posY = y0 ?? y;
-            return isTB ? `translate(${posX},${posY})` : `translate(${posY},${posX})`;
+        // Pre-calculate position transform helpers with subtle initial offset for slide-up reveal
+        const getSourcePos = (node) => {
+            const posX = node.x0 ?? node.parent?.x0 ?? node.parent?.x ?? node.x;
+            const posY = (node.y0 ?? node.parent?.y0 ?? node.parent?.y ?? node.y) + (isTB ? 20 : 0);
+            const posXOffset = isTB ? posX : posX + 20;
+            return isTB ? `translate(${posX},${posY})` : `translate(${posY},${posXOffset})`;
         };
 
         const getNodePos = ({ x, y }) => isTB ? `translate(${x},${y})` : `translate(${y},${x})`;
         const exitPos = `translate(${isTB ? source.x : source.y},${isTB ? source.y : source.x})`;
-        const initialTransform = getSourcePos(source);
+        const initialTransform = node => getSourcePos(node);
 
         const nodeSelection = this.gNode.selectAll('g.node').data(nodes, node => node.id);
 
@@ -307,8 +622,19 @@ export class BeanDependencyGraphController {
             .attr('cursor', 'pointer')
             .attr('transform', initialTransform)
             .attr('fill-opacity', 0)
-            .on('click', (event, node) => {
+            .on('click', async (event, node) => {
                 event.stopPropagation();
+
+                const contextId = node.data?.contextId || node.data?.meta?.contextId;
+                const fullName = node.data?.fullName || node.data?.name;
+
+                if (this.findBeanDetailsApi && fullName && node.data?.meta?.type !== 'context' && node.data?.meta?.type !== 'root') {
+                    const details = await this.fetchBeanDetails(contextId, fullName);
+                    if (details) {
+                        this._mergeBeanDetailsIntoTree(node, details);
+                    }
+                }
+
                 node.children = node.children ? null : node._children;
                 this.update(event, node);
                 this.selectNode(node);
@@ -318,7 +644,7 @@ export class BeanDependencyGraphController {
                 this.showTip(event, node);
                 this.highlightPathForNode(node);
             })
-            .on('mousemove', ({ pageX, pageY }) => $tip.css({ left: pageX + 14, top: pageY - 10 }))
+            .on('mousemove', ({ pageX, pageY }) => $tip.css({ left: pageX + 12, top: pageY + 20 }))
             .on('mouseleave', () => {
                 $tip.removeClass('show');
                 this.resetPathHighlight();
@@ -348,13 +674,16 @@ export class BeanDependencyGraphController {
             .attr('font-weight', 500)
             .attr('font-family', 'Inter, sans-serif');
 
-        // Update merged nodes
-        const mergedTransition = nodeSelection.merge(enter)
+        // Update merged nodes with staggered delay for fade-up reveal animation
+        const mergedSelection = nodeSelection.merge(enter);
+
+        mergedSelection
             .transition(transition)
+            .delay((d, i) => d.depth === 0 ? 0 : Math.min(d.depth * 140 + (i % 20) * 55, 1200))
             .attr('transform', getNodePos)
             .attr('fill-opacity', 1);
 
-        this._updateNodeStylesAndContent(mergedTransition);
+        this._updateNodeStylesAndContent(mergedSelection);
 
         // Animate exiting nodes
         nodeSelection.exit()
@@ -403,9 +732,10 @@ export class BeanDependencyGraphController {
             .attr('marker-end', 'url(#dot)')
             .attr('d', enterPathD);
 
-        // Animate active links
+        // Animate active links with matching staggered delay
         linkSelection.merge(enter)
             .transition(transition)
+            .delay((d, i) => Math.min(d.target.depth * 140 + (i % 20) * 55, 1200))
             .attr('stroke', linkColor)
             .attr('d', linkFn);
 
@@ -424,7 +754,7 @@ export class BeanDependencyGraphController {
             .call(this.zoom.scaleBy, factor);
     }
 
-    fitView(duration = 500, padding = 60, minScale = 0.15, maxScale = 1.5) {
+    fitView(duration = 500, padding = 35, minScale = 0.4, maxScale = 1.8) {
         if (!this.svg?.node() || !this.root) return;
 
         const $beanGraph = $('#beanGraph');
@@ -461,7 +791,7 @@ export class BeanDependencyGraphController {
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
 
-        const rawScale = Math.min(width / graphW, height / graphH);
+        const rawScale = (Math.min(width / graphW, height / graphH)) * 1.25;
         const scale = Math.max(minScale, Math.min(maxScale, rawScale));
 
         const tx = width / 2 - centerX * scale;
@@ -476,92 +806,174 @@ export class BeanDependencyGraphController {
         $('#zoom-percent').text(`${Math.round(k * 100)}%`);
     }
 
-    selectNode(node) {
-        const { data: { name, fullName, meta: { type = 'N/A', scope = 'singleton' } = {} } } = node;
+    async selectNode(selectedHierarchyNode) {
+        this.selectedNodeRef = selectedHierarchyNode;
 
+        if (this.isHighlightPathActive) {
+            this.highlightPathForNode(selectedHierarchyNode);
+        }
+
+        const {
+            name: displayName,
+            fullName,
+            contextId,
+            meta = {}
+        } = selectedHierarchyNode.data ?? {};
+
+        const { type = 'N/A', scope = 'singleton' } = meta;
+
+        this._openSidebarAndPopulateHeader(displayName, type, scope);
+
+        const initialDependencies = this._resolveInitialDependencyLists(fullName, contextId);
+        this._renderDependencyAccordions(initialDependencies.dependencies, initialDependencies.dependents);
+
+        if (this._shouldFetchRemoteDetails(fullName, meta.type)) {
+            await this._fetchAndApplyRemoteBeanDetails(selectedHierarchyNode, contextId, fullName);
+        }
+    }
+
+    _openSidebarAndPopulateHeader(displayName, beanType, beanScope) {
         $('#details-sidebar').show();
-        $('#detail-bean-name').text(name);
-        $('#detail-bean-type').text(type);
+        $('#detail-bean-name').text(displayName);
+        $('#detail-bean-type').text(beanType);
+        this._applySidebarScopeStyle(beanScope);
+    }
 
-        const isDark = document.documentElement.classList.contains('dark');
-        const isSingleton = scope === 'singleton';
+    _applySidebarScopeStyle(scopeName = 'singleton') {
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const isSingletonScope = scopeName.toLowerCase() === 'singleton';
 
-        // Static theme dictionary lookup instead of nested ternary allocations
-        const THEME_MAP = {
+        const SCOPE_THEME_PALETTE = {
             dark: {
                 singleton: { bg: 'rgba(126, 34, 206, 0.15)', fg: '#d8b4fe', border: 'rgba(126, 34, 206, 0.3)' },
                 other: { bg: 'rgba(16, 185, 129, 0.15)', fg: '#a7f3d0', border: 'rgba(16, 185, 129, 0.3)' }
             },
-            light: {
-                singleton: { bg: '#f3e8ff', fg: '#7e22ce', border: '#d8b4fe' },
-                other: { bg: '#ecfdf5', fg: '#047857', border: '#bbf7d0' }
-            }
+                light: {
+                    singleton: { bg: '#f3e8ff', fg: '#7e22ce', border: '#d8b4fe' },
+                    other: { bg: '#ecfdf5', fg: '#047857', border: '#bbf7d0' }
+                }
+            };
+
+        const themeKey = isDarkMode ? 'dark' : 'light';
+        const scopeKey = isSingletonScope ? 'singleton' : 'other';
+        const { bg, fg, border } = SCOPE_THEME_PALETTE[themeKey][scopeKey];
+
+        $('#detail-bean-scope')
+            .text(scopeName)
+            .css({ background: bg, color: fg, borderColor: border });
+    }
+
+    _resolveInitialDependencyLists(fullName, contextId) {
+        if (!fullName) {
+            return { dependencies: [], dependents: [] };
+        }
+
+        const cachedRecord = beanDataStore.findBeanByName(fullName, contextId);
+
+        return {
+            dependencies: cachedRecord?.dependencies ?? [],
+            dependents: cachedRecord?.dependents ?? []
         };
+    }
 
-        const modeKey = isDark ? 'dark' : 'light';
-        const scopeKey = isSingleton ? 'singleton' : 'other';
-        const { bg, fg, border } = THEME_MAP[modeKey][scopeKey];
+    _renderDependencyAccordions(dependencyNames = [], dependentNames = []) {
+        $('#detail-deps-count').text(dependencyNames.length);
+        $('#detail-dependents-count').text(dependentNames.length);
 
-        $('#detail-bean-scope').text(scope).css({
-            background: bg,
-            color: fg,
-            borderColor: border
-        });
+        const dependencyListHtml = this._buildDependencyListItemsHtml(dependencyNames, 'No dependencies');
+        const dependentListHtml = this._buildDependencyListItemsHtml(dependentNames, 'No dependents');
 
-        const beansMap = window.allBeansMap;
-        const beanRecord = beansMap?.get(fullName);
-        const deps = beanRecord?.dependencies ?? [];
-        const dependents = beanRecord?.dependents ?? [];
+        $('#accordion-deps-body').html(dependencyListHtml);
+        $('#accordion-dependents-body').html(dependentListHtml);
+    }
 
-        $('#detail-deps-count').text(deps.length);
-        $('#detail-dependents-count').text(dependents.length);
+    _buildDependencyListItemsHtml(beanNames, emptyFallbackMessage) {
+        if (!beanNames || beanNames.length === 0) {
+            return `<div class="text-gray-400 text-xs p-2">${emptyFallbackMessage}</div>`;
+        }
 
+        const templateFactory = TEMPLATES.depListItem || TEMPLATES.dependencyItem;
         const categoryColors = {
             intermediate: 'green',
             leaf: 'yellow',
             adapter: 'purple'
         };
 
-        const buildListHtml = (names, emptyMsg) => {
-            if (names.length === 0) {
-                return `<div class="text-gray-400 text-xs p-2">${emptyMsg}</div>`;
-            }
+        return beanNames.map(beanName => {
+            const beanRecord = beanDataStore.findBeanByName(beanName);
+            const displayName = BeanGraphTreeBuilder._displayName(beanName);
+            const category = beanRecord
+                ? getBeanCategory({ fullName: beanName, meta: { type: beanRecord.type } })
+                : null;
 
-            return names.map(depName => {
-                const depRecord = beansMap?.get(depName);
-                const displayName = BeanTreeBuilder._displayName(depName);
-                const cat = depRecord ? getBeanCategory({ fullName: depName, meta: { type: depRecord.type } }) : null;
-                const catColor = categoryColors[cat] ?? 'blue';
+            const catColor = categoryColors[category] ?? 'blue';
 
-                return TEMPLATES.dependencyItem({ depName, displayName, catColor });
-            }).join('');
-        };
-
-        $('#accordion-deps-body').html(buildListHtml(deps, 'No dependencies'));
-        $('#accordion-dependents-body').html(buildListHtml(dependents, 'No dependents'));
+            return templateFactory({ depName: beanName, displayName, catColor });
+        }).join('');
     }
 
-    findNodeInTree(rootNode, fullName) {
-        if (!rootNode) return null;
+    _shouldFetchRemoteDetails(fullName, nodeType) {
+        return Boolean(
+            this.findBeanDetailsApi &&
+            fullName &&
+            nodeType !== 'context' &&
+            nodeType !== 'root'
+        );
+    }
 
-        const stack = [rootNode];
+    async _fetchAndApplyRemoteBeanDetails(hierarchyNode, contextId, fullName) {
+        const fetchedDetails = await this.fetchBeanDetails(contextId, fullName);
+        if (!fetchedDetails) return;
 
-        while (stack.length > 0) {
-            const currentNode = stack.pop();
+        if (fetchedDetails.type) {
+            $('#detail-bean-type').text(fetchedDetails.type);
+        }
+        if (fetchedDetails.scope) {
+            this._applySidebarScopeStyle(fetchedDetails.scope);
+        }
 
-            if (currentNode.data?.fullName === fullName) {
+        const updatedDependencies = fetchedDetails.dependencies ?? [];
+        const updatedDependents = fetchedDetails.dependents ?? [];
+
+        this._renderDependencyAccordions(updatedDependencies, updatedDependents);
+        this._mergeBeanDetailsIntoTree(hierarchyNode, fetchedDetails);
+    }
+
+    findNodeInTree(rootNode, targetIdentifier) {
+        if (!rootNode || !targetIdentifier) return null;
+
+        const normalizedTargetName = this._extractTerminalBeanIdentifier(targetIdentifier);
+        const traversalStack = [rootNode];
+
+        while (traversalStack.length > 0) {
+            const currentNode = traversalStack.pop();
+            const currentNodeIdentifier = currentNode.data?.fullName ?? currentNode.data?.name ?? '';
+
+            if (this._isMatchingNode(currentNodeIdentifier, targetIdentifier, normalizedTargetName)) {
                 return currentNode;
             }
 
-            const children = currentNode.children || currentNode._children;
-            if (children) {
-                for (let i = children.length - 1; i >= 0; i--) {
-                    stack.push(children[i]);
+            const childNodes = currentNode.children ?? currentNode._children;
+            if (childNodes) {
+                for (let i = childNodes.length - 1; i >= 0; i--) {
+                    traversalStack.push(childNodes[i]);
                 }
             }
         }
 
         return null;
+    }
+
+    _extractTerminalBeanIdentifier(identifier) {
+        return identifier.includes(':') ? identifier.split(':').pop() : identifier;
+    }
+
+    _isMatchingNode(nodeIdentifier, rawTargetIdentifier, normalizedTargetName) {
+        if (!nodeIdentifier) return false;
+        if (nodeIdentifier === rawTargetIdentifier) return true;
+
+        const normalizedNodeName = this._extractTerminalBeanIdentifier(nodeIdentifier);
+        return normalizedNodeName === normalizedTargetName;
     }
 
     focusOnBean(fullName) {
@@ -642,177 +1054,215 @@ export class BeanDependencyGraphController {
         this.fitView(500);
     }
 
-
-    handleResize() {
-        if (!this.root) return;
-        this.update(null, this.root);
-        this.fitView(100);
-    }
-
-    initEvents() {
-        this._bindSearchHandlers();
-        this._bindClickActionRouter();
-        this._bindCustomEventHandlers();
-    }
-
     _bindSearchHandlers() {
         let searchDebounceTimer = null;
-        const $searchBox = $('.search-box');
-        const $suggestionsBox = $('#search-suggestions');
+        const DEBOUNCE_DELAY_MS = 150;
 
         $(document).on('input', '#search-input', (event) => {
             clearTimeout(searchDebounceTimer);
-
             searchDebounceTimer = setTimeout(() => {
-                const searchQuery = event.target.value.toLowerCase().trim();
-
-                if (!searchQuery) {
-                    $suggestionsBox.hide();
-                    return;
-                }
-
-                const beansMap = window.allBeansMap;
-                if (!beansMap) return;
-
-                const matches = [];
-                for (const [fullName, record] of beansMap.entries()) {
-                    const displayName = BeanTreeBuilder._displayName(fullName);
-                    const matchesDisplay = displayName.toLowerCase().includes(searchQuery);
-                    const matchesFull = fullName.toLowerCase().includes(searchQuery);
-
-                    if (matchesDisplay || matchesFull) {
-                        matches.push({ fullName, displayName, type: record.type || '' });
-                        if (matches.length >= 10) break;
-                    }
-                }
-
-                if (matches.length === 0) {
-                    $suggestionsBox.html('<div class="p-2 text-gray-400 text-xs">No matching beans</div>').show();
-                    return;
-                }
-
-                const suggestionsHtml = matches.map(match => TEMPLATES.suggestionItem(match)).join('');
-                $suggestionsBox.html(suggestionsHtml).show();
-            }, 150);
+                this._handleSearchInput(event.target.value);
+            }, DEBOUNCE_DELAY_MS);
         });
 
-        // Close search suggestions when clicking outside
-        $(document).on('click', (event) => {
-            if (!event.target.closest('.search-box')) {
-                $suggestionsBox.hide();
-            }
-        });
+        this._bindOutsideSearchDismissal();
     }
 
-    /**
-     * Single-pass delegated click event router for controls, tree states, and sidebar triggers.
-     * @private
-     */
-    _bindClickActionRouter() {
-        const activeHighlightClasses = 'bg-primary text-white border-primary hover:bg-primary/90';
-        const inactiveHighlightClasses = 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50';
+    _handleSearchInput(rawQueryValue) {
+        const $suggestionsBox = $('#search-suggestions');
+        const normalizedQuery = rawQueryValue.toLowerCase().trim();
 
-        $(document).on('click', (event) => {
-            const target = event.target;
-            const $target = $(target);
+        if (!normalizedQuery || !this.root) {
+            $suggestionsBox.hide().empty();
+            return;
+        }
 
-            // 1. Interactive Bean Navigation Links
-            const $depLink = $target.closest('.suggestion-item, .dep-item-left, .dep-link');
-            if ($depLink.length > 0) {
-                event.stopPropagation();
-                const fullName = $depLink.data('fullname');
+        const matchingBeans = this._searchMatchingNodes(normalizedQuery, 12);
+        this._renderSearchSuggestions($suggestionsBox, matchingBeans);
+    }
 
-                if ($depLink.hasClass('suggestion-item')) {
-                    $('#search-input').val('');
-                    $('#search-suggestions').hide();
-                }
+    _searchMatchingNodes(searchQuery, maxResultsCount) {
+        const matchedBeans = [];
+        const visitedFullNames = new Set();
+        const traversalStack = [this.root];
 
-                if (fullName) this.focusOnBean(fullName);
-                return;
-            }
+        while (traversalStack.length > 0 && matchedBeans.length < maxResultsCount) {
+            const currentNode = traversalStack.pop();
+            const nodeData = currentNode.data ?? {};
+            const { fullName, meta = {} } = nodeData;
+            const nodeType = meta.type ?? '';
 
-            // 2. Accordion Drawer Toggles
-            const $accordionHeader = $target.closest('.accordion-header');
-            if ($accordionHeader.length > 0) {
-                $accordionHeader.toggleClass('open');
-                $accordionHeader.find('.material-symbols-outlined').toggleClass('rotate-90');
-                $accordionHeader.next('.accordion-body').slideToggle(200);
-                return;
-            }
+            if (this._isSearchCandidate(fullName, nodeType, visitedFullNames)) {
+                visitedFullNames.add(fullName);
 
-            // 3. UI Action Buttons
-            const $btn = $target.closest('button, [id^="btn-"]');
-            if ($btn.length === 0) return;
-
-            const btnId = $btn.attr('id');
-
-            switch (btnId) {
-                case 'btn-expand':
-                    this._mutateTreeNodes(node => node.children = node._children);
-                    break;
-
-                case 'btn-collapse':
-                    this._mutateTreeNodes(node => {
-                        if (node.depth > 0) node.children = null;
+                const displayName = BeanGraphTreeBuilder._displayName(fullName);
+                if (this._isBeanMatchingQuery(fullName, displayName, searchQuery)) {
+                    matchedBeans.push({
+                        fullName,
+                        displayName,
+                        type: nodeType
                     });
-                    break;
+                }
+            }
 
-                case 'btn-reset':
-                    this._mutateTreeNodes(node => node.children = node.depth === 0 ? node._children : null);
-                    break;
+            const childNodes = currentNode.children ?? currentNode._children;
+            if (childNodes) {
+                for (let i = childNodes.length - 1; i >= 0; i--) {
+                    traversalStack.push(childNodes[i]);
+                }
+            }
+        }
 
-                case 'btn-control-zoom-in':
-                    this.zoomBy(1.25);
-                    break;
+        return matchedBeans;
+    }
 
-                case 'btn-control-zoom-out':
-                    this.zoomBy(0.8);
-                    break;
+    _isSearchCandidate(fullName, nodeType, visitedFullNames) {
+        return Boolean(
+            fullName &&
+            !visitedFullNames.has(fullName) &&
+            nodeType !== 'root' &&
+            nodeType !== 'context'
+        );
+    }
 
-                case 'btn-control-fit':
-                case 'btn-pan-mode':
-                    this.fitView();
-                    break;
+    _isBeanMatchingQuery(fullName, displayName, searchQuery) {
+        return (
+            displayName.toLowerCase().includes(searchQuery) ||
+            fullName.toLowerCase().includes(searchQuery)
+        );
+    }
 
-                case 'btn-highlight-path':
-                    this.isHighlightPathActive = !this.isHighlightPathActive;
-                    $btn.toggleClass(activeHighlightClasses, this.isHighlightPathActive)
-                        .toggleClass(inactiveHighlightClasses, !this.isHighlightPathActive);
+    _renderSearchSuggestions($suggestionsBox, matchingBeans) {
+        if (matchingBeans.length === 0) {
+            $suggestionsBox
+                .html('<div class="p-2 text-gray-400 text-xs">No matching beans in loaded tree</div>')
+                .show();
+            return;
+        }
 
-                    if (!this.isHighlightPathActive && this.svg) {
-                        this.svg.selectAll('.node, .link').classed('dimmed', false).classed('highlighted', false);
-                    }
-                    break;
+        const suggestionsHtml = matchingBeans
+            .map(beanMatch => TEMPLATES.suggestionItem(beanMatch))
+    .join('');
 
-                case 'btn-close-sidebar':
-                    $('#details-sidebar').hide();
-                    break;
+        $suggestionsBox.html(suggestionsHtml).show();
+    }
 
-                case 'btn-tb':
-                    this.setMode('tb');
-                    break;
+    _bindOutsideSearchDismissal() {
+        $(document).on('click', (event) => {
+            const isClickInsideSearch = Boolean(
+                event.target.closest('#search-input') ||
+                event.target.closest('#search-suggestions')
+            );
 
-                case 'btn-lr':
-                    this.setMode('lr');
-                    break;
+            if (!isClickInsideSearch) {
+                $('#search-suggestions').hide();
             }
         });
     }
 
-    /**
-     * Registers custom DOM events (e.g. global theme changes).
-     * @private
-     */
+    _bindClickActionRouter() {
+        $(document).on('click', (event) => {
+            const $clickedElement = $(event.target);
+
+            if (this._handleBeanNavigationClick($clickedElement, event)) return;
+            if (this._handleAccordionToggleClick($clickedElement)) return;
+            this._handleToolbarActionClick($clickedElement);
+        });
+    }
+
+    _handleBeanNavigationClick($clickedElement, event) {
+        const $navigationLink = $clickedElement.closest('.suggestion-item, .dep-item-left, .dep-link');
+        if ($navigationLink.length === 0) return false;
+
+        event.stopPropagation();
+
+        if ($navigationLink.hasClass('suggestion-item')) {
+            $('#search-input').val('');
+            $('#search-suggestions').hide();
+        }
+
+        const targetBeanFullName = $navigationLink.data('fullname');
+        if (targetBeanFullName) {
+            this.focusOnBean(targetBeanFullName);
+        }
+
+        return true;
+    }
+
+    _handleAccordionToggleClick($clickedElement) {
+        const $accordionHeader = $clickedElement.closest('.accordion-header');
+        if ($accordionHeader.length === 0) return false;
+
+        $accordionHeader.toggleClass('open');
+        $accordionHeader.find('.material-symbols-outlined').toggleClass('rotate-90');
+        $accordionHeader.next('.accordion-body').slideToggle(200);
+
+        return true;
+    }
+
+    _handleToolbarActionClick($clickedElement) {
+        const $actionButton = $clickedElement.closest('button, [id^="btn-"]');
+        if ($actionButton.length === 0) return;
+
+        const actionButtonId = $actionButton.attr('id');
+        const buttonActionMap = this._getToolbarActionMap($actionButton);
+
+        const targetActionHandler = buttonActionMap[actionButtonId];
+        if (targetActionHandler) {
+            targetActionHandler();
+        }
+    }
+
+    _getToolbarActionMap($actionButton) {
+        return {
+            'btn-expand': () => this._mutateTreeNodes(node => node.children = node._children),
+            'btn-collapse': () => this._mutateTreeNodes(node => { if (node.depth > 0) node.children = null; }),
+            'btn-reset': () => this._mutateTreeNodes(node => node.children = node.depth === 0 ? node._children : null),
+            'btn-control-zoom-in': () => this.zoomBy(1.25),
+            'btn-control-zoom-out': () => this.zoomBy(0.8),
+            'btn-control-fit': () => this.fitView(),
+            'btn-pan-mode': () => this.fitView(),
+            'btn-highlight-path': () => this._togglePathHighlightState($actionButton),
+            'btn-close-sidebar': () => $('#details-sidebar').hide(),
+            'btn-tb': () => this.setMode('tb'),
+            'btn-lr': () => this.setMode('lr')
+        };
+    }
+
+    _togglePathHighlightState($highlightButton) {
+        const HIGHLIGHT_BUTTON_CLASSES = {
+            active: 'bg-primary text-white border-primary hover:bg-primary/90',
+            inactive: 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+        };
+
+        this.isHighlightPathActive = !this.isHighlightPathActive;
+
+        $highlightButton
+            .toggleClass(HIGHLIGHT_BUTTON_CLASSES.active, this.isHighlightPathActive)
+            .toggleClass(HIGHLIGHT_BUTTON_CLASSES.inactive, !this.isHighlightPathActive);
+
+        if (!this.isHighlightPathActive) {
+            this.resetPathHighlight();
+        } else if (this.selectedNodeRef) {
+            this.highlightPathForNode(this.selectedNodeRef);
+        }
+    }
+
     _bindCustomEventHandlers() {
         document.addEventListener('themechanged', () => {
             if (this.root) this.update(null, this.root);
         });
+
+        $(document).on('change', '#context-filter', (event) => {
+            this.selectedContextId = $(event.target).val();
+            const beans = this.accumulatedBeans.length > 0 ? this.accumulatedBeans : null;
+            this._buildHierarchyFromDependencies(beans);
+            this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
+            this._updateTotalBeanCount();
+            this.fitView(500);
+        });
     }
 
-    /**
-     * Helper to mutate node visibility state, update rendering, and re-fit view.
-     * @private
-     */
     _mutateTreeNodes(mutatorFn) {
         if (!this.root) return;
         this.root.eachBefore(mutatorFn);
@@ -821,47 +1271,65 @@ export class BeanDependencyGraphController {
     }
 
     _updateProgressBadge({ loaded = 0, total = 0, isComplete = false, hasError = false, errorMsg = '' } = {}) {
-        const $badge = $('#chunk-progress-badge');
-        const $dot = $('#chunk-progress-dot');
-        const $text = $('#chunk-progress-text');
+        const $badgeElement = $('#chunk-progress-badge');
+        const $dotElement = $('#chunk-progress-dot');
+        const $textElement = $('#chunk-progress-text');
 
-        if ($badge.length === 0) return;
+        if ($badgeElement.length === 0) return;
 
-        if (hasError) {
-            $badge
-                .removeClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30')
-                .addClass('bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30');
-            $dot.removeClass('bg-amber-500 animate-pulse bg-emerald-500').addClass('bg-red-500');
-            $text.html(`Failed <span class="text-[11px] opacity-85">(${errorMsg || 'Retry'})</span>`);
-        } else if (isComplete) {
-            $badge
-                .removeClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30')
-                .addClass('bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30');
-            $dot.removeClass('bg-amber-500 animate-pulse bg-red-500').addClass('bg-emerald-500');
-            $text.text(`Loaded (${loaded})`);
-        } else {
-            $badge
-                .removeClass('bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30')
-                .addClass('bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30');
-            $dot.removeClass('bg-emerald-500 bg-red-500').addClass('bg-amber-500 animate-pulse');
-            $text.text(`Loading: ${loaded} / ${total}`);
-        }
+        const progressState = this._resolveProgressState(hasError, isComplete);
+        const configuration = this._getProgressConfiguration(progressState, { loaded, total, errorMsg });
+
+        this._applyBadgeStyles($badgeElement, configuration.badgeClass);
+        this._applyDotStyles($dotElement, configuration.dotClass);
+        $textElement.html(configuration.textHtml);
     }
 
-    async reloadGraphData() {
-        const $btn = $('#btn-reload-graph');
-        const $icon = $btn.find('.material-symbols-outlined');
-        $icon.addClass('animate-spin');
+    _resolveProgressState(hasError, isComplete) {
+        if (hasError) return 'error';
+        if (isComplete) return 'complete';
+        return 'loading';
+    }
 
-        try {
-            this.root = await this.dataLoader.reload();
-            this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
-            this._updateToolbarCounts();
-            this.fitView(0);
-        } catch (error) {
-            console.error('Error reloading graph data:', error);
-        } finally {
-            setTimeout(() => $icon.removeClass('animate-spin'), 600);
-        }
+    _getProgressConfiguration(state, { loaded, total, errorMsg }) {
+        const STATE_CONFIGURATIONS = {
+            error: {
+                badgeClass: 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30',
+                dotClass: 'bg-red-500',
+                textHtml: `Failed <span class="text-[11px] opacity-85">(${errorMsg || 'Retry'})</span>`
+            },
+            complete: {
+                badgeClass: 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30',
+                dotClass: 'bg-emerald-500',
+                textHtml: `Loaded (${loaded})`
+            },
+            loading: {
+                badgeClass: 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30',
+                dotClass: 'bg-amber-500 animate-pulse',
+                textHtml: `Loading: ${loaded} / ${total}`
+            }
+        };
+
+        return STATE_CONFIGURATIONS[state];
+    }
+
+    _applyBadgeStyles($badge, targetClass) {
+        const ALL_BADGE_CLASSES = [
+            'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/30',
+            'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/30',
+            'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/30'
+        ].join(' ');
+
+        $badge.removeClass(ALL_BADGE_CLASSES).addClass(targetClass);
+    }
+
+    _applyDotStyles($dot, targetClass) {
+        const ALL_DOT_CLASSES = 'bg-amber-500 bg-emerald-500 bg-red-500 animate-pulse';
+        $dot.removeClass(ALL_DOT_CLASSES).addClass(targetClass);
+    }
+
+    leave() {
+        $('#details-sidebar').hide();
+        $('#tip').removeClass('show');
     }
 }

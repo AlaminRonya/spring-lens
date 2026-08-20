@@ -1,7 +1,7 @@
 <div class="flex flex-col h-full w-full max-w-full overflow-hidden p-6 gap-4">
     <!-- Top Toolbar -->
     <header
-        class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3 px-4 flex items-center justify-between gap-3 shadow-sm transition-colors duration-300 overflow-x-auto custom-scrollbar">
+        class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3 px-4 flex items-center justify-between gap-3 shadow-sm transition-colors duration-300 relative z-30">
         <div class="flex items-center gap-2 flex-shrink-0">
             <!-- Search Box -->
             <div class="relative flex items-center">
@@ -10,8 +10,18 @@
                 <input type="text" id="search-input" placeholder="Search bean..."
                     class="pl-9 pr-3 py-1 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-36 focus:w-52" />
                 <div id="search-suggestions"
-                    class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50 text-xs hidden">
+                    class="absolute left-0 top-full mt-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-xl max-h-60 w-72 overflow-y-auto z-50 text-xs hidden">
                 </div>
+            </div>
+
+            <!-- Context Filter Dropdown -->
+            <div class="relative flex items-center hidden">
+                <span
+                    class="material-symbols-outlined absolute left-2.5 text-gray-400 dark:text-gray-500 text-[16px]">domain</span>
+                <select id="context-filter"
+                    class="pl-8 pr-3 py-1 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer">
+                    <option value="">All Contexts</option>
+                </select>
             </div>
 
             <!-- Collapse Button -->
@@ -75,12 +85,12 @@
                 <span>Beans: <strong id="beans-count" class="font-bold">0</strong></span>
             </div>
 
-            <!-- Dependencies Count -->
+           <!-- &lt;!&ndash; Dependencies Count &ndash;&gt;
             <div
                 class="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full border border-gray-200 dark:border-slate-700">
                 <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-slate-500 animate-none"></span>
                 <span>Dependencies: <strong id="deps-count" class="font-bold">0</strong></span>
-            </div>
+            </div>-->
         </div>
     </header>
 
