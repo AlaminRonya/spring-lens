@@ -19,8 +19,9 @@ public class SpringLensUiAutoConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addRedirectViewController("/spring-lens", "/spring-lens/ui/");
-        registry.addRedirectViewController("/spring-lens/ui", "/spring-lens/ui/");
+        String redirectTo = "/spring-lens/ui/";
+        registry.addRedirectViewController("/spring-lens", redirectTo);
+        registry.addRedirectViewController("/spring-lens/ui", redirectTo);
         registry.addViewController("/spring-lens/ui/").setViewName("forward:/spring-lens/ui/index.html");
     }
 }
