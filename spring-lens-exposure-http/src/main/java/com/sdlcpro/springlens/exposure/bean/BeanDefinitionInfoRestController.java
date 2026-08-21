@@ -126,12 +126,23 @@ public class BeanDefinitionInfoRestController {
      * including context, scope, role, loading mode, and total counts.</p>
      *
      * @return an HTTP response containing the bean definition summary
-     *         wrapped by the standardized {@link ApiResponseHandler}
+     * wrapped by the standardized {@link ApiResponseHandler}
      */
     @GetMapping("/summary")
     public ResponseEntity<?> getBeanDefinitionSummary() {
         return ApiResponseHandler.handle(
                 this.beanDefinitionInfoRepository::getBeanDefinitionSummary
+        );
+    }
+
+    @GetMapping(value = "/dependencies", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getBeanDefinitionDependency(
+            @RequestParam(value = "pageNumber", defaultValue = "0") int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = "100") int pageSize
+    ) {
+
+        return ApiResponseHandler.handle(() -> this.beanDefinitionInfoRepository.findBeanDependencies(
+                new PageRequest(pageNumber,  Math.min(pageSize, MAX_PAGE_SIZE), Sort.unsorted()))
         );
     }
 }

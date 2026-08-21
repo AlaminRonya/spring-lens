@@ -1,6 +1,6 @@
-import {requestsData} from './mock-data.js';
+import { requestsData } from './mock-data.js';
 
-export default class Dashboard {
+export default class DashboardController {
     constructor(dataLoader) {
         this.dataLoader = dataLoader;
         this.chart = null;
@@ -314,7 +314,7 @@ export default class Dashboard {
             if (cachedResult) return cachedResult;
 
             // 2. Cycle detection fallback
-            if (visitedNodes.has(beanName)) return {end: 11};
+            if (visitedNodes.has(beanName)) return { end: 11 };
 
             visitedNodes.add(beanName);
 
@@ -328,7 +328,7 @@ export default class Dashboard {
             for (let i = 0; i < depCount; i++) {
                 const dependencyName = dependencies[i];
                 if (globalBeansMap.has(dependencyName)) {
-                    const {end} = resolveDependencyGraph(dependencyName);
+                    const { end } = resolveDependencyGraph(dependencyName);
                     if (end > maxDependencyEndTime) {
                         maxDependencyEndTime = end;
                     }
@@ -338,7 +338,7 @@ export default class Dashboard {
             // 4. Timing calculations
             const duration = estimateBeanDuration(beanName, beanDefinition?.type);
             const startDelay = depCount > 0 ? 0.2 : computeStringHash(beanName) * 3;
-            const timingResult = {end: maxDependencyEndTime + startDelay + duration};
+            const timingResult = { end: maxDependencyEndTime + startDelay + duration };
 
             // 5. Cleanup and cache
             visitedNodes.delete(beanName);

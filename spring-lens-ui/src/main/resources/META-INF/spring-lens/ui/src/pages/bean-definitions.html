@@ -44,10 +44,11 @@
                         class="w-6 h-6 rounded bg-primary-light dark:bg-primary/20 text-primary dark:text-purple-300 flex items-center justify-center">
                         <span class="material-symbols-outlined text-[14px]">view_in_ar</span>
                     </div>
-                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Bean Definitions</span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Context Distribution</span>
                 </div>
                 <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1" id="def-total-count">-</div>
-                <div class="space-y-3 flex-1 flex flex-col justify-center animate-none" id="def-context-list">
+                <div class="space-y-2 flex-1 flex flex-col justify-center max-h-28 overflow-y-auto custom-scrollbar pr-1"
+                    id="def-context-list">
                     <!-- Dynamic context list -->
                 </div>
             </div>
@@ -121,48 +122,55 @@
                     <div class="relative flex-1 min-w-[200px] max-w-sm">
                         <span
                             class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-[18px]">search</span>
-                        <input type="text" id="def-search-input"
+                        <input type="text" id="bean-definition-search-input"
                             placeholder="Search beans by name, type, or context id..."
                             class="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                     </div>
 
                     <!-- Filters -->
                     <div class="flex items-center gap-2 flex-wrap">
-                        <select id="def-filter-context"
+                        <select id="bean-definition-filter-context"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Context: All</option>
                         </select>
-                        <select id="def-filter-scope"
+                        <select id="bean-definition-filter-scope"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Scope: All</option>
+                            <option value="singleton">Singleton</option>
+                            <option value="prototype">Prototype</option>
+                            <option value="session">Session</option>
+                            <option value="request">Request</option>
                         </select>
-                        <select id="def-filter-role"
+                        <select id="bean-definition-filter-role"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Role: All</option>
+                            <option value="ROLE_APPLICATION">Application</option>
+                            <option value="ROLE_SUPPORT">Support</option>
+                            <option value="ROLE_INFRASTRUCTURE">Infrastructure</option>
                         </select>
-                        <select id="def-filter-primary"
+                        <select id="bean-definition-filter-primary"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Primary: All</option>
                             <option value="true">Primary</option>
                             <option value="false">Non-Primary</option>
                         </select>
-                        <select id="def-filter-lazy"
+                        <select id="bean-definition-filter-lazy"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="">Lazy: All</option>
                             <option value="true">Lazy</option>
                             <option value="false">Eager</option>
                         </select>
-                        <button id="def-btn-reset-filters" data-action="reset-filters"
-                            class="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/35 rounded-md px-3 py-2 hover:bg-red-100 dark:hover:bg-red-950/45 transition-colors cursor-pointer">
-                            <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Clear Filters
-                        </button>
-                        <select id="def-filter-size"
+                        <select id="bean-definition-filter-size"
                             class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md px-3 py-2 outline-none hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
                             <option value="10">10 per page</option>
                             <option value="25">25 per page</option>
                             <option value="50">50 per page</option>
                             <option value="100">100 per page</option>
                         </select>
+                        <button id="bean-definition-btn-reset-filters" data-action="reset-filters"
+                            class="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/35 rounded-md px-3 py-2 hover:bg-red-100 dark:hover:bg-red-950/45 transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-[16px]">filter_alt_off</span> Clear Filters
+                        </button>
                     </div>
                 </div>
             </div>
@@ -226,7 +234,7 @@
                     </thead>
                     <tbody
                         class="divide-y divide-gray-50 dark:divide-slate-800 text-[13px] text-gray-600 dark:text-gray-305"
-                        id="beanTableBody">
+                        id="beanDefinitionTableBody">
                         <!-- Table rows will be populated by JS -->
                     </tbody>
                 </table>
@@ -235,9 +243,10 @@
             <!-- Pagination -->
             <div
                 class="px-5 py-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 mt-auto">
-                <div class="text-xs text-gray-500 dark:text-gray-400" id="def-pagination-info">Showing 0 to 0 of 0 beans
+                <div class="text-xs text-gray-500 dark:text-gray-400" id="bean-definition-pagination-info">Showing 0 to
+                    0 of 0 beans
                 </div>
-                <div class="flex items-center gap-1" id="def-pagination-buttons">
+                <div class="flex items-center gap-1" id="bean-definition-pagination-buttons">
                     <!-- Dynamic page buttons -->
                 </div>
             </div>
@@ -264,10 +273,11 @@
                     <span class="material-symbols-outlined" id="def-sidebar-icon">database</span>
                 </div>
                 <div class="min-w-0 flex-1 max-h-28 overflow-y-auto custom-scrollbar pr-1">
-                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 break-words leading-tight" id="def-sidebar-name">-
+                    <div class="font-bold text-sm text-gray-800 dark:text-gray-100 break-words leading-tight"
+                        id="def-sidebar-name">-
                     </div>
-                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all leading-normal mt-1" title=""
-                        id="def-sidebar-type">-</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all leading-normal mt-1"
+                        title="" id="def-sidebar-type">-</div>
                 </div>
             </div>
 
@@ -394,8 +404,108 @@
             <button data-action="view-graph"
                 class="w-full py-2 border border-primary text-primary hover:text-white rounded-md text-xs font-bold flex items-center justify-center gap-2 hover:bg-primary dark:hover:bg-primary/80 transition-all cursor-pointer"
                 id="def-view-graph-btn">
-                <span class="material-symbols-outlined text-[16px]">account_tree</span> View Complete Bean Graph
+                <span class="material-symbols-outlined text-[16px]">account_tree</span> View Bean Graph
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bean Dependency Graph Preview -->
+<div id="bean-dependency-graph-modal"
+    class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 hidden opacity-0 transition-opacity duration-300 ease-out">
+    <div id="modal-graph-card"
+        class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-300 ease-out">
+        <!-- Modal Header -->
+        <header
+            class="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-9 h-9 rounded-xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">account_tree</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-gray-800 dark:text-white flex items-center gap-2">
+                        Dependency Graph
+                        <span id="modal-graph-bean-name"
+                            class="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-primary/10 text-primary dark:text-purple-300 border border-primary/20"></span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Viewing direct dependencies and
+                        dependents for this bean</p>
+                </div>
+            </div>
+
+            <!-- Toolbar Controls & Close -->
+            <div class="flex items-center gap-2">
+                <!-- Layout Toggle -->
+                <div
+                    class="flex items-center border border-gray-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 p-0.5">
+                    <button id="modal-btn-tb"
+                        class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white shadow-sm"
+                        title="Top → Bottom">
+                        <span class="material-symbols-outlined text-[16px]">south</span> Top-Down
+                    </button>
+                    <button id="modal-btn-lr"
+                        class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+                        title="Left → Right">
+                        <span class="material-symbols-outlined text-[16px]">east</span> Left-Right
+                    </button>
+                </div>
+
+                <button id="modal-btn-reset"
+                    class="p-1.5 border border-gray-200 dark:border-slate-800 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                    title="Reset Zoom">
+                    <span class="material-symbols-outlined text-[18px]">center_focus_strong</span>
+                </button>
+
+                <div class="h-4 w-px bg-gray-200 dark:bg-slate-800 mx-1"></div>
+
+                <button id="btn-close-graph-modal" data-action="close-graph-modal"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Modal Body / SVG Canvas -->
+        <div class="relative flex-1 bg-gray-50/50 dark:bg-slate-950/50 overflow-hidden" id="modal-graph-container">
+            <svg id="modal-tree-svg" class="w-full h-full min-h-[400px]"></svg>
+
+            <!-- Navigation Controls floating in bottom-left -->
+            <div
+                class="absolute bottom-4 left-4 flex flex-col gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-lg p-1.5 shadow-md z-10">
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="modal-btn-zoom-in" title="Zoom In">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="modal-btn-zoom-out" title="Zoom Out">
+                    <span class="material-symbols-outlined text-[18px]">remove</span>
+                </button>
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="modal-btn-fit" title="Fit View">
+                    <span class="material-symbols-outlined text-[18px]">fit_screen</span>
+                </button>
+            </div>
+
+            <!-- Legend Panel in bottom-right -->
+            <div
+                class="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-md z-10 flex flex-col gap-2 text-[11px] text-gray-600 dark:text-gray-450 w-44">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span class="font-bold">Target Bean</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    <span>Dependency (Depends on)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                    <span>Dependent (Used by)</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -3,6 +3,7 @@ import { NH, NW, NODE_STYLES, DEFAULT_NODE_STYLE, BEAN_TYPE_RULES } from "./cons
 // Static style mapping dictionary for dark mode to prevent runtime object allocations
 const DARK_NODE_STYLES = {
     root: { fill: 'rgba(59, 130, 246, 0.15)', stroke: '#3b82f6', icon: '#60a5fa', text: '#93c5fd' },
+    context: { fill: 'rgba(99, 102, 241, 0.15)', stroke: '#6366f1', icon: '#818cf8', text: '#a5b4fc' },
     leaf: { fill: 'rgba(234, 179, 8, 0.15)', stroke: '#eab308', icon: '#facc15', text: '#fef08a' },
     intermediate: { fill: 'rgba(34, 197, 94, 0.15)', stroke: '#22c55e', icon: '#4ade80', text: '#86efac' }
 };
@@ -16,23 +17,6 @@ const DEFAULT_DARK_NODE_STYLE = {
 
 export const css = (variableName) =>
     getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
-
-
-export function getApiUrl(path = '/spring-lens/api/beans/definitions') {
-    // Return early if path is already an absolute HTTP(S) URL
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-        return path;
-    }
-
-    const origin = window.location.origin ?? `${window.location.protocol}//${window.location.host}`;
-
-    if (!path) {
-        return `${origin}/`;
-    }
-
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    return `${origin}${cleanPath}`;
-}
 
 export function capitalize(str) {
     if (!str) return '';
@@ -97,6 +81,9 @@ export function getBeanCategory(node) {
     const nodeData = node.data ?? node;
     const fullName = nodeData.fullName ?? '';
     const type = nodeData.meta?.type ?? '';
+
+    if (nodeData.meta?.type === 'context') return 'context';
+    if (nodeData.meta?.type === 'root') return 'root';
 
     const lowerName = fullName.toLowerCase();
     const lowerType = type.toLowerCase();

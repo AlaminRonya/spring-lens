@@ -1,12 +1,12 @@
-import BeanDataLoader, { BeanTreeBuilder } from './bean-data-loader.js';
+import { BeanGraphTreeBuilder } from './bean-graph-tree-builder.js';
 
-export default class BeanTimeline {
+export default class BeanInstanceController {
     constructor() {
-        this.dataLoader = new BeanDataLoader();
+
         this.beans = []; // Raw beans
         this.solvedBeans = []; // Solved timeline bean objects
         this.filteredBeans = []; // Filtered/sorted timeline bean objects
-        
+
         // Pagination & filters state
         this.currentPage = 1;
         this.pageSize = 15;
@@ -41,7 +41,7 @@ export default class BeanTimeline {
                 this.selectBean(sortedBySlowest[0].beanName);
             }
         } catch (error) {
-            console.error('Error in BeanTimeline enter:', error);
+            console.error('Error in BeanInstanceController enter:', error);
         }
     }
 
@@ -79,7 +79,7 @@ export default class BeanTimeline {
         const getBeanDuration = (beanName, type) => {
             const nameLower = (beanName || '').toLowerCase();
             const typeLower = (type || '').toLowerCase();
-            
+
             // Database and Factories are slow
             if (typeLower.includes('entitymanagerfactory') || typeLower.includes('localcontainerentitymanagerfactorybean')) {
                 return 180 + (seedRandom(beanName) * 120); // 180ms - 300ms
@@ -115,7 +115,7 @@ export default class BeanTimeline {
 
             visiting.add(beanName);
             const bean = beansMap.get(beanName);
-            
+
             let maxDepEnd = 5; // Base offset to simulate boot start latency
 
             if (bean && bean.dependencies && bean.dependencies.length > 0) {
@@ -130,14 +130,14 @@ export default class BeanTimeline {
             }
 
             const duration = getBeanDuration(beanName, bean ? bean.type : '');
-            
+
             // Add a tiny random gap to represent thread schedules if it has no dependencies
             const start = maxDepEnd + (bean && bean.dependencies && bean.dependencies.length > 0 ? 0.2 : seedRandom(beanName) * 3);
             const end = start + duration;
 
             const result = {
                 beanName,
-                displayName: BeanTreeBuilder._displayName(beanName),
+                displayName: BeanGraphTreeBuilder._displayName(beanName),
                 type: bean ? bean.type : 'N/A',
                 start,
                 duration,
@@ -182,7 +182,7 @@ export default class BeanTimeline {
 
         $('#time-kpi-slowest-name').text(slowest.displayName);
         $('#time-kpi-slowest-val').text(`${Math.round(slowest.duration)} ms`);
-        
+
         $('#time-kpi-heavy').text(heavyCount);
         const heavyPct = this.solvedBeans.length > 0 ? ((heavyCount / this.solvedBeans.length) * 100).toFixed(1) : '0';
         $('#time-kpi-heavy-pct').text(`${heavyPct}% of all bean definitions`);
@@ -193,8 +193,8 @@ export default class BeanTimeline {
         let result = this.solvedBeans;
         if (this.searchQuery) {
             const q = this.searchQuery.toLowerCase();
-            result = result.filter(b => 
-                b.displayName.toLowerCase().includes(q) || 
+            result = result.filter(b =>
+                b.displayName.toLowerCase().includes(q) ||
                 b.beanName.toLowerCase().includes(q) ||
                 b.type.toLowerCase().includes(q)
             );
@@ -332,7 +332,7 @@ export default class BeanTimeline {
         const total = this.filteredBeans.length;
         const startIndex = total === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
         const endIndex = Math.min(startIndex + this.pageSize - 1, total);
-        
+
         $('#time-pagination-info').text(`Showing ${startIndex} to ${endIndex} of ${total.toLocaleString()} beans`);
 
         const $buttons = $('#time-pagination-buttons');
@@ -451,7 +451,7 @@ export default class BeanTimeline {
 
             const isOriginal = node.beanName === selectedBean.beanName;
             const indentStyle = `margin-left: ${node.depth * 12}px;`;
-            
+
             // Choose color depending on if it's the target or a dependency
             const barColor = isOriginal ? 'bg-primary' : 'bg-gray-400/80 dark:bg-slate-700/80';
             const textClass = isOriginal ? 'font-bold text-primary dark:text-purple-300' : 'text-gray-600 dark:text-gray-300 font-medium';
@@ -507,7 +507,7 @@ export default class BeanTimeline {
             this.minDuration = 0;
             this.sortBy = 'start';
             this.pageSize = 15;
-            
+
             $('#time-search-input').val('');
             $('#time-filter-duration').val('0');
             $('#time-sort-by').val('start');
@@ -543,16 +543,16 @@ export default class BeanTimeline {
         $('#time-btn-refresh').off('click').on('click', () => {
             const $btn = $('#time-btn-refresh');
             $btn.find('.material-symbols-outlined').addClass('animate-spin');
-            
+
             setTimeout(() => {
                 this.solveTimeline();
                 this.applyFiltersAndRender();
-                
+
                 // Keep the active selection if it still exists
                 if (this.selectedBeanName) {
                     this.selectBean(this.selectedBeanName);
                 }
-                
+
                 $btn.find('.material-symbols-outlined').removeClass('animate-spin');
             }, 600);
         });

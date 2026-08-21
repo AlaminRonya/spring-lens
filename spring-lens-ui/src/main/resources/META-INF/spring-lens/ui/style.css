@@ -55,3 +55,32 @@ body, aside, main, header, .card, button, input, select, table, tr, th, td, div 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #475569; /* Slate 600 */
 }
+
+/* Graph node & link highlight path styles */
+g.node, path.link {
+    transition: opacity 0.25s ease, stroke 0.25s ease, stroke-width 0.25s ease;
+}
+
+g.node.dimmed {
+    opacity: 0.15 !important;
+    pointer-events: none;
+}
+
+path.link.dimmed {
+    opacity: 0.08 !important;
+}
+
+g.node.highlighted {
+    opacity: 1 !important;
+}
+
+g.node.highlighted rect.node-rect {
+    stroke-width: 2.5px !important;
+    filter: drop-shadow(0 4px 6px rgba(59, 130, 246, 0.3));
+}
+
+path.link.highlighted {
+    opacity: 1 !important;
+    stroke: #3b82f6 !important;
+    stroke-width: 2.5px !important;
+}
