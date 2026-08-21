@@ -139,7 +139,7 @@ public class BeanDefinitionInfoRestController {
      * Return BeanDependency with pagination
      *
      * @param pageNumber zero-based page index (defaults to {@code 0})
-     * @param pageSize the number of records per page (defaults to {@code 100})
+     * @param pageSize   the number of records per page (defaults to {@code 100})
      * @return an HTTP response containing the BeanDependency
      * wrapped by the standardized {@link ResponseEntity}
      */
@@ -149,7 +149,7 @@ public class BeanDefinitionInfoRestController {
             @RequestParam(value = "pageSize", defaultValue = "100") int pageSize
     ) {
         return ApiResponseHandler.handle(() -> this.beanDefinitionInfoRepository.findBeanDependencies(
-                new PageRequest(pageNumber,  Math.min(pageSize, MAX_PAGE_SIZE), Sort.unsorted()))
+                new PageRequest(pageNumber, Math.min(pageSize, MAX_PAGE_SIZE), Sort.unsorted()))
         );
     }
 }
