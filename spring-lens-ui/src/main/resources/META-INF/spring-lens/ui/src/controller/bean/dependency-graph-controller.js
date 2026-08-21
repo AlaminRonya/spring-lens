@@ -1,10 +1,10 @@
-import {GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT} from './constants.js';
-import {getBeanCategory, lrLink, nodeStyle, tbLink, tree} from './utils.js';
-import {BeanGraphTreeBuilder} from './bean-graph-tree-builder.js';
-import httpClient from "./http-client.js";
-import beanDataStore from './bean-data-store.js';
+import {GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT} from '../../utils/constants.js';
+import {getBeanCategory, lrLink, nodeStyle, tbLink, tree} from '../../utils/utils.js';
+import {GraphTreeBuilder} from '../../builder/graph-tree-builder.js';
+import httpClient from "../../client/http-client.js";
+import beanDataStore from '../../storage/bean-data-store.js';
 
-export class BeanDependencyGraphController {
+export class DependencyGraphController {
 
     constructor(dependencyGraphApi, findBeanApi) {
         this.root = null;
@@ -194,7 +194,7 @@ export class BeanDependencyGraphController {
 
     _createDynamicHierarchyChild(parentNode, beanName, contextId) {
         const beanRecord = beanDataStore.findBeanByName(beanName, contextId);
-        const displayName = BeanGraphTreeBuilder._displayName(beanName);
+        const displayName = GraphTreeBuilder._displayName(beanName);
 
         const childData = {
             name: displayName,
@@ -353,7 +353,7 @@ export class BeanDependencyGraphController {
         const scopedBeanDefinitions = this._filterBeanDefinitionsByActiveContext(rawBeanDefinitions);
         this._buildAndCrossLinkBeanDependencies(scopedBeanDefinitions);
 
-        const rawTreeHierarchyData = BeanGraphTreeBuilder.buildByContext(scopedBeanDefinitions);
+        const rawTreeHierarchyData = GraphTreeBuilder.buildByContext(scopedBeanDefinitions);
         if (!rawTreeHierarchyData) {
             this.root = null;
             return;
@@ -901,7 +901,7 @@ export class BeanDependencyGraphController {
 
         return beanNames.map(beanName => {
             const beanRecord = beanDataStore.findBeanByName(beanName);
-            const displayName = BeanGraphTreeBuilder._displayName(beanName);
+            const displayName = GraphTreeBuilder._displayName(beanName);
             const category = beanRecord
                 ? getBeanCategory({ fullName: beanName, meta: { type: beanRecord.type } })
                 : null;
@@ -1095,7 +1095,7 @@ export class BeanDependencyGraphController {
             if (this._isSearchCandidate(fullName, nodeType, visitedFullNames)) {
                 visitedFullNames.add(fullName);
 
-                const displayName = BeanGraphTreeBuilder._displayName(fullName);
+                const displayName = GraphTreeBuilder._displayName(fullName);
                 if (this._isBeanMatchingQuery(fullName, displayName, searchQuery)) {
                     matchedBeans.push({
                         fullName,

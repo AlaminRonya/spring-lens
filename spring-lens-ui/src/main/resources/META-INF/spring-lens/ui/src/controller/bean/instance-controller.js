@@ -1,6 +1,6 @@
-import { BeanGraphTreeBuilder } from './bean-graph-tree-builder.js';
+import { GraphTreeBuilder } from '../../builder/graph-tree-builder.js';
 
-export default class BeanInstanceController {
+export default class InstanceController {
     constructor() {
 
         this.beans = []; // Raw beans
@@ -21,13 +21,6 @@ export default class BeanInstanceController {
 
     async enter() {
         try {
-            await this.dataLoader.load();
-            if (window.allBeansMap) {
-                this.beans = Array.from(window.allBeansMap.values());
-            } else {
-                this.beans = [];
-            }
-
             // Simulate / resolve startup timeline
             this.solveTimeline();
 
@@ -41,7 +34,7 @@ export default class BeanInstanceController {
                 this.selectBean(sortedBySlowest[0].beanName);
             }
         } catch (error) {
-            console.error('Error in BeanInstanceController enter:', error);
+            console.error('Error in InstanceController enter:', error);
         }
     }
 
@@ -137,7 +130,7 @@ export default class BeanInstanceController {
 
             const result = {
                 beanName,
-                displayName: BeanGraphTreeBuilder._displayName(beanName),
+                displayName: GraphTreeBuilder._displayName(beanName),
                 type: bean ? bean.type : 'N/A',
                 start,
                 duration,

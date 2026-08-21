@@ -1,4 +1,4 @@
-import { TEMPLATES } from './constants.js';
+import { TEMPLATES } from '../utils/constants.js';
 
 export default class Route {
 
