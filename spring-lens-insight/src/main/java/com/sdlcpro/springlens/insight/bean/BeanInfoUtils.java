@@ -6,8 +6,10 @@ import com.sdlcpro.springlens.insight.support.matcher.ClassNameMatcher;
 import com.sdlcpro.springlens.insight.support.matcher.PackageMatcher;
 import com.sdlcpro.springlens.matcher.CompositeMatcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
+import com.sdlcpro.springlens.model.bean.ProxyType;
 import com.sdlcpro.springlens.util.ClassInspector;
 import com.sdlcpro.springlens.util.Preconditions;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
@@ -46,7 +48,7 @@ public final class BeanInfoUtils {
      * Resolves the {@link BeanRole} of the given bean name using the provided bean factory.
      *
      * @param beanFactory the bean factory to resolve the bean definition from
-     * @param beanName the name of the bean
+     * @param beanName    the name of the bean
      * @return the resolved bean role
      */
     public static BeanRole resolveBeanRole(ConfigurableListableBeanFactory beanFactory, String beanName) {
@@ -69,7 +71,7 @@ public final class BeanInfoUtils {
      * Resolve the bean scope like singleton, prototype etc
      *
      * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
-     * @param beanName the name of the bean, must not be null
+     * @param beanName    the name of the bean, must not be null
      * @return the scope of the bean, if the value from {@link ConfigurableListableBeanFactory} get null or empty
      * it simply return {@link ConfigurableListableBeanFactory}.SCOPE_SINGLETON
      */
@@ -87,7 +89,7 @@ public final class BeanInfoUtils {
      * Resolve the bean class type from @link ConfigurableListableBeanFactory}
      *
      * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
-     * @param beanName the name of the bean, must not be null
+     * @param beanName    the name of the bean, must not be null
      * @return the bean class type, it is just defined type not the actual runtime type
      */
     public static String resolveBeanType(ConfigurableListableBeanFactory beanFactory, String beanName) {
@@ -99,6 +101,23 @@ public final class BeanInfoUtils {
         }
 
         return null;
+    }
+
+    /**
+     * Resolve the bean ProxyType by utilizing the {@link  AopUtils}
+     *
+     * @param bean the instance of the target bean, must not be null
+     * @return the Proxy type of the given bean
+     */
+    public static ProxyType resolveBeanProxyType(Object bean) {
+        Preconditions.notNull(bean, "Bean must not be null");
+        if (AopUtils.isCglibProxy(bean)) {
+            return ProxyType.CGLIB;
+        } else if (AopUtils.isJdkDynamicProxy(bean)) {
+            return ProxyType.JDK_DYNAMIC;
+        }
+
+        return ProxyType.UNKNOWN;
     }
 
     /**
