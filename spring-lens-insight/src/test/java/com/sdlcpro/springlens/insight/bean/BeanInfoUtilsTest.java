@@ -2,9 +2,13 @@ package com.sdlcpro.springlens.insight.bean;
 
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.model.bean.BeanRole;
+import com.sdlcpro.springlens.model.bean.ProxyType;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+
+import java.io.Serializable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -71,5 +75,27 @@ class BeanInfoUtilsTest {
     @Test
     void isSpringLensComponentReturnsFalseForNullBean() {
         assertThat(BeanInfoUtils.isSpringLensComponent(null)).isFalse();
+    }
+
+    static class TargetClass implements Serializable {
+
+    }
+
+    @Test
+    void shouldResolveJdkDynamicProxyType() {
+        var targetClass = new TargetClass();
+        var factory = new ProxyFactory(targetClass);
+        factory.setInterfaces(Serializable.class);
+        var proxiedBean = factory.getProxy();
+        assertThat(BeanInfoUtils.resolveBeanProxyType(proxiedBean)).isEqualTo(ProxyType.JDK_DYNAMIC);
+    }
+
+    @Test
+    void shouldResolveCglibProxyType() {
+        var targetClass = new TargetClass();
+        var factory = new ProxyFactory(targetClass);
+        factory.setProxyTargetClass(true);
+        var proxiedBean = factory.getProxy();
+        assertThat(BeanInfoUtils.resolveBeanProxyType(proxiedBean)).isEqualTo(ProxyType.CGLIB);
     }
 }
