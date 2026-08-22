@@ -6,8 +6,10 @@ import com.sdlcpro.springlens.insight.support.matcher.ClassNameMatcher;
 import com.sdlcpro.springlens.insight.support.matcher.PackageMatcher;
 import com.sdlcpro.springlens.matcher.CompositeMatcher;
 import com.sdlcpro.springlens.model.bean.BeanRole;
+import com.sdlcpro.springlens.model.bean.ProxyType;
 import com.sdlcpro.springlens.util.ClassInspector;
 import com.sdlcpro.springlens.util.Preconditions;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
@@ -20,6 +22,24 @@ public final class BeanInfoUtils {
 
     private BeanInfoUtils() {
         throw new UnsupportedOperationException("The BeanInfoUtils is an utility class and cannot be instantiated");
+    }
+
+    /**
+     * Resolves the proxy type of the given bean.
+     *
+     * @param bean the bean instance, must not be null
+     * @return the resolved {@link ProxyType}
+     */
+    public static ProxyType resolveBeanProxyType(Object bean) {
+        Preconditions.notNull(bean, "Bean must not be null");
+
+        if (AopUtils.isCglibProxy(bean)) {
+            return ProxyType.CGLIB;
+        }
+        if (AopUtils.isJdkDynamicProxy(bean)) {
+            return ProxyType.JDK_DYNAMIC;
+        }
+        return ProxyType.UNKNOWN;
     }
 
     /**
