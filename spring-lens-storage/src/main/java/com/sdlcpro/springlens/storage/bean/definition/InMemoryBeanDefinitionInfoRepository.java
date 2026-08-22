@@ -117,20 +117,13 @@ public class InMemoryBeanDefinitionInfoRepository implements BeanDefinitionInfoR
         });
     }
 
-    // TODO: implement with appropriate way
     @Override
     public PageResponse<BeanDependency> findBeanDependencies(PageRequest pageRequest) {
-        var response = this.queryExecutor.execute(
+        return this.queryExecutor.executeAndMap(
                 this.beanDefinitionInfoMap.values(),
                 Filter.UNFILTERED,
+                b -> new BeanDependency(b.contextId(), b.beanName(), b.dependencies()),
                 pageRequest
         );
-
-        var content = response.getContent()
-                .stream()
-                .map(b-> new BeanDependency(b.contextId(), b.beanName(), b.dependencies()))
-                .toList();
-
-        return new PageResponse<>(content, pageRequest, response.getTotalElements());
     }
 }

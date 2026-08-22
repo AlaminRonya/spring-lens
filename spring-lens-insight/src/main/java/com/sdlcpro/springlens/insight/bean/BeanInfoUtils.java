@@ -66,7 +66,7 @@ public final class BeanInfoUtils {
      * Resolves the {@link BeanRole} of the given bean name using the provided bean factory.
      *
      * @param beanFactory the bean factory to resolve the bean definition from
-     * @param beanName the name of the bean
+     * @param beanName    the name of the bean
      * @return the resolved bean role
      */
     public static BeanRole resolveBeanRole(ConfigurableListableBeanFactory beanFactory, String beanName) {
@@ -89,7 +89,7 @@ public final class BeanInfoUtils {
      * Resolve the bean scope like singleton, prototype etc
      *
      * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
-     * @param beanName the name of the bean, must not be null
+     * @param beanName    the name of the bean, must not be null
      * @return the scope of the bean, if the value from {@link ConfigurableListableBeanFactory} get null or empty
      * it simply return {@link ConfigurableListableBeanFactory}.SCOPE_SINGLETON
      */
@@ -107,7 +107,7 @@ public final class BeanInfoUtils {
      * Resolve the bean class type from @link ConfigurableListableBeanFactory}
      *
      * @param beanFactory the type of {@link ConfigurableListableBeanFactory} must not be null
-     * @param beanName the name of the bean, must not be null
+     * @param beanName    the name of the bean, must not be null
      * @return the bean class type, it is just defined type not the actual runtime type
      */
     public static String resolveBeanType(ConfigurableListableBeanFactory beanFactory, String beanName) {
