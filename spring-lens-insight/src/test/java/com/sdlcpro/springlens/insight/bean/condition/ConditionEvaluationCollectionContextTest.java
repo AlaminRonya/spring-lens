@@ -1,5 +1,6 @@
-package com.sdlcpro.springlens.insight.bean;
+package com.sdlcpro.springlens.insight.bean.condition;
 
+import com.sdlcpro.springlens.insight.bean.condition.ConditionEvaluationCollectionContext;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
