@@ -25,6 +25,24 @@ public final class BeanInfoUtils {
     }
 
     /**
+     * Resolves the proxy type of the given bean.
+     *
+     * @param bean the bean instance, must not be null
+     * @return the resolved {@link ProxyType}
+     */
+    public static ProxyType resolveBeanProxyType(Object bean) {
+        Preconditions.notNull(bean, "Bean must not be null");
+
+        if (AopUtils.isCglibProxy(bean)) {
+            return ProxyType.CGLIB;
+        }
+        if (AopUtils.isJdkDynamicProxy(bean)) {
+            return ProxyType.JDK_DYNAMIC;
+        }
+        return ProxyType.UNKNOWN;
+    }
+
+    /**
      * Resolves the runtime class of the given bean.
      *
      * @param bean the bean instance, may be null

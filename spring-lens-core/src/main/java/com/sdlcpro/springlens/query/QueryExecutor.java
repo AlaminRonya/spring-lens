@@ -17,6 +17,21 @@ public final class QueryExecutor<T> {
         this.sortToComparatorConverter = new SortToComparatorConverter<>(type);
     }
 
+    public <R> List<R> executeAndMap(Stream<T> stream, Filter filter, Function<? super T, R> mapper) {
+        return this.executeAndMap(stream, filter, Sort.unsorted(), mapper);
+    }
+
+    public <R> List<R> executeAndMap (Stream<T> stream, Filter filter, Sort sort, Function<? super T, R> mapper) {
+        Preconditions.notNull(stream, "Data stream must not be null");
+        Preconditions.notNull(filter, "Filter must not be null");
+        Preconditions.notNull(sort, "Sort must not be null");
+        Preconditions.notNull(mapper, "Mapper must not be null");
+        return stream.filter(filterToPredicateConverter.convert(filter))
+                .sorted(sortToComparatorConverter.convert(sort))
+                .map(mapper)
+                .toList();
+    }
+
     public List<T> execute(Collection<T> data, Filter filter) {
         return this.execute(data, filter, Sort.unsorted());
     }
