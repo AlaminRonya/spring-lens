@@ -53,7 +53,7 @@ public class BeanDefinitionInfoRestController {
      * @param search     free text search value which will be applied search on
      *                   different field (like: contextId, beanName etc.)
      * @param pageNumber zero-based page index (defaults to {@code 0})
-     * @param pageSize   the number of records per page (defaults to {@code 20})
+     * @param pageSize   the number of records per page (defaults to {@code 10})
      * @param sortBy     optional property name to sort by
      * @param sortDir    optional sort direction ({@code ASC} or {@code DESC});
      *                   defaults to
@@ -126,12 +126,30 @@ public class BeanDefinitionInfoRestController {
      * including context, scope, role, loading mode, and total counts.</p>
      *
      * @return an HTTP response containing the bean definition summary
-     *         wrapped by the standardized {@link ApiResponseHandler}
+     * wrapped by the standardized {@link ResponseEntity}
      */
     @GetMapping("/summary")
     public ResponseEntity<?> getBeanDefinitionSummary() {
         return ApiResponseHandler.handle(
                 this.beanDefinitionInfoRepository::getBeanDefinitionSummary
+        );
+    }
+
+    /**
+     * Return BeanDependency with pagination
+     *
+     * @param pageNumber zero-based page index (defaults to {@code 0})
+     * @param pageSize   the number of records per page (defaults to {@code 100})
+     * @return an HTTP response containing the BeanDependency
+     * wrapped by the standardized {@link ResponseEntity}
+     */
+    @GetMapping(value = "/dependencies", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getBeanDefinitionDependency(
+            @RequestParam(value = "pageNumber", defaultValue = "0") int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = "100") int pageSize
+    ) {
+        return ApiResponseHandler.handle(() -> this.beanDefinitionInfoRepository.findBeanDependencies(
+                new PageRequest(pageNumber, Math.min(pageSize, MAX_PAGE_SIZE), Sort.unsorted()))
         );
     }
 }

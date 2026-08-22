@@ -1,22 +1,30 @@
-import Route from './src/assets/route.js';
-import Dashboard from './src/assets/dashboard.js';
-import BeanGraph from './src/assets/bean-graph.js';
-import BeanTimeline from './src/assets/bean-timeline.js';
-import BeanDataLoader from './src/assets/bean-data-loader.js';
-import BeanDefinitions from './src/assets/bean-definitions.js';
-import RequestEndpoints from './src/assets/request-endpoints.js';
-import RequestDefinitions from './src/assets/request-definitions.js';
-import { getApiUrl } from './src/assets/utils.js';
+import Route from './src/route/route.js';
+import DashboardController from './src/controller/dashboard/dashboard-controller.js';
+import BeanDefinitions from './src/controller/bean/definition-controller.js';
+import InstanceController from './src/controller/bean/instance-controller.js';
+import {
+    DependencyGraphController
+} from './src/controller/bean/dependency-graph-controller.js';
 
 $(document).ready(() => {
 
-    const dataLoader = new BeanDataLoader(getApiUrl('/spring-lens/api/beans/definitions'));
-    const beanGraph = new BeanGraph(dataLoader);
-    const beanDefinitions = new BeanDefinitions(dataLoader);
-    const requestDefinitions = new RequestDefinitions();
-    const dashboard = new Dashboard(dataLoader);
-    const requestEndpoints = new RequestEndpoints();
-    const beanTimeline = new BeanTimeline();
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+
+    const CONTEXT_PATH = pathname.split('/spring-lens/ui')[0];
+    const API_BASE_URL = origin + CONTEXT_PATH + '/spring-lens/api/beans/definitions';
+
+    const ENDPOINTS = {
+        SEARCH_BEAN             : API_BASE_URL + "/find",
+        GRAPH_DEPENDENCIES      : API_BASE_URL + "/dependencies",
+        BEAN_DEFINITION_API_URL : API_BASE_URL,
+        SUMMARY_BEAN_DEFINITION : API_BASE_URL + "/summary"
+    }
+
+    const dashboard = new DashboardController();
+    const beanTimeline = new InstanceController();
+    const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
+    const beanDependencyGraph = new DependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
 
     // Configure routes and instantiate Route
     const appRouter = new Route({
@@ -28,36 +36,26 @@ $(document).ready(() => {
                 onEnter: () => dashboard.enter(),
                 onLeave: () => dashboard.leave()
             },
-            'request': {
-                template: 'http-request',
-                onEnter: () => requestDefinitions.enter(),
-                onLeave: () => requestDefinitions.leave()
-            },
-            'request-endpoint': {
-                template: 'request-endpoints',
-                onEnter: () => requestEndpoints.enter(),
-                onLeave: () => requestEndpoints.leave()
-            },
             'definitions': {
-                template: 'bean-definitions',
+                template: 'bean/definitions',
                 onEnter: () => beanDefinitions.enter(),
                 onLeave: () => beanDefinitions.leave()
             },
             'graph': {
-                template: 'bean-graph',
-                onEnter: () => beanGraph.enter(),
-                onLeave: () => beanGraph.leave()
+                template: 'bean/graph',
+                onEnter: () => beanDependencyGraph.enter(),
+                onLeave: () => beanDependencyGraph.leave()
             },
             'conditions': {
-                template: 'bean-condition-reports',
+                template: 'bean/condition-reports',
                 onEnter: () => beanDefinitions.enter(),
                 onLeave: () => beanDefinitions.leave()
             },
             'timeline': {
-                template: 'bean-timeline',
+                template: 'bean/instance',
                 onEnter: () => beanTimeline.enter(),
                 onLeave: () => beanTimeline.leave()
-            }
+            },
         }
     });
 
@@ -69,14 +67,5 @@ $(document).ready(() => {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
         document.dispatchEvent(new CustomEvent('themechanged', { detail: { theme: isDark ? 'dark' : 'light' } }));
-    });
-
-    /* ── Resize ── */
-    let resizeTimer;
-    $(window).on('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            beanGraph.handleResize();
-        }, 200);
     });
 });

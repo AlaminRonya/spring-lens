@@ -5,6 +5,7 @@ import com.sdlcpro.springlens.model.bean.BeanInfoCompositeKey;
 import com.sdlcpro.springlens.model.bean.LoadingMode;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionInfo;
 import com.sdlcpro.springlens.model.bean.definition.BeanDefinitionSummary;
+import com.sdlcpro.springlens.model.bean.definition.BeanDependency;
 import com.sdlcpro.springlens.query.Filter;
 import com.sdlcpro.springlens.query.PageRequest;
 import com.sdlcpro.springlens.query.PageResponse;
@@ -114,5 +115,15 @@ public class InMemoryBeanDefinitionInfoRepository implements BeanDefinitionInfoR
                     summary.totalBeanDefinitions() + 1
             );
         });
+    }
+
+    @Override
+    public PageResponse<BeanDependency> findBeanDependencies(PageRequest pageRequest) {
+        return this.queryExecutor.executeAndMap(
+                this.beanDefinitionInfoMap.values(),
+                Filter.UNFILTERED,
+                b -> new BeanDependency(b.contextId(), b.beanName(), b.dependencies()),
+                pageRequest
+        );
     }
 }

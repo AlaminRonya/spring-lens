@@ -2,6 +2,7 @@ package com.sdlcpro.springlens.insight.bean.instance;
 
 import com.sdlcpro.springlens.annotation.SpringLensInternalComponent;
 import com.sdlcpro.springlens.inspector.BeanProxyInfoInspector;
+import com.sdlcpro.springlens.model.bean.ProxyType;
 import com.sdlcpro.springlens.model.bean.instance.BeanInstanceProxyInfo;
 import com.sdlcpro.springlens.util.Preconditions;
 import org.springframework.aop.Advisor;
@@ -60,7 +61,8 @@ public class DefaultBeanProxyInfoInspector implements BeanProxyInfoInspector {
                 targetClass,
                 List.copyOf(advices),
                 List.copyOf(proxiedInterfaces),
-                advised.isFrozen()
+                advised.isFrozen(),
+                ProxyType.UNKNOWN
         );
     }
 }
