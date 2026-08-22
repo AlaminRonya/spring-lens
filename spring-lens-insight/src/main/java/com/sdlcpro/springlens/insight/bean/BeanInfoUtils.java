@@ -122,23 +122,6 @@ public final class BeanInfoUtils {
     }
 
     /**
-     * Resolve the bean ProxyType by utilizing the {@link  AopUtils}
-     *
-     * @param bean the instance of the target bean, must not be null
-     * @return the Proxy type of the given bean
-     */
-    public static ProxyType resolveBeanProxyType(Object bean) {
-        Preconditions.notNull(bean, "Bean must not be null");
-        if (AopUtils.isCglibProxy(bean)) {
-            return ProxyType.CGLIB;
-        } else if (AopUtils.isJdkDynamicProxy(bean)) {
-            return ProxyType.JDK_DYNAMIC;
-        }
-
-        return ProxyType.UNKNOWN;
-    }
-
-    /**
      * Generate the composite matcher from given {@link BeanInfoCollectorSettings}
      *
      * @param settings user configuration regarding bean info collection, must not be null
