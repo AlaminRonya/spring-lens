@@ -51,7 +51,7 @@
         <module>spring-lens-core</module>
         <module>spring-lens-insight</module>
         <module>spring-lens-storage</module>
-        <module>spring-lens-exposure-http</module>
+        <module>spring-lens-exposure</module>
         <module>spring-lens-autoconfigure</module>
         <module>spring-lens-ui</module>
         <module>spring-lens-starter</module>
@@ -76,7 +76,7 @@
             </dependency>
             <dependency>
                 <groupId>com.sdlc.pro</groupId>
-                <artifactId>spring-lens-exposure-http</artifactId>
+                <artifactId>spring-lens-exposure</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

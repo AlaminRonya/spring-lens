@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
-            <artifactId>spring-lens-exposure-http</artifactId>
+            <artifactId>spring-lens-exposure</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
