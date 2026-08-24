@@ -1186,17 +1186,15 @@ export class DependencyGraphController {
             const currentNode = traversalStack.pop();
             const nodeData = currentNode.data ?? {};
             const { fullName, meta = {} } = nodeData;
-            const nodeType = meta.type ?? '';
 
-            if (this._isSearchCandidate(fullName, nodeType, visitedFullNames)) {
+            if (this._isSearchCandidate(fullName, visitedFullNames)) {
                 visitedFullNames.add(fullName);
 
                 const displayName = GraphTreeBuilder._displayName(fullName);
                 if (this._isBeanMatchingQuery(fullName, displayName, searchQuery)) {
                     matchedBeans.push({
                         fullName,
-                        displayName,
-                        type: nodeType
+                        displayName
                     });
                 }
             }
@@ -1212,12 +1210,10 @@ export class DependencyGraphController {
         return matchedBeans;
     }
 
-    _isSearchCandidate(fullName, nodeType, visitedFullNames) {
+    _isSearchCandidate(fullName, visitedFullNames) {
         return Boolean(
             fullName &&
-            !visitedFullNames.has(fullName) &&
-            nodeType !== 'root' &&
-            nodeType !== 'context'
+            !visitedFullNames.has(fullName)
         );
     }
 

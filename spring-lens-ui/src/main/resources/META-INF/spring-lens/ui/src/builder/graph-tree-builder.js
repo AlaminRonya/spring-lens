@@ -8,10 +8,40 @@ export class GraphTreeBuilder {
     }
 
     static buildByContext(beanDependencies = []) {
-        const prepareData = this._transformBeanDependencyData(beanDependencies);
-        const contextId = prepareData?.contextId || 'default';
-        const beans = prepareData?.beans || [];
+        const groupedData = this._transformBeanDependencyData(beanDependencies);
+        const contextKeys = Object.keys(groupedData);
 
+        if (contextKeys.length === 0) {
+            return {
+                name: 'default',
+                fullName: 'default',
+                contextId: 'default',
+                meta: { type: 'context', contextId: 'default' },
+                children: []
+            };
+        }
+
+        // Single Context: Return the context tree directly as the root
+        if (contextKeys.length === 1) {
+            const contextId = contextKeys[0];
+            return this._buildSingleContextTree(contextId, groupedData[contextId]);
+        }
+
+        // Multiple Contexts: Group under a single top-level container root node
+        const contextNodes = contextKeys.map(contextId =>
+            this._buildSingleContextTree(contextId, groupedData[contextId])
+        );
+
+        return {
+            name: 'Application Contexts',
+            fullName: 'Application Contexts',
+            contextId: 'all',
+            meta: { type: 'context', contextId: 'all' },
+            children: contextNodes
+        };
+    }
+
+    static _buildSingleContextTree(contextId, beans = []) {
         if (!beans.length) {
             return {
                 name: contextId,
@@ -98,9 +128,9 @@ export class GraphTreeBuilder {
 
         // Case 1: Structured payload object: { contextId: "...", beans: [...] }
         if (!Array.isArray(data) && Array.isArray(data.beans)) {
+            const contextId = data.contextId || 'default';
             return {
-                contextId: data.contextId || 'default',
-                beans: data.beans.map(b => ({
+                [contextId]: data.beans.map(b => ({
                     name: b.name || b.beanName || '',
                     type: b.type || '',
                     scope: b.scope || 'singleton',
@@ -111,16 +141,21 @@ export class GraphTreeBuilder {
 
         // Case 2: Array of bean definitions: [{ contextId, beanName/name, dependencies }, ...]
         if (Array.isArray(data) && data.length > 0) {
-            const contextId = data[0].contextId || 'default';
-            return {
-                contextId,
-                beans: data.map(b => ({
-                    name: b.name || b.beanName || '',
-                    type: b.type || '',
-                    scope: b.scope || 'singleton',
-                    dependencies: b.dependencies || []
-                }))
-            };
+            const grouped = {};
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                const contextId = item.contextId || 'default';
+                if (!grouped[contextId]) {
+                    grouped[contextId] = [];
+                }
+                grouped[contextId].push({
+                    name: item.name || item.beanName || '',
+                    type: item.type || '',
+                    scope: item.scope || 'singleton',
+                    dependencies: item.dependencies || []
+                });
+            }
+            return grouped;
         }
 
         return {};
