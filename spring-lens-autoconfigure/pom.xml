@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>com.sdlc.pro</groupId>
-            <artifactId>spring-lens-exposure-http</artifactId>
+            <artifactId>spring-lens-exposure</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -64,20 +64,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-configuration-processor</artifactId>
-                            <version>${spring-boot.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>

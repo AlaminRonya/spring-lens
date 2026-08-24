@@ -23,11 +23,9 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * In-memory implementation of {@link BeanDefinitionInfoRepository}.
  *
- * <p>
- * Stores {@link BeanDefinitionInfo} instances in a {@link ConcurrentHashMap}
+ * <p>Stores {@link BeanDefinitionInfo} instances in a {@link ConcurrentHashMap}
  * keyed by {@link BeanInfoCompositeKey}. Paged and filtered queries delegate to
- * {@link QueryExecutor}.
- * </p>
+ * {@link QueryExecutor}.</p>
  *
  * @since 1.0.0
  */
@@ -53,7 +51,8 @@ public class InMemoryBeanDefinitionInfoRepository implements BeanDefinitionInfoR
         return this.queryExecutor.execute(
                 this.beanDefinitionInfoMap.values(),
                 filter,
-                pageRequest);
+                pageRequest
+        );
     }
 
     @Override
@@ -105,30 +104,26 @@ public class InMemoryBeanDefinitionInfoRepository implements BeanDefinitionInfoR
             loadingModeDistribution.merge(
                     definitionInfo.lazyInit() ? LoadingMode.LAZY : LoadingMode.EAGER,
                     1,
-                    Integer::sum);
+                    Integer::sum
+            );
 
             return new BeanDefinitionSummary(
                     contextDistribution,
                     scopeDistribution,
                     roleDistribution,
                     loadingModeDistribution,
-                    summary.totalBeanDefinitions() + 1);
+                    summary.totalBeanDefinitions() + 1
+            );
         });
     }
 
-    // TODO: implement with appropriate way
     @Override
     public PageResponse<BeanDependency> findBeanDependencies(PageRequest pageRequest) {
-        var response = this.queryExecutor.execute(
+        return this.queryExecutor.executeAndMap(
                 this.beanDefinitionInfoMap.values(),
                 Filter.UNFILTERED,
-                pageRequest);
-
-        var content = response.getContent()
-                .stream()
-                .map(b -> new BeanDependency(b.contextId(), b.beanName(), b.dependencies()))
-                .toList();
-
-        return new PageResponse<>(content, pageRequest, response.getTotalElements());
+                b -> new BeanDependency(b.contextId(), b.beanName(), b.dependencies()),
+                pageRequest
+        );
     }
 }

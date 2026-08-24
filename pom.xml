@@ -20,6 +20,9 @@
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+        <maven-failsafe-plugin.version>3.6.0-M1</maven-failsafe-plugin.version>
         <spring-boot.version>3.2.0</spring-boot.version>
     </properties>
 
@@ -48,7 +51,7 @@
         <module>spring-lens-core</module>
         <module>spring-lens-insight</module>
         <module>spring-lens-storage</module>
-        <module>spring-lens-exposure-http</module>
+        <module>spring-lens-exposure</module>
         <module>spring-lens-autoconfigure</module>
         <module>spring-lens-ui</module>
         <module>spring-lens-starter</module>
@@ -73,7 +76,7 @@
             </dependency>
             <dependency>
                 <groupId>com.sdlc.pro</groupId>
-                <artifactId>spring-lens-exposure-http</artifactId>
+                <artifactId>spring-lens-exposure</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -114,7 +117,6 @@
     <build>
         <pluginManagement>
             <plugins>
-
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -167,23 +169,27 @@
                     </configuration>
                 </plugin>
 
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven-resources-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-            </plugin>
-        </plugins>
     </build>
 
 </project>
