@@ -1,6 +1,6 @@
-import {GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT} from '../../utils/constants.js';
-import {getBeanCategory, lrLink, nodeStyle, tbLink, tree} from '../../utils/utils.js';
-import {GraphTreeBuilder} from '../../builder/graph-tree-builder.js';
+import { GAP_X, GAP_Y, ICON, NH, NW, RX, TEMPLATES, ZOOM_SCALE_EXTENT } from '../../utils/constants.js';
+import { getBeanCategory, lrLink, nodeStyle, tbLink, tree } from '../../utils/utils.js';
+import { GraphTreeBuilder } from '../../builder/graph-tree-builder.js';
 import httpClient from "../../client/http-client.js";
 import beanDataStore from '../../storage/bean-data-store.js';
 
@@ -69,7 +69,7 @@ export class DependencyGraphController {
 
         try {
             await this._fetchBeanGraphDependencies();
-            this._buildHierarchyFromDependencies();
+            this._buildHierarchyFromDependencies(this.beanDependencies);
             this.update(null, { x: 0, y: 0, x0: 0, y0: 0 });
             this._updateTotalBeanCount();
             this.fitView(0);
@@ -296,6 +296,63 @@ export class DependencyGraphController {
         return new Promise(resolveEventLoopYield => setTimeout(resolveEventLoopYield, delayDurationInMilliseconds));
     }
 
+    _extractUniqueContextIdentifiers(beanDefinitions) {
+        const uniqueContextSet = new Set();
+        for (let i = 0; i < beanDefinitions.length; i++) {
+            const contextIdentifier = beanDefinitions[i]?.contextId;
+            if (contextIdentifier) {
+                uniqueContextSet.add(contextIdentifier);
+            }
+        }
+        return Array.from(uniqueContextSet);
+    }
+
+    _buildContextFilterOptionsHtml(uniqueContextId, selectedContextId) {
+        const isDefaultOptionSelected = !selectedContextId ? 'selected' : '';
+        const defaultOptionHtml = `<option value="" ${isDefaultOptionSelected}>All Contexts (${uniqueContextId.length})</option>`;
+
+        const contextOptionsHtml = uniqueContextId.map(contextIdentifier => {
+            const isSelected = contextIdentifier === selectedContextId ? 'selected' : '';
+            return `<option value="${contextIdentifier}" ${isSelected}>${contextIdentifier}</option>`;
+        }).join('');
+
+        return `${defaultOptionHtml}${contextOptionsHtml}`;
+    }
+
+    _buildHierarchyFromDependencies(beanDefinitions = null) {
+        const listOfBeanDefinitions = this._resolveRawBeanDefinitions(beanDefinitions);
+        if (!listOfBeanDefinitions || listOfBeanDefinitions.length === 0) {
+            this.root = null;
+            return;
+        }
+
+        this._populateContextFilter(listOfBeanDefinitions);
+
+        const scopedBeanDefinitions = this._filterBeanDefinitionsByActiveContext(listOfBeanDefinitions);
+        this._buildAndCrossLinkBeanDependencies(scopedBeanDefinitions);
+
+        const rawTreeHierarchyData = GraphTreeBuilder.buildByContext(scopedBeanDefinitions);
+
+        if (!rawTreeHierarchyData) {
+            this.root = null;
+            return;
+        }
+
+        this.root = this._createD3HierarchyRootNode(rawTreeHierarchyData);
+    }
+
+    _resolveRawBeanDefinitions(providedBeanDefinitions) {
+        if (providedBeanDefinitions) {
+            return providedBeanDefinitions;
+        }
+
+        if (Array.isArray(this.beanDependencies)) {
+            return this.beanDependencies;
+        }
+
+        return this.beanDependencies?.content ?? [];
+    }
+
     _populateContextFilter(beanDefinitions = []) {
         const $contextFilterSelectElement = $('#context-filter');
         if ($contextFilterSelectElement.length === 0) return;
@@ -316,62 +373,6 @@ export class DependencyGraphController {
         );
 
         $contextFilterSelectElement.html(renderedOptionsHtml);
-    }
-
-    _extractUniqueContextIdentifiers(beanDefinitions) {
-        const uniqueContextSet = new Set();
-        for (let i = 0; i < beanDefinitions.length; i++) {
-            const contextIdentifier = beanDefinitions[i]?.contextId;
-            if (contextIdentifier) {
-                uniqueContextSet.add(contextIdentifier);
-            }
-        }
-        return Array.from(uniqueContextSet);
-    }
-
-    _buildContextFilterOptionsHtml(uniqueContextIdentifiers, currentlySelectedContextIdentifier) {
-        const isDefaultOptionSelected = !currentlySelectedContextIdentifier ? 'selected' : '';
-        const defaultOptionHtml = `<option value="" ${isDefaultOptionSelected}>All Contexts (${uniqueContextIdentifiers.length})</option>`;
-
-        const contextOptionsHtml = uniqueContextIdentifiers.map(contextIdentifier => {
-            const isSelected = contextIdentifier === currentlySelectedContextIdentifier ? 'selected' : '';
-            return `<option value="${contextIdentifier}" ${isSelected}>${contextIdentifier}</option>`;
-        }).join('');
-
-        return `${defaultOptionHtml}${contextOptionsHtml}`;
-    }
-
-    _buildHierarchyFromDependencies(providedBeanDefinitions = null) {
-        const rawBeanDefinitions = this._resolveRawBeanDefinitions(providedBeanDefinitions);
-        if (!rawBeanDefinitions || rawBeanDefinitions.length === 0) {
-            this.root = null;
-            return;
-        }
-
-        this._populateContextFilter(rawBeanDefinitions);
-
-        const scopedBeanDefinitions = this._filterBeanDefinitionsByActiveContext(rawBeanDefinitions);
-        this._buildAndCrossLinkBeanDependencies(scopedBeanDefinitions);
-
-        const rawTreeHierarchyData = GraphTreeBuilder.buildByContext(scopedBeanDefinitions);
-        if (!rawTreeHierarchyData) {
-            this.root = null;
-            return;
-        }
-
-        this.root = this._createD3HierarchyRootNode(rawTreeHierarchyData);
-    }
-
-    _resolveRawBeanDefinitions(providedBeanDefinitions) {
-        if (providedBeanDefinitions) {
-            return providedBeanDefinitions;
-        }
-
-        if (Array.isArray(this.beanDependencies)) {
-            return this.beanDependencies;
-        }
-
-        return this.beanDependencies?.content ?? [];
     }
 
     _filterBeanDefinitionsByActiveContext(beanDefinitions) {
@@ -406,24 +407,29 @@ export class DependencyGraphController {
     }
 
     _createD3HierarchyRootNode(treeData) {
-        const rootHierarchyNode = d3.hierarchy(treeData);
-        const descendantNodes = rootHierarchyNode.descendants();
-        const totalDescendants = descendantNodes.length;
+        const root = d3.hierarchy(treeData);
 
-        for (let i = 0; i < totalDescendants; i++) {
-            const node = descendantNodes[i];
-            node.id = i;
+        root.descendants().forEach((node, index) => {
+            node.id = index;
             node._children = node.children;
+
+            if (node.data) {
+                node.data.name = node.data.name || GraphTreeBuilder._displayName(node.data.fullName || node.data.contextId || '');
+                node.data.meta = node.data.meta || {};
+                if (node.depth === 0) {
+                    node.data.meta.type = 'context';
+                }
+            }
 
             if (node.depth > 0) {
                 node.children = null;
             }
-        }
+        })
 
-        rootHierarchyNode.x0 = 0;
-        rootHierarchyNode.y0 = 0;
+        root.x0 = 0;
+        root.y0 = 0;
 
-        return rootHierarchyNode;
+        return root;
     }
 
     _updateTotalBeanCount() {
@@ -563,19 +569,16 @@ export class DependencyGraphController {
 
         let visibleCount = 0;
 
-        // Single-pass node width calculation & visible node counter
-        for (let i = 0; i < descendants.length; i++) {
-            const node = descendants[i];
+        descendants.forEach((node) => {
+            const lengthOfBeanName = node.data.name?.length ?? 0;
+            const hasChildren = (node.children && node.children.length > 0) || (node._children && node._children.length > 0);
+            const extraPadding = hasChildren ? 88 : 56;
+            node.width = Math.max(165, lengthOfBeanName * 7.5 + extraPadding);
 
-            // Width calculation
-            const nameLength = node.data.name?.length ?? 0;
-            node.width = Math.max(160, nameLength * 7.2 + 56);
-
-            // Visibility counting without allocating extra arrays
             if (node.depth === 0 || node.parent?.children) {
                 visibleCount++;
             }
-        }
+        });
 
         this._calculateLayout(nodes, isTB);
 
@@ -635,9 +638,7 @@ export class DependencyGraphController {
                     }
                 }
 
-                node.children = node.children ? null : node._children;
-                this.update(event, node);
-                this.selectNode(node);
+                await this.selectNode(node);
                 $tip.removeClass('show');
             })
             .on('mouseenter', (event, node) => {
@@ -673,6 +674,47 @@ export class DependencyGraphController {
             .attr('font-size', 13)
             .attr('font-weight', 500)
             .attr('font-family', 'Inter, sans-serif');
+
+        // Right-side expand / collapse toggle icon button
+        const toggleGroup = enter.append('g')
+            .attr('class', 'node-toggle')
+            .attr('cursor', 'pointer')
+            .on('mouseenter', function (event, node) {
+                const style = nodeStyle(node);
+                d3.select(this).select('circle').attr('fill', style.fill);
+            })
+            .on('mouseleave', function () {
+                d3.select(this).select('circle').attr('fill', '#ffffff');
+            })
+            .on('click', async (event, node) => {
+                event.stopPropagation();
+
+                const contextId = node.data?.contextId || node.data?.meta?.contextId;
+                const fullName = node.data?.fullName || node.data?.name;
+
+                if (this.findBeanDetailsApi && fullName && node.data?.meta?.type !== 'context' && node.data?.meta?.type !== 'root') {
+                    const details = await this.fetchBeanDetails(contextId, fullName);
+                    if (details) {
+                        this._mergeBeanDetailsIntoTree(node, details);
+                    }
+                }
+
+                node.children = node.children ? null : node._children;
+                this.update(event, node);
+                $tip.removeClass('show');
+            });
+
+        toggleGroup.append('circle')
+            .attr('r', 9)
+            .attr('fill', '#ffffff')
+            .attr('stroke-width', 1.6);
+
+        toggleGroup.append('path')
+            .attr('class', 'node-toggle-icon')
+            .attr('stroke-width', 1.6)
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-linejoin', 'round')
+            .attr('fill', 'none');
 
         // Update merged nodes with staggered delay for fade-up reveal animation
         const mergedSelection = nodeSelection.merge(enter);
@@ -711,6 +753,28 @@ export class DependencyGraphController {
             .attr('x', ({ width }) => -width / 2 + 42)
             .attr('fill', node => nodeStyle(node).text)
             .text(({ data }) => data.name);
+
+        selection.each(function (node) {
+            const hasChildren = (node.children && node.children.length > 0) || (node._children && node._children.length > 0);
+            const toggle = d3.select(this).select('.node-toggle');
+
+            if (hasChildren) {
+                const style = nodeStyle(node);
+                const isExpanded = !!node.children;
+
+                toggle.style('display', 'block')
+                    .attr('transform', `translate(${node.width / 2 - 18}, 0)`);
+
+                toggle.select('circle')
+                    .attr('stroke', style.stroke);
+
+                toggle.select('.node-toggle-icon')
+                    .attr('stroke', style.stroke)
+                    .attr('d', isExpanded ? 'M -4 0 L 4 0' : 'M -4 0 L 4 0 M 0 -4 L 0 4');
+            } else {
+                toggle.style('display', 'none');
+            }
+        });
     }
 
     _drawLinks(links, transition, isTB, source, linkColor) {
@@ -820,23 +884,78 @@ export class DependencyGraphController {
             meta = {}
         } = selectedHierarchyNode.data ?? {};
 
-        const { type = 'N/A', scope = 'singleton' } = meta;
+        const storedRecord = beanDataStore.findBeanByName(fullName, contextId) ?? {};
+        const mergedMeta = { ...meta, ...storedRecord };
 
-        this._openSidebarAndPopulateHeader(displayName, type, scope);
+        this._openSidebarAndPopulateHeader(mergedMeta);
 
         const initialDependencies = this._resolveInitialDependencyLists(fullName, contextId);
         this._renderDependencyAccordions(initialDependencies.dependencies, initialDependencies.dependents);
-
-        if (this._shouldFetchRemoteDetails(fullName, meta.type)) {
-            await this._fetchAndApplyRemoteBeanDetails(selectedHierarchyNode, contextId, fullName);
-        }
     }
 
-    _openSidebarAndPopulateHeader(displayName, beanType, beanScope) {
-        $('#details-sidebar').show();
-        $('#detail-bean-name').text(displayName);
-        $('#detail-bean-type').text(beanType);
-        this._applySidebarScopeStyle(beanScope);
+    openSidebar() {
+        $('#details-sidebar').css('display', 'flex');
+        this.fitView(300);
+    }
+
+    closeSidebar() {
+        $('#details-sidebar').hide();
+        this.fitView(300);
+    }
+
+    _openSidebarAndPopulateHeader(meta = {}) {
+        this.openSidebar();
+        let {
+            contextId,
+            beanName,
+            type,
+            scope,
+            lazyInit,
+            primary,
+            autowireCandidate,
+            role,
+            initMethodName,
+            destroyMethodName,
+            factoryBeanName,
+            factoryMethodName,
+        } = meta;
+
+        const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+
+        const beanType = type || 'N/A';
+        const beanScope = scope || 'singleton';
+        const scopeText = (meta.scope || beanScope) ? capitalize(meta.scope || beanScope) : 'Singleton';
+        const rawRole = role ? String(role).replace(/^ROLE_/, '') : 'APPLICATION';
+        const roleText = capitalize(rawRole);
+        const factoryBean = factoryBeanName || '-';
+        const factoryMethod = factoryMethodName || '-';
+        const initMethod = initMethodName || '-';
+        const destroyMethod = destroyMethodName || '-';
+
+        $('#detail-bean-name').text(beanName).attr('title', beanName);
+        $('#detail-bean-type').text(beanType).attr('title', beanType);
+        $('#detail-bean-scope').text(scopeText);
+        $('#detail-bean-role').text(roleText);
+        $('#detail-prop-primary').text(primary ? 'TRUE' : 'FALSE');
+        $('#detail-prop-lazy').text(lazyInit ? 'TRUE' : 'FALSE');
+        $('#detail-prop-autowired').text(autowireCandidate ? 'TRUE' : 'FALSE');
+        $('#detail-prop-context').text(contextId || '-');
+        $('#detail-factory-bean').text(factoryBean);
+        $('#detail-factory-method').text(factoryMethod);
+        $('#detail-init-method').text(initMethod);
+        $('#detail-destroy-method').text(destroyMethod);
+
+        this.switchTab('properties');
+    }
+
+    switchTab(tabName) {
+        $('.tab-btn').removeClass('text-primary dark:text-purple-400 border-b-2 border-primary font-bold')
+            .addClass('text-gray-500 dark:text-gray-400 font-medium');
+        $(`#tab-${tabName}`).addClass('text-primary dark:text-purple-400 border-b-2 border-primary font-bold')
+            .removeClass('text-gray-500 dark:text-gray-400 font-medium');
+
+        $('.tab-pane').addClass('hidden');
+        $(`#pane-${tabName}`).removeClass('hidden');
     }
 
     _applySidebarScopeStyle(scopeName = 'singleton') {
@@ -848,11 +967,11 @@ export class DependencyGraphController {
                 singleton: { bg: 'rgba(126, 34, 206, 0.15)', fg: '#d8b4fe', border: 'rgba(126, 34, 206, 0.3)' },
                 other: { bg: 'rgba(16, 185, 129, 0.15)', fg: '#a7f3d0', border: 'rgba(16, 185, 129, 0.3)' }
             },
-                light: {
-                    singleton: { bg: '#f3e8ff', fg: '#7e22ce', border: '#d8b4fe' },
-                    other: { bg: '#ecfdf5', fg: '#047857', border: '#bbf7d0' }
-                }
-            };
+            light: {
+                singleton: { bg: '#f3e8ff', fg: '#7e22ce', border: '#d8b4fe' },
+                other: { bg: '#ecfdf5', fg: '#047857', border: '#bbf7d0' }
+            }
+        };
 
         const themeKey = isDarkMode ? 'dark' : 'light';
         const scopeKey = isSingletonScope ? 'singleton' : 'other';
@@ -883,16 +1002,15 @@ export class DependencyGraphController {
         const dependencyListHtml = this._buildDependencyListItemsHtml(dependencyNames, 'No dependencies');
         const dependentListHtml = this._buildDependencyListItemsHtml(dependentNames, 'No dependents');
 
-        $('#accordion-deps-body').html(dependencyListHtml);
-        $('#accordion-dependents-body').html(dependentListHtml);
+        $('#detail-deps-list').html(dependencyListHtml);
+        $('#detail-dependents-list').html(dependentListHtml);
     }
 
     _buildDependencyListItemsHtml(beanNames, emptyFallbackMessage) {
         if (!beanNames || beanNames.length === 0) {
-            return `<div class="text-gray-400 text-xs p-2">${emptyFallbackMessage}</div>`;
+            return `<div class="text-gray-400 text-xs py-2 px-1">${emptyFallbackMessage}</div>`;
         }
 
-        const templateFactory = TEMPLATES.depListItem || TEMPLATES.dependencyItem;
         const categoryColors = {
             intermediate: 'green',
             leaf: 'yellow',
@@ -908,35 +1026,13 @@ export class DependencyGraphController {
 
             const catColor = categoryColors[category] ?? 'blue';
 
-            return templateFactory({ depName: beanName, displayName, catColor });
+            return `
+                <div class="flex items-center gap-2 py-2 px-2 text-xs border-b border-gray-50 dark:border-slate-800/60 last:border-b-0">
+                    <span class="w-2 h-2 rounded-full bg-${catColor}-500 flex-shrink-0"></span>
+                    <span class="font-mono text-[11px] text-gray-700 dark:text-gray-300 break-all" title="${beanName}">${displayName}</span>
+                </div>
+            `;
         }).join('');
-    }
-
-    _shouldFetchRemoteDetails(fullName, nodeType) {
-        return Boolean(
-            this.findBeanDetailsApi &&
-            fullName &&
-            nodeType !== 'context' &&
-            nodeType !== 'root'
-        );
-    }
-
-    async _fetchAndApplyRemoteBeanDetails(hierarchyNode, contextId, fullName) {
-        const fetchedDetails = await this.fetchBeanDetails(contextId, fullName);
-        if (!fetchedDetails) return;
-
-        if (fetchedDetails.type) {
-            $('#detail-bean-type').text(fetchedDetails.type);
-        }
-        if (fetchedDetails.scope) {
-            this._applySidebarScopeStyle(fetchedDetails.scope);
-        }
-
-        const updatedDependencies = fetchedDetails.dependencies ?? [];
-        const updatedDependents = fetchedDetails.dependents ?? [];
-
-        this._renderDependencyAccordions(updatedDependencies, updatedDependents);
-        this._mergeBeanDetailsIntoTree(hierarchyNode, fetchedDetails);
     }
 
     findNodeInTree(rootNode, targetIdentifier) {
@@ -1140,9 +1236,11 @@ export class DependencyGraphController {
             return;
         }
 
+        console.log(matchingBeans);
+
         const suggestionsHtml = matchingBeans
             .map(beanMatch => TEMPLATES.suggestionItem(beanMatch))
-    .join('');
+            .join('');
 
         $suggestionsBox.html(suggestionsHtml).show();
     }
@@ -1261,6 +1359,13 @@ export class DependencyGraphController {
             this._updateTotalBeanCount();
             this.fitView(500);
         });
+
+        $(document).on('click', '.tab-btn', (event) => {
+            const tabName = $(event.currentTarget).attr('data-tab');
+            if (tabName) {
+                this.switchTab(tabName);
+            }
+        });
     }
 
     _mutateTreeNodes(mutatorFn) {
@@ -1329,7 +1434,7 @@ export class DependencyGraphController {
     }
 
     leave() {
-        $('#details-sidebar').hide();
+        this.closeSidebar();
         $('#tip').removeClass('show');
     }
 }

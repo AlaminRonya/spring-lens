@@ -1,153 +1,128 @@
 export class GraphTreeBuilder {
-    static _displayName(beanName) {
+
+    static _displayName(beanName = '') {
         if (!beanName) return '';
         const lastPart = beanName.split('.').pop() || '';
         const cleaned = lastPart.replace(/\$\$.*$/, '');
         return cleaned.split('$').pop() || '';
     }
 
-    static buildByContext(beans = []) {
-        if (!beans || beans.length === 0) {
-            return GraphTreeBuilder._createEmptyRootNode();
+    static buildByContext(beanDependencies = []) {
+        const prepareData = this._transformBeanDependencyData(beanDependencies);
+        const contextId = prepareData?.contextId || 'default';
+        const beans = prepareData?.beans || [];
+
+        if (!beans.length) {
+            return {
+                name: contextId,
+                fullName: contextId,
+                contextId: contextId,
+                meta: { type: 'context', contextId },
+                children: []
+            };
         }
 
-        const beansByContextMap = GraphTreeBuilder._groupBeansByContext(beans);
-        const contextSubtreeNodes = [];
+        const beanMap = new Map(beans.map(b => [b.name, b]));
+        const beanNames = new Set(beans.map(b => b.name));
+        const hasParent = new Set();
 
-        for (const [contextId, contextBeans] of beansByContextMap.entries()) {
-            const contextSubtree = GraphTreeBuilder._buildContextSubtree(contextId, contextBeans);
-            contextSubtreeNodes.push(contextSubtree);
-        }
-
-        if (contextSubtreeNodes.length === 1) {
-            return contextSubtreeNodes[0];
-        }
-
-        return GraphTreeBuilder._createCompositeRootNode(beansByContextMap, contextSubtreeNodes);
-    }
-
-    static _createEmptyRootNode() {
-        return {
-            name: '',
-            fullName: '',
-            meta: { type: 'root' },
-            children: []
-        };
-    }
-
-    static _groupBeansByContext(beans) {
-        const contextMap = new Map();
+        // 1. Mark beans that are dependencies of other beans as child nodes
         for (let i = 0; i < beans.length; i++) {
-            const bean = beans[i];
-            const contextId = bean.contextId || 'default';
-            if (!contextMap.has(contextId)) {
-                contextMap.set(contextId, []);
+            const { dependencies = [] } = beans[i];
+            for (let j = 0; j < dependencies.length; j++) {
+                const dep = dependencies[j];
+                if (beanNames.has(dep)) {
+                    hasParent.add(dep);
+                }
             }
-            contextMap.get(contextId).push(bean);
         }
-        return contextMap;
-    }
 
-    static _buildContextSubtree(contextId, contextBeans) {
-        const beanMap = new Map(contextBeans.map(bean => [bean.beanName, bean]));
-        const { childrenOfMap, hasParentBeanSet } = GraphTreeBuilder._buildDependencyAdjacencyGraph(contextBeans, beanMap);
+        // 2. Identify top-level root beans (beans not listed as a dependency of any other bean in this context)
+        let rootNames = beans
+            .map(b => b.name)
+            .filter(name => !hasParent.has(name));
 
-        const rootBeanNames = contextBeans
-            .map(({ beanName }) => beanName)
-            .filter(beanName => !hasParentBeanSet.has(beanName));
+        if (!rootNames.length) {
+            rootNames = [beans[0].name]; // Circular fallback
+        }
 
-        const contextChildren = rootBeanNames.map(rootBeanName =>
-            GraphTreeBuilder._buildHierarchyNode(rootBeanName, contextId, beanMap, childrenOfMap, new Set())
-        );
+        // 3. Build tree recursively: parent bean -> child dependencies
+        const buildNode = (name, visited = new Set()) => {
+            const displayName = this._displayName(name);
+            const beanRecord = beanMap.get(name) || {};
+            const meta = {
+                type: beanRecord.type || beanRecord.className || beanRecord.beanType || 'N/A',
+                scope: beanRecord.scope || 'singleton',
+                contextId
+            };
+
+            if (visited.has(name)) {
+                return {
+                    name: displayName,
+                    fullName: name,
+                    contextId,
+                    meta: { ...meta, isCycle: true },
+                    isCycle: true
+                };
+            }
+
+            const nextVisited = new Set(visited).add(name);
+            const rawDeps = beanRecord.dependencies || [];
+            const directChildren = rawDeps.filter(dep => beanNames.has(dep));
+
+            const node = {
+                name: displayName,
+                fullName: name,
+                contextId,
+                meta
+            };
+
+            if (directChildren.length > 0) {
+                node.children = directChildren.map(child => buildNode(child, nextVisited));
+            }
+
+            return node;
+        };
 
         return {
             name: contextId,
             fullName: contextId,
+            contextId,
             meta: { type: 'context', contextId },
-            children: contextChildren
+            children: rootNames.map(root => buildNode(root))
         };
     }
 
-    static _buildDependencyAdjacencyGraph(contextBeans, beanMap) {
-        const childrenOfMap = new Map();
-        const hasParentBeanSet = new Set();
+    static _transformBeanDependencyData(data) {
+        if (!data) return {};
 
-        for (let i = 0; i < contextBeans.length; i++) {
-            const { beanName, dependencies = [] } = contextBeans[i];
-            for (let j = 0; j < dependencies.length; j++) {
-                const dependencyName = dependencies[j];
-                if (!beanMap.has(dependencyName)) continue;
-
-                if (!childrenOfMap.has(dependencyName)) {
-                    childrenOfMap.set(dependencyName, new Set());
-                }
-                childrenOfMap.get(dependencyName).add(beanName);
-                hasParentBeanSet.add(beanName);
-            }
-        }
-
-        return { childrenOfMap, hasParentBeanSet };
-    }
-
-    static _buildHierarchyNode(beanName, contextId, beanMap, childrenOfMap, visitedAncestors = new Set()) {
-        const bean = beanMap.get(beanName);
-        const displayName = GraphTreeBuilder._displayName(beanName);
-
-        if (!bean) {
+        // Case 1: Structured payload object: { contextId: "...", beans: [...] }
+        if (!Array.isArray(data) && Array.isArray(data.beans)) {
             return {
-                name: displayName,
-                fullName: beanName,
-                contextId,
-                meta: { contextId }
+                contextId: data.contextId || 'default',
+                beans: data.beans.map(b => ({
+                    name: b.name || b.beanName || '',
+                    type: b.type || '',
+                    scope: b.scope || 'singleton',
+                    dependencies: b.dependencies || []
+                }))
             };
         }
 
-        const {
-            type,
-            scope,
-            role,
-            factoryMethodName: factoryMethod,
-            dependencies = [],
-            dependents = []
-        } = bean;
-
-        const node = {
-            name: displayName,
-            fullName: beanName,
-            contextId,
-            meta: {
-                type,
-                scope,
-                role,
-                factoryMethod,
+        // Case 2: Array of bean definitions: [{ contextId, beanName/name, dependencies }, ...]
+        if (Array.isArray(data) && data.length > 0) {
+            const contextId = data[0].contextId || 'default';
+            return {
                 contextId,
-                deps: dependencies ? dependencies.length : 0,
-                dependents: dependents ? dependents.length : 0,
-            },
-        };
-
-        const directChildNames = childrenOfMap.get(beanName);
-        if (!directChildNames || directChildNames.size === 0) {
-            return node;
+                beans: data.map(b => ({
+                    name: b.name || b.beanName || '',
+                    type: b.type || '',
+                    scope: b.scope || 'singleton',
+                    dependencies: b.dependencies || []
+                }))
+            };
         }
 
-        const nextVisitedAncestors = new Set(visitedAncestors).add(beanName);
-        node.children = Array.from(directChildNames).map(childName =>
-            nextVisitedAncestors.has(childName)
-                ? { name: GraphTreeBuilder._displayName(childName), fullName: childName, contextId, meta: { note: 'cycle', contextId } }
-                : GraphTreeBuilder._buildHierarchyNode(childName, contextId, beanMap, childrenOfMap, nextVisitedAncestors)
-        );
-
-        return node;
-    }
-
-    static _createCompositeRootNode(beansByContextMap, contextSubtreeNodes) {
-        const compositeRootTitle = Array.from(beansByContextMap.keys()).join(' / ');
-        return {
-            name: compositeRootTitle,
-            fullName: compositeRootTitle,
-            meta: { type: 'root' },
-            children: contextSubtreeNodes
-        };
+        return {};
     }
 }

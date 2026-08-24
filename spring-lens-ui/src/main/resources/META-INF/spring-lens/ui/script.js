@@ -21,10 +21,22 @@ $(document).ready(() => {
         SUMMARY_BEAN_DEFINITION : API_BASE_URL + "/summary"
     }
 
+    let defintionTestURL = "http://localhost:8082/spring-lens/api/beans/definitions";
+    let defintionTestSummar = "http://localhost:8082/spring-lens/api/beans/definitions/summary";
+    let graphDependencies = "http://localhost:8082/spring-lens/api/beans/definitions/dependencies";
+    let findDependencies = "http://localhost:8082/spring-lens/api/beans/definitions/find";
+
     const dashboard = new DashboardController();
     const beanTimeline = new InstanceController();
-    const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
-    const beanDependencyGraph = new DependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
+// const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
+// const beanDependencyGraph = new BeanDependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
+    const beanDefinitions = new BeanDefinitions(defintionTestURL, defintionTestSummar);
+    const beanDependencyGraph = new DependencyGraphController(graphDependencies, findDependencies);
+
+    // const dashboard = new DashboardController();
+    // const beanTimeline = new InstanceController();
+    // const beanDefinitions = new BeanDefinitions(ENDPOINTS.BEAN_DEFINITION_API_URL, ENDPOINTS.SUMMARY_BEAN_DEFINITION);
+    // const beanDependencyGraph = new DependencyGraphController(ENDPOINTS.GRAPH_DEPENDENCIES, ENDPOINTS.SEARCH_BEAN);
 
     // Configure routes and instantiate Route
     const appRouter = new Route({
