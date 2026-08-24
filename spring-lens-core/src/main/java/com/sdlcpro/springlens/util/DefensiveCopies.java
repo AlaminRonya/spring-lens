@@ -15,8 +15,12 @@ public final class DefensiveCopies
         return (map == null) ? Map.of() : Map.copyOf(map);
     }
 
-    public static <K>Set<K> emptyIfNull(Set<? extends K> set) {
+    public static <K> Set<K> emptyIfNull(Set<? extends K> set) {
         return (set == null) ? Set.of() : Set.copyOf(set);
+    }
+
+    public static <K> Set<K> immutableSetOrEmpty(Set<? extends K> set) {
+        return emptyIfNull(set);
     }
 
     public static <K> List<K> emptyIfNull(List<? extends K> list) {
