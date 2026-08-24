@@ -67,7 +67,7 @@
             <div id="chunk-progress-badge"
                 class="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-900/30 transition-all">
                 <span id="chunk-progress-dot" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                <span>Loading: <strong id="chunk-progress-text" class="font-bold">0 / 0</strong></span>
+                <span><strong id="chunk-progress-text" class="font-bold">0 / 0</strong></span>
             </div>
 
             <!-- Manual Reload / Retry Button -->
@@ -84,137 +84,212 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-none"></span>
                 <span>Beans: <strong id="beans-count" class="font-bold">0</strong></span>
             </div>
-
-           <!-- &lt;!&ndash; Dependencies Count &ndash;&gt;
-            <div
-                class="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-full border border-gray-200 dark:border-slate-700">
-                <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-slate-500 animate-none"></span>
-                <span>Dependencies: <strong id="deps-count" class="font-bold">0</strong></span>
-            </div>-->
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main
-        class="relative flex-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm min-h-[500px] transition-colors duration-300">
-        <!-- Main Graph Area -->
-        <div id="beanGraph" class="w-full h-full min-h-[500px]">
-            <svg id="tree-svg" class="w-full h-full min-h-[500px]"></svg>
-        </div>
+    <!-- Main Content Flex Row (Graph Card + Separate Sidebar Card with Gap) -->
+    <div class="flex flex-1 gap-4 min-h-0 relative">
+        <!-- Left: Main Graph Area (Separate Card Box) -->
+        <main
+            class="relative flex-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm min-h-[500px] transition-colors duration-300">
+            <div id="beanGraph" class="w-full h-full min-h-[500px]">
+                <svg id="tree-svg" class="w-full h-full min-h-[500px]"></svg>
+            </div>
 
-        <!-- Navigation Controls floating in bottom-left -->
-        <div
-            class="absolute bottom-4 left-4 flex flex-col gap-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-1.5 shadow-md z-10">
-            <button
-                class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                id="btn-pan-mode" title="Fit View">
-                <span class="material-symbols-outlined text-[18px]">fit_screen</span>
-            </button>
-            <button
-                class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                id="btn-control-zoom-in" title="Zoom In">
-                <span class="material-symbols-outlined text-[18px]">add</span>
-            </button>
-            <button
-                class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                id="btn-control-zoom-out" title="Zoom Out">
-                <span class="material-symbols-outlined text-[18px]">remove</span>
-            </button>
-            <button
-                class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                id="btn-control-fit" title="Toggle Fullscreen">
-                <span class="material-symbols-outlined text-[18px]">aspect_ratio</span>
-            </button>
-        </div>
+            <!-- Navigation Controls floating in bottom-left -->
+            <div
+                class="absolute bottom-4 left-4 flex flex-col gap-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-1.5 shadow-md z-10">
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="btn-pan-mode" title="Fit View">
+                    <span class="material-symbols-outlined text-[18px]">fit_screen</span>
+                </button>
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="btn-control-zoom-in" title="Zoom In">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="btn-control-zoom-out" title="Zoom Out">
+                    <span class="material-symbols-outlined text-[18px]">remove</span>
+                </button>
+                <button
+                    class="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                    id="btn-control-fit" title="Toggle Fullscreen">
+                    <span class="material-symbols-outlined text-[18px]">aspect_ratio</span>
+                </button>
+            </div>
 
-        <!-- Legend Panel in bottom-right -->
-        <div
-            class="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-md z-10 flex flex-col gap-2 text-[11px] text-gray-600 dark:text-gray-450 w-36">
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-none"></span>
-                <span>Root Bean</span>
+            <!-- Legend Panel in bottom-right -->
+            <div
+                class="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-md z-10 flex flex-col gap-2 text-[11px] text-gray-600 dark:text-gray-450 w-36">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-none"></span>
+                    <span>Root Bean</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-none"></span>
+                    <span>Intermediate</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-none"></span>
+                    <span>Leaf Bean</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-none"></span>
+                    <span>Adapter Bean</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-none"></span>
-                <span>Intermediate</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-none"></span>
-                <span>Leaf Bean</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-none"></span>
-                <span>Adapter Bean</span>
-            </div>
-        </div>
+        </main>
 
-        <!-- Details Sidebar on the Right -->
+        <!-- Right: Details Sidebar (Separate Card Box with Gap) -->
         <aside
-            class="absolute top-0 right-0 bottom-0 w-80 bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-800 shadow-xl z-20 flex flex-col transition-colors duration-300"
+            class="w-[340px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col flex-shrink-0 transition-all duration-300 overflow-hidden"
             id="details-sidebar" style="display: none;">
+
             <!-- Header -->
             <div class="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
                 <h3 class="font-bold text-sm text-gray-800 dark:text-white">Bean Details</h3>
                 <button
-                    class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer flex items-center"
+                    class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
                     id="btn-close-sidebar">
-                    <span class="material-symbols-outlined text-[20px]">close</span>
+                    <span class="material-symbols-outlined text-[18px]">close</span>
                 </button>
             </div>
 
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                <div class="pb-3 border-b border-gray-50 dark:border-slate-800">
-                    <div
-                        class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mb-1">
-                        Name</div>
-                    <div class="text-xs font-bold text-gray-800 dark:text-gray-200 break-all font-mono"
-                        id="detail-bean-name">-</div>
-                </div>
-                <div class="pb-3 border-b border-gray-50 dark:border-slate-800">
-                    <div
-                        class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mb-1">
-                        Type</div>
-                    <div class="text-xs font-medium text-gray-600 dark:text-gray-400 break-all font-mono"
-                        id="detail-bean-type">-</div>
-                </div>
-                <div class="pb-3 border-b border-gray-50 dark:border-slate-800">
-                    <div
-                        class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider mb-1">
-                        Scope</div>
-                    <span
-                        class="px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block border border-gray-200 dark:border-slate-800"
-                        id="detail-bean-scope">-</span>
-                </div>
-
-                <!-- Dependencies Accordion -->
-                <div class="border border-gray-200 dark:border-slate-800 rounded-lg overflow-hidden">
-                    <div class="accordion-header w-full px-3 py-2 bg-gray-50 dark:bg-slate-800/40 flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
-                        id="accordion-deps-header">
-                        <span>Dependencies (<span id="detail-deps-count">0</span>)</span>
-                        <span
-                            class="material-symbols-outlined text-[18px] transition-transform duration-200">chevron_right</span>
+            <!-- Hero Section: Yellow Icon Box, Name, Type, 3-Column Stats -->
+            <div class="p-4 pb-3 border-b border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/10">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-900/40 shadow-sm flex-shrink-0 mt-0.5"
+                        id="sidebar-icon-container">
+                        <span class="material-symbols-outlined text-[20px]" id="sidebar-icon">schema</span>
                     </div>
-                    <div class="accordion-body p-2 max-h-48 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900 divide-y divide-gray-50 dark:divide-slate-800 text-[11px]"
-                        id="accordion-deps-body" style="display: none;">
-                        <!-- List of dependencies will go here dynamically -->
+                    <div class="min-w-0 flex-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                        <div class="font-bold text-xs text-gray-800 dark:text-gray-100 break-words leading-tight"
+                            id="detail-bean-name">-
+                        </div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all leading-normal mt-1"
+                            id="detail-bean-type">-</div>
                     </div>
                 </div>
 
-                <!-- Dependents Accordion -->
-                <div class="border border-gray-200 dark:border-slate-800 rounded-lg overflow-hidden">
-                    <div class="accordion-header w-full px-3 py-2 bg-gray-50 dark:bg-slate-800/40 flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
-                        id="accordion-dependents-header">
-                        <span>Dependents (<span id="detail-dependents-count">0</span>)</span>
-                        <span
-                            class="material-symbols-outlined text-[18px] transition-transform duration-200">chevron_right</span>
+                <div
+                    class="grid grid-cols-3 gap-1.5 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-100 dark:border-slate-800 shadow-sm">
+                    <div>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Scope</div>
+                        <div class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="detail-bean-scope">
+                            -
+                        </div>
                     </div>
-                    <div class="accordion-body p-2 max-h-48 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900 divide-y divide-gray-50 dark:divide-slate-800 text-[11px]"
-                        id="accordion-dependents-body" style="display: none;">
-                        <!-- List of dependents will go here dynamically -->
+                    <div>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mb-0.5">Role</div>
+                        <div class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="detail-bean-role">
+                            Application
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Tabs -->
+            <div class="flex border-b border-gray-100 dark:border-slate-800 px-1" id="sidebar-tabs">
+                <button
+                    class="flex-1 py-2.5 text-xs font-bold text-primary dark:text-purple-400 border-b-2 border-primary text-center tab-btn cursor-pointer"
+                    data-tab="properties" id="tab-properties">Properties</button>
+                <button
+                    class="flex-1 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn cursor-pointer"
+                    data-tab="dependencies" id="tab-dependencies">Dependencies (<span
+                        id="detail-deps-count">0</span>)</button>
+                <button
+                    class="flex-1 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-center tab-btn cursor-pointer"
+                    data-tab="dependents" id="tab-dependents">Dependents (<span
+                        id="detail-dependents-count">0</span>)</button>
+            </div>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4" id="sidebar-content">
+                <!-- Tab Pane: Properties -->
+                <div id="pane-properties" class="tab-pane space-y-4">
+                    <!-- Basic Info Section -->
+                    <div>
+                        <h4 class="text-[11px] font-bold text-gray-800 dark:text-white mb-2">Basic Info</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Primary Bean</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200"
+                                    id="detail-prop-primary">FALSE</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Lazy Initialized</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200"
+                                    id="detail-prop-lazy">FALSE</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Autowired Candidate</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200"
+                                    id="detail-prop-autowired">TRUE</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Context ID</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200 font-mono text-[10px]"
+                                    id="detail-prop-context">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Factory Details Section -->
+                    <div
+                        class="bg-gray-50/70 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-lg p-3 space-y-2.5">
+                        <h4 class="text-[11px] font-bold text-gray-800 dark:text-white">Factory Details</h4>
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Factory
+                                    Bean</span>
+                                <span
+                                    class="text-[10px] font-mono text-gray-800 dark:text-gray-300 break-all leading-normal"
+                                    id="detail-factory-bean">-</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Factory
+                                    Method</span>
+                                <span class="text-xs font-bold text-gray-800 dark:text-gray-200"
+                                    id="detail-factory-method">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lifecycle Section -->
+                    <div>
+                        <h4 class="text-[11px] font-bold text-gray-800 dark:text-white mb-2">Lifecycle</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Init Method</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200 font-mono text-[10px]"
+                                    id="detail-init-method">-</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">Destroy Method</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200 font-mono text-[10px]"
+                                    id="detail-destroy-method">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Pane: Dependencies -->
+                <div id="pane-dependencies" class="tab-pane hidden space-y-2">
+                    <div id="detail-deps-list" class="divide-y divide-gray-50 dark:divide-slate-800 text-xs">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Tab Pane: Dependents -->
+                <div id="pane-dependents" class="tab-pane hidden space-y-2">
+                    <div id="detail-dependents-list" class="divide-y divide-gray-50 dark:divide-slate-800 text-xs">
+                        <!-- Dynamically populated -->
                     </div>
                 </div>
             </div>
         </aside>
-    </main>
+    </div>
 </div>

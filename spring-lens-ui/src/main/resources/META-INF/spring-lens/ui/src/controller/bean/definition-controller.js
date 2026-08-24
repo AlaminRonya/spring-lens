@@ -5,6 +5,7 @@ import {
     TEMPLATES,
     SCOPE_COLORS,
     ROLE_COLORS,
+    LOADING_MODE_COLORS,
     SCOPE_STYLES,
     DEFAULT_SCOPE_STYLE,
     DEPENDENCY_CATEGORY_COLORS,
@@ -42,7 +43,8 @@ export default class BeanDefinitionsController {
 
         this.activeCharts = {
             scopeChart: null,
-            roleChart: null
+            roleChart: null,
+            loadingModeChart: null
         };
 
         this.allBeans = [];
@@ -102,7 +104,7 @@ export default class BeanDefinitionsController {
             // Select the first bean as default details if available
             const defaultBean = this.currentPageBeans[0] || this.allBeans[0];
             if (defaultBean) {
-                this.selectBean(defaultBean.beanName, defaultBean.contextId);
+                await this.selectBean(defaultBean.beanName, defaultBean.contextId);
             }
         } catch (error) {
             console.error('Error entering BeanDefinitions view:', error);
@@ -123,13 +125,12 @@ export default class BeanDefinitionsController {
     }
 
     /**
-     * Computes and updates metrics cards (total counts, context distributions, lazy percentage).
+     * Computes and updates metrics cards (total counts, context distributions).
      */
     refreshBeanSummaryStatistics(beanSummaryData) {
-        const { contextDistribution, scopeDistribution, loadingModeDistribution, totalBeanDefinitions } = beanSummaryData;
+        const { contextDistribution, totalBeanDefinitions } = beanSummaryData;
         this._updateTotalBeanCount(totalBeanDefinitions);
         this._updateContextDistribution(contextDistribution, totalBeanDefinitions);
-        this._updateScopeDistribution(scopeDistribution, loadingModeDistribution, totalBeanDefinitions);
     }
 
     _updateTotalBeanCount(totalBeanDefinitions) {
@@ -149,19 +150,9 @@ export default class BeanDefinitionsController {
         }
     }
 
-    _updateScopeDistribution(scopeDistribution, loadingModeDistribution, totalBeanDefinitions) {
-        if (loadingModeDistribution) {
-            const lazyBeanCount = loadingModeDistribution.LAZY || 0;
-            const lazyPercentage = Math.round((lazyBeanCount / totalBeanDefinitions) * 100);
-
-            $('#def-lazy-percent').text(`${lazyPercentage}%`);
-            $('#def-lazy-bar').css('width', `${lazyPercentage}%`);
-        }
-    }
-
     initializeScopeAndRoleDistributionCharts(beanSummary) {
         this.destroyCharts();
-        const { scopeDistribution, roleDistribution } = beanSummary;
+        const { scopeDistribution, roleDistribution, loadingModeDistribution } = beanSummary;
 
         if (scopeDistribution) {
             this._createChartFromDistribution(
@@ -184,6 +175,18 @@ export default class BeanDefinitionsController {
                 key => capitalize(key.replace(/^ROLE_/, '')),
                 ROLE_COLORS,
                 '#cbd5e1'
+            );
+        }
+
+        if (loadingModeDistribution) {
+            this._createChartFromDistribution(
+                'loadingModeChart',
+                'loadingModeChart',
+                '#def-loading-mode-legend',
+                loadingModeDistribution,
+                key => capitalize(key),
+                LOADING_MODE_COLORS,
+                '#a855f7'
             );
         }
     }
@@ -623,15 +626,15 @@ export default class BeanDefinitionsController {
                 this.currentPage = 1;
                 this.fetchTableData();
             },
-            'select-bean': () => {
+            'select-bean': async () => {
                 const beanName = $target.data('bean-name');
                 const contextId = $target.data('context-id');
-                if (beanName) this.selectBean(beanName, contextId);
+                if (beanName) await this.selectBean(beanName, contextId);
             },
-            'select-dependency': () => {
+            'select-dependency': async () => {
                 const dependencyName = $target.data('fullname');
-                if (dependencyName && beanDataStore.has(dependencyName)) {
-                    this.selectBean(dependencyName);
+                if (dependencyName) {
+                    await this.selectBean(dependencyName);
                 }
             },
             'change-page': () => {
@@ -690,22 +693,42 @@ export default class BeanDefinitionsController {
         return resolveBeanMetadata(bean).color;
     }
 
-    selectBean(beanName, contextId = null) {
-        const beanId = this._generateBeanUniqueId(contextId, beanName);
-        this.selectedBeanId = beanId;
-        this.selectedBeanName = beanName;
-        this.selectedContextId = contextId;
+    async selectBean(beanName, contextId = null) {
+        if (!beanName) return false;
 
-        this._updateRowSelectionStyles(beanId);
+        const targetContextId = contextId || this.selectedContextId || '';
+        const beanId = this._generateBeanUniqueId(targetContextId, beanName);
+        let targetBean = this._findBeanById(beanId) || this._findBeanByName(beanName, targetContextId);
 
-        const targetBean = this._findBeanById(beanId) || this._findBeanByName(beanName, contextId);
-        if (!targetBean) return;
+        if (!targetBean) {
+            try {
+                const fetched = await httpClient.get(`${this.beanDefinitionEndpoint}/find?contextId=${encodeURIComponent(targetContextId)}&beanName=${encodeURIComponent(beanName)}`);
+                if (fetched) {
+                    beanDataStore.addBeans([fetched]);
+                    targetBean = fetched;
+                }
+            } catch (e) {
+                console.warn('Failed to find bean details:', beanName, e);
+            }
+        }
+
+        if (!targetBean) {
+            return false;
+        }
+
+        const resolvedContextId = targetBean.contextId || targetContextId;
+        this.selectedBeanId = this._generateBeanUniqueId(resolvedContextId, targetBean.beanName);
+        this.selectedBeanName = targetBean.beanName;
+        this.selectedContextId = resolvedContextId;
+
+        this._updateRowSelectionStyles(this.selectedBeanId);
 
         $('#def-details-sidebar').show();
 
         this._populateSidebarDetails(targetBean);
         this._populateSidebarLists(targetBean);
         this.renderActiveTab();
+        return true;
     }
 
     _updateRowSelectionStyles(activeBeanId) {
@@ -902,7 +925,7 @@ export default class BeanDefinitionsController {
         }
         if (!targetBean) return;
 
-        $beanNameModalGraphContainer.text(targetBean.beanName);
+        $beanNameModalGraphContainer.text(targetBean.beanName).attr('title', targetBean.beanName);
 
         $beanGraphModalContainer.removeClass('hidden');
         requestAnimationFrame(() => {
@@ -1156,11 +1179,13 @@ export default class BeanDefinitionsController {
         const $tip = $('#tip');
 
         nodes
-            .on('click', (event, node) => {
+            .on('click', async (event, node) => {
                 event.stopPropagation();
                 if (node.data.fullName && node.data.fullName !== this.selectedBeanName) {
-                    this.selectBean(node.data.fullName);
-                    this.openGraphModal();
+                    const success = await this.selectBean(node.data.fullName);
+                    if (success) {
+                        this.openGraphModal();
+                    }
                 }
             })
             .on('mouseenter', (event, node) => {

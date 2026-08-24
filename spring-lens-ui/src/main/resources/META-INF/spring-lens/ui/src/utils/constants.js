@@ -141,7 +141,6 @@ export const TEMPLATES = {
     suggestionItem: ({ fullName, displayName, type }) => `
         <div class="suggestion-item p-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors border-b border-gray-50 dark:border-slate-800/50 last:border-b-0" data-fullname="${fullName}">
             <strong class="text-xs font-semibold text-gray-700 dark:text-gray-300 block">${displayName}</strong>
-            <span class="text-[10px] text-gray-400 dark:text-gray-500 block font-mono truncate">${type}</span>
         </div>
     `,
     contextListItem: ({ contextId, colorClass, pct, count }) => `
@@ -229,6 +228,12 @@ export const ROLE_COLORS = {
     'Application': '#3b82f6',
     'Support': '#f59e0b',
     'Infrastructure': '#e2e8f0',
+    'Unknown': '#cbd5e1'
+};
+
+export const LOADING_MODE_COLORS = {
+    'Lazy': '#a855f7',
+    'Eager': '#3b82f6',
     'Unknown': '#cbd5e1'
 };
 
