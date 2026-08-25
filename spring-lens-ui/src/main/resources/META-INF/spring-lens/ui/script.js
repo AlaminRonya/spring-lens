@@ -15,10 +15,10 @@ $(document).ready(() => {
     const API_BASE_URL = origin + CONTEXT_PATH + '/spring-lens/api/beans/definitions';
 
     const ENDPOINTS = {
-        SEARCH_BEAN             : API_BASE_URL + "/find",
-        GRAPH_DEPENDENCIES      : API_BASE_URL + "/dependencies",
-        BEAN_DEFINITION_API_URL : API_BASE_URL,
-        SUMMARY_BEAN_DEFINITION : API_BASE_URL + "/summary"
+        SEARCH_BEAN: API_BASE_URL + "/find",
+        GRAPH_DEPENDENCIES: API_BASE_URL + "/dependencies",
+        BEAN_DEFINITION_API_URL: API_BASE_URL,
+        SUMMARY_BEAN_DEFINITION: API_BASE_URL + "/summary"
     }
 
     const dashboard = new DashboardController();
