@@ -2,10 +2,9 @@ package com.sdlcpro.springlens.insight.http.request;
 
 import com.sdlcpro.springlens.model.http.HttpRequestMethod;
 
-import java.util.EnumSet;
 import java.util.Set;
 
-import static com.sdlcpro.springlens.util.DefensiveCopies.emptyIfNull;
+import static com.sdlcpro.springlens.util.DefensiveCopies.*;
 
 
 /**
@@ -32,9 +31,6 @@ import static com.sdlcpro.springlens.util.DefensiveCopies.emptyIfNull;
  *                        redacted/masked; if {@code null}, defaults to an empty immutable set
  * @param maskableParams set of HTTP request parameter names whose values should be
  *                       redacted/masked; if {@code null}, defaults to an empty immutable set
- *
- * @throws IllegalArgumentException if {@code maxBodyLength} is negative
- * @throws NullPointerException if any non-null collection contains {@code null} elements
  */
 public record HttpRequestCollectorSettings(
         Set<String> includeUriPatterns,
@@ -42,7 +38,7 @@ public record HttpRequestCollectorSettings(
         boolean includeRequestBody,
         boolean includeResponseBody,
         int maxBodyLength,
-        EnumSet<HttpRequestMethod> excludeMethods,
+        Set<HttpRequestMethod> excludeMethods,
         Set<String> maskableHeaders,
         Set<String> maskableParams
 
@@ -52,22 +48,21 @@ public record HttpRequestCollectorSettings(
      */
     public HttpRequestCollectorSettings
     {
-        includeUriPatterns = emptyIfNull(includeUriPatterns);
-        excludeUriPatterns = emptyIfNull(excludeUriPatterns);
-        maskableHeaders = emptyIfNull(maskableHeaders);
-        maskableParams = emptyIfNull(maskableParams);
+        includeUriPatterns = immutableSetOrEmpty(includeUriPatterns);
+        excludeUriPatterns = immutableSetOrEmpty(excludeUriPatterns);
+        maskableHeaders = immutableSetOrEmpty(maskableHeaders);
+        maskableParams = immutableSetOrEmpty(maskableParams);
 
         // EnumSet : null-safe defensive copy.
-        excludeMethods = emptyIfNull(excludeMethods, HttpRequestMethod.class);
+        excludeMethods = immutableEnumSetOrEmpty(excludeMethods);
 
         if (maxBodyLength < 0) {
             throw new IllegalArgumentException("maxBodyLength must be a positive integer cannot be negative");
         }
     }
 
-    // Override getter to return a fresh defensive copy on read
     @Override
-    public EnumSet<HttpRequestMethod> excludeMethods() {
-        return EnumSet.copyOf(excludeMethods);
+    public Set<HttpRequestMethod> excludeMethods() {
+        return this.excludeMethods;
     }
 }
