@@ -5,14 +5,14 @@ import {
 } from '../../helper/index.js';
 
 export class InstanceSidebarWidget {
-    formatDetails(instance, optionsOrMaxDurationNanos = 0, bottleneckThresholdNanos = 500000) {
+    formatDetails(instance, optionsOrMaxDurationNanos = 0, bottleneckThreshold = 500000) {
         if (!instance) return null;
 
         const options = (typeof optionsOrMaxDurationNanos === 'object' && optionsOrMaxDurationNanos !== null)
             ? optionsOrMaxDurationNanos
             : {
                 maxDurationNanos: optionsOrMaxDurationNanos,
-                bottleneckThresholdNanos
+                bottleneckThreshold
             };
 
         const {
