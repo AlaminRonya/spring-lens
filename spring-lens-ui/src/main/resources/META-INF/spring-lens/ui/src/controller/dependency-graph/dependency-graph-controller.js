@@ -399,7 +399,13 @@ export class DependencyGraphController extends BaseController {
         if (!this.state.hasMoreBeans || this.state.isLoadingMore || this.state.isLoadingAll) {
             return;
         }
-        this.setState({ loadAllModalOpen: true });
+
+        if ((this.state.remainingBeansCount || 0) > 500) {
+            this.setState({ loadAllModalOpen: true });
+            return;
+        }
+
+        this.confirmLoadAll();
     }
 
     closeLoadAllModal() {
