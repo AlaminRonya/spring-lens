@@ -34,21 +34,19 @@ export class InstanceService {
     }
 
     async findBeanInstance(contextId, beanName) {
-        if (Guard.isBlank(beanName)) return null;
         const queryParams = QueryParam.build({ contextId, beanName });
-        return httpClient.getWithQuery(
-            this.endpoints.find,
-            queryParams.toString()
-        );
+        return httpClient.getWithQuery(this.endpoints.find, queryParams.toString()).catch(err => {
+            console.warn('Could not fetch single bean instance details:', err);
+            return null;
+        });
     }
 
     async fetchProxyInfo(contextId, beanName) {
-        if (Guard.isBlank(beanName)) return null;
         const queryParams = QueryParam.build({ contextId, beanName });
-        return httpClient.getWithQuery(
-            this.endpoints.proxy,
-            queryParams.toString()
-        );
+        return httpClient.getWithQuery(this.endpoints.proxy, queryParams.toString()).catch(err => {
+            console.warn('Failed to fetch proxy info:', err);
+            return null;
+        });
     }
 
     downloadReport(filename, reportData) {

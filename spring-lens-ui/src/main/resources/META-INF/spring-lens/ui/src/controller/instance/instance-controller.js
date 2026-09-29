@@ -159,7 +159,7 @@ export class InstanceController extends BaseController {
             prevPage: () => this.prevPage(),
             nextPage: () => this.nextPage(),
             goToPage: (page) => this.goToPage(page),
-            selectBean: (beanName, contextId, source) => this.selectBean(beanName, contextId, source),
+            selectBeanInstance: (beanName, contextId, source) => this.selectBeanInstance(beanName, contextId, source),
             isSelected: (id) => this.isSelected(id),
             closeSidebar: () => this.closeSidebar(),
             closeBottomPreview: () => this.closeBottomPreview(),
@@ -213,7 +213,7 @@ export class InstanceController extends BaseController {
         const beanName = match?.beanName || targetBean;
         const contextId = targetContextId || match?.contextId;
 
-        await this.selectBean(beanName, contextId);
+        await this.selectBeanInstance(beanName, contextId);
     }
 
     async enter(params, context) {
@@ -418,7 +418,7 @@ export class InstanceController extends BaseController {
         const direction = event.target.value;
         this.setState({
             sortBy: 'createdAt',
-            sortDir: direction || 'ASC',
+            sortDir: direction,
             sortCreated: direction,
             sortDuration: ''
         });
@@ -462,25 +462,26 @@ export class InstanceController extends BaseController {
         this._syncBottleneckSelect(threshold);
     }
 
+    _decomposeDuration(nanos) {
+        const durationScales = [
+            { unit: 's', scale: 1e9, match: n => n >= 1e9 && n % 1e9 === 0 },
+            { unit: 'ms', scale: 1e6, match: n => n >= 1e6 && (n % 1e6 === 0 || (n / 1e6) < 100) },
+            { unit: 'us', scale: 1000, match: n => n >= 1000 },
+            { unit: 'ns', scale: 1, match: () => true }
+        ];
+
+        const target = durationScales.find(item => item.match(nanos));
+        const scaled = Number((nanos / target.scale).toFixed(3));
+
+        return {
+            value: String(scaled),
+            unit: target.unit
+        };
+    }
+
     openCustomThresholdModal() {
         const nanos = this.state.bottleneckThresholdNanos || 500000;
-        let value = '750';
-        let unit = 'us';
-
-        if (nanos >= 1e9 && nanos % 1e9 === 0) {
-            value = String(nanos / 1e9);
-            unit = 's';
-        } else if (nanos >= 1e6 && (nanos % 1e6 === 0 || (nanos / 1e6) < 100)) {
-            value = String(Number((nanos / 1e6).toFixed(3)));
-            unit = 'ms';
-        } else if (nanos >= 1000) {
-            value = String(Number((nanos / 1000).toFixed(3)));
-            unit = 'us';
-        } else {
-            value = String(nanos);
-            unit = 'ns';
-        }
-
+        const { value, unit } = this._decomposeDuration(nanos);
         const preview = this._calculateModalPreview(value, unit);
 
         this.setState({
@@ -810,90 +811,85 @@ export class InstanceController extends BaseController {
         }
     }
 
-    async selectBean(beanName, contextId, source = null) {
-        if (!beanName) return;
+    async selectBeanInstance(beanName, contextId, source = 'gantt') {
+        if (Guard.isBlank(beanName)) return;
 
-        const resolvedContext = contextId || 'root';
-        const selectedKey = `${resolvedContext}::${beanName}`;
+        const localInstance = this._findLocalInstance(beanName, contextId);
+        const resolvedContext = contextId || localInstance?.contextId;
         const isGantt = source === 'gantt' || (!source && this.state.activeView === 'instance');
 
-        if (isGantt) {
-            this.setState({
-                selectedBeanName: beanName,
-                selectedContextId: resolvedContext,
-                selectedKey,
-                proxyInfo: null,
-                proxyLoading: true,
-                bottomPreviewOpen: true,
-                sidebarOpen: false
-            });
+        this._applyInitialSelectionState(beanName, resolvedContext, localInstance, isGantt);
 
-            setTimeout(() => {
-                const previewEl = document.getElementById('instance-bottom-preview');
-                if (previewEl?.scrollIntoView) {
-                    previewEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            }, 80);
-        } else {
-            this.setState({
-                selectedBeanName: beanName,
-                selectedContextId: resolvedContext,
-                selectedKey,
-                proxyInfo: null,
-                proxyLoading: true,
-                sidebarOpen: true,
-                sidebarTab: 'telemetry',
-                bottomPreviewOpen: false
-            });
+        if (isGantt) {
+            this._scrollToBottomPreview();
         }
 
-        const localInst = this.instances.find(i => i.beanName === beanName && (!contextId || i.contextId === contextId)) || { beanName, contextId: resolvedContext };
+        await Promise.allSettled([
+            this._hydrateBeanDetails(beanName, resolvedContext, localInstance),
+            this._hydrateProxyInfo(beanName, resolvedContext)
+        ]);
+    }
+
+    _findLocalInstance(beanName, contextId) {
+        return this.instances?.find(instance =>
+            instance.beanName === beanName && (!contextId || instance.contextId === contextId)
+        ) || null;
+    }
+
+    _applyInitialSelectionState(beanName, contextId, localInstance, isGantt) {
+        const initialDetails = localInstance || { beanName, contextId };
         this.setState({
-            sidebarDetails: instanceSidebarWidget.formatDetails(localInst, this.state.maxDurationNanos, this.state.bottleneckThresholdNanos)
+            selectedBeanName: beanName,
+            selectedContextId: contextId,
+            selectedKey: `${contextId}::${beanName}`,
+            selectedInstance: localInstance || initialDetails,
+            sidebarDetails: instanceSidebarWidget.formatDetails(initialDetails, this.state.maxDurationNanos, this.state.bottleneckThresholdNanos),
+            proxyInfo: null,
+            proxyLoading: true,
+            bottomPreviewOpen: Boolean(isGantt),
+            sidebarOpen: !isGantt,
+            ...(!isGantt && { sidebarTab: 'telemetry' })
         });
+    }
 
-        const isCurrentSelection = () => this.state.selectedBeanName === beanName && this.state.selectedContextId === resolvedContext;
+    _scrollToBottomPreview() {
+        setTimeout(() => {
+            const previewEl = document.getElementById('instance-bottom-preview');
+            previewEl?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+        }, 80);
+    }
 
-        const fetchDetailsPromise = (async () => {
-            try {
-                const details = await this.service.findBeanInstance(resolvedContext, beanName);
-                if (details && isCurrentSelection()) {
-                    this.setState({
-                        selectedInstance: details,
-                        sidebarDetails: instanceSidebarWidget.formatDetails(details, this.state.maxDurationNanos, this.state.bottleneckThresholdNanos)
-                    });
-                }
-            } catch (err) {
-                console.warn('Could not fetch single bean instance details:', err);
-            }
-        })();
+    _isCurrentSelection(beanName, contextId) {
+        return this.state.selectedBeanName === beanName && this.state.selectedContextId === contextId;
+    }
 
-        const fetchProxyPromise = (async () => {
-            this.setState({ proxyLoading: true });
-            try {
-                const proxyInfo = await this.service.fetchProxyInfo(resolvedContext, beanName);
-                if (isCurrentSelection()) {
-                    this.setState({
-                        proxyInfo: instanceSidebarWidget.formatProxyInfo(proxyInfo),
-                        proxyLoading: false
-                    });
-                }
-            } catch (err) {
-                console.warn('Failed to fetch proxy info:', err);
-                if (isCurrentSelection()) {
-                    this.setState({
-                        proxyInfo: instanceSidebarWidget.formatProxyInfo(null),
-                        proxyLoading: false
-                    });
-                }
-            }
-        })();
+    _hydrateBeanDetails(beanName, contextId, localInstance) {
+        if (localInstance) {
+            return Promise.resolve();
+        }
+        return this.service.findBeanInstance(contextId, beanName)
+            .then(details => {
+                if (Guard.isBlank(details) || !this._isCurrentSelection(beanName, contextId)) return;
+                this.setState({
+                    selectedInstance: details,
+                    sidebarDetails: instanceSidebarWidget.formatDetails(details, this.state.maxDurationNanos, this.state.bottleneckThresholdNanos)
+                });
+            });
+    }
 
-        await Promise.allSettled([fetchDetailsPromise, fetchProxyPromise]);
+    _hydrateProxyInfo(beanName, contextId) {
+        return this.service.fetchProxyInfo(contextId, beanName)
+            .then(proxyInfo => {
+                if (!this._isCurrentSelection(beanName, contextId)) return;
+                this.setState({
+                    proxyInfo: instanceSidebarWidget.formatProxyInfo(proxyInfo),
+                    proxyLoading: false
+                });
+            });
     }
 
     isSelected(id) {
-        if (!id) return false;
+        if (Guard.isBlank(id)) return false;
         return (this.alpine?.selectedKey ?? this.state.selectedKey) === id;
     }
 
@@ -985,7 +981,7 @@ export class InstanceController extends BaseController {
             ((prev?.initDurationNanos || 0) > (current?.initDurationNanos || 0)) ? prev : current
             , null);
         if (slowest) {
-            this.selectBean(slowest.beanName, slowest.contextId, this.state.activeView === 'instance' ? 'gantt' : 'table');
+            this.selectBeanInstance(slowest.beanName, slowest.contextId, this.state.activeView === 'instance' ? 'gantt' : 'table');
         }
     }
 

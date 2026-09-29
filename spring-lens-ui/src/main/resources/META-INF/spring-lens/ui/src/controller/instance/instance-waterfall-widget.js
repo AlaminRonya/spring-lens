@@ -3,40 +3,45 @@ import {
     BeanMetadataRules,
     Formatter
 } from '../../helper/index.js';
+import Guard from '../../helper/guard.js';
 
 export class InstanceWaterfallWidget {
     calculateTicks(maxTimeMs) {
-        const effectiveMax = maxTimeMs || 10;
-        const ticks = BeanMetadataRules.calculateTimeTicks(effectiveMax);
+        const effectiveMax = Math.max(Number(maxTimeMs) || 10, 1);
+        const ticks = BeanMetadataRules.calculateTimeTicks(effectiveMax) || [];
 
-        return ticks.map(tick => {
-            const pct = (tick.ms / effectiveMax) * 100;
-            return {
-                ms: tick.ms,
-                pct: Math.min(100, Math.max(0, pct)),
-                label: tick.label || '',
-                isMajor: Boolean(tick.isMajor)
-            };
-        }).filter(tick => tick.pct <= 100);
+        return ticks
+            .map(tick => {
+                const pct = Math.min(100, Math.max(0, (tick.ms / effectiveMax) * 100));
+                return {
+                    ms: tick.ms,
+                    pct,
+                    label: tick.label || '',
+                    isMajor: Boolean(tick.isMajor)
+                };
+            })
+            .filter(tick => tick.pct <= 100);
     }
 
     formatGanttRows(instances = [], optionsOrSelectedBeanName = null, selectedContextId = null, maxDurationNanos = 0, maxTimeMs = 10, bottleneckThresholdNanos = 500000) {
-        if (!Array.isArray(instances)) return [];
+        if (Guard.isBlank(instances) || !Array.isArray(instances)) return [];
 
-        const options = (typeof optionsOrSelectedBeanName === 'object' && optionsOrSelectedBeanName !== null)
-            ? optionsOrSelectedBeanName
-            : {
-                selectedBeanName: optionsOrSelectedBeanName,
-                selectedContextId,
-                maxDurationNanos,
-                maxTimeMs,
-                bottleneckThresholdNanos
-            };
+        const options = this._normalizeOptions(
+            optionsOrSelectedBeanName,
+            selectedContextId,
+            maxDurationNanos,
+            maxTimeMs,
+            bottleneckThresholdNanos
+        );
 
-        return instances.map(inst => this.formatGanttRow(inst, options));
+        return instances
+            .map(beanInstance => this.formatGanttRow(beanInstance, options))
+            .filter(Boolean);
     }
 
-    formatGanttRow(inst, options = {}) {
+    formatGanttRow(beanInstance, options = {}) {
+        if (Guard.isBlank(beanInstance)) return null;
+
         const {
             selectedBeanName = null,
             selectedContextId = null,
@@ -47,17 +52,17 @@ export class InstanceWaterfallWidget {
 
         const {
             beanName = '',
-            contextId = '',
+            contextId = 'root',
             initDurationNanos = 0,
             layer
-        } = inst || {};
+        } = beanInstance;
 
-        const resolvedLayer = layer || BeanMetadataRules.resolveBeanLayer(inst) || {};
+        const canonicalContextId = contextId || 'root';
+        const resolvedLayer = layer || BeanMetadataRules.resolveBeanLayer(beanInstance) || {};
         const durationStyle = BeanMetadataRules.resolveDurationColor(initDurationNanos, maxDurationNanos, bottleneckThresholdNanos) || {};
-        const isSelected = selectedBeanName === beanName && selectedContextId === contextId;
+        const isSelected = selectedBeanName === beanName && (!selectedContextId || selectedContextId === canonicalContextId);
         const barColor = durationStyle.color || resolvedLayer.color || '#8b5cf6';
         const widthPct = this._calculateBarWidth(initDurationNanos, maxTimeMs);
-        const canonicalContextId = contextId || 'root';
         const id = `${canonicalContextId}::${beanName}`;
 
         return {
@@ -75,18 +80,12 @@ export class InstanceWaterfallWidget {
             showBarLabel: widthPct > 6,
             isSelected,
             isBottleneck: Boolean(durationStyle.isBottleneck),
-            raw: inst
+            raw: beanInstance
         };
     }
 
-    _calculateBarWidth(initDurationNanos, maxTimeMs) {
-        const effectiveMax = maxTimeMs || 1;
-        const initDurationMs = (initDurationNanos || 0) / 1e6;
-        return Math.min(Math.max((initDurationMs / effectiveMax) * 100, 0.6), 100);
-    }
-
     calculateScrubber(pageX, innerEl, scrollContainerEl, maxTimeMs = 10, manifestWidth = 340) {
-        if (!innerEl || !scrollContainerEl) return null;
+        if (Guard.isBlank(innerEl) || Guard.isBlank(scrollContainerEl)) return null;
 
         const innerRect = innerEl.getBoundingClientRect();
         const mouseX = pageX - innerRect.left;
@@ -96,7 +95,7 @@ export class InstanceWaterfallWidget {
             const trackX = mouseX - manifestWidth;
             const trackWidth = totalWidth - manifestWidth;
             const timeRatio = trackWidth > 0 ? Math.max(0, Math.min(1, trackX / trackWidth)) : 0;
-            const currentMs = timeRatio * maxTimeMs;
+            const currentMs = timeRatio * (Number(maxTimeMs) || 10);
             const scrollTop = scrollContainerEl.scrollTop || 0;
 
             return {
@@ -107,6 +106,31 @@ export class InstanceWaterfallWidget {
             };
         }
 
+        return this._defaultScrubberState();
+    }
+
+    _calculateBarWidth(initDurationNanos, maxTimeMs) {
+        const effectiveMax = Math.max(Number(maxTimeMs) || 1, 1);
+        const initDurationMs = (Number(initDurationNanos) || 0) / 1e6;
+        const pct = (initDurationMs / effectiveMax) * 100;
+        return Math.min(100, Math.max(0.6, pct));
+    }
+
+    _normalizeOptions(optionsOrSelectedBeanName, selectedContextId, maxDurationNanos, maxTimeMs, bottleneckThresholdNanos) {
+        if (optionsOrSelectedBeanName && typeof optionsOrSelectedBeanName === 'object') {
+            return optionsOrSelectedBeanName;
+        }
+
+        return {
+            selectedBeanName: optionsOrSelectedBeanName,
+            selectedContextId,
+            maxDurationNanos,
+            maxTimeMs,
+            bottleneckThresholdNanos
+        };
+    }
+
+    _defaultScrubberState() {
         return {
             left: 0,
             badgeTop: 0,

@@ -3,24 +3,27 @@ import {
     Formatter,
     BeanMetadataRules
 } from '../../helper/index.js';
+import Guard from '../../helper/guard.js';
 
 export class InstanceTableWidget {
     formatTableRows(instances = [], optionsOrSelectedBeanName = null, selectedContextId = null, maxDurationNanos = 0, bottleneckThresholdNanos = 500000) {
-        if (!Array.isArray(instances)) return [];
+        if (Guard.isBlank(instances) || !Array.isArray(instances)) return [];
 
-        const options = (typeof optionsOrSelectedBeanName === 'object' && optionsOrSelectedBeanName !== null)
-            ? optionsOrSelectedBeanName
-            : {
-                selectedBeanName: optionsOrSelectedBeanName,
-                selectedContextId,
-                maxDurationNanos,
-                bottleneckThresholdNanos
-            };
+        const options = this._normalizeOptions(
+            optionsOrSelectedBeanName,
+            selectedContextId,
+            maxDurationNanos,
+            bottleneckThresholdNanos
+        );
 
-        return instances.map(inst => this.formatTableRow(inst, options));
+        return instances
+            .map(inst => this.formatTableRow(inst, options))
+            .filter(Boolean);
     }
 
-    formatTableRow(inst, options = {}) {
+    formatTableRow(beanInstance, options = {}) {
+        if (Guard.isBlank(beanInstance)) return null;
+
         const {
             selectedBeanName = null,
             selectedContextId = null,
@@ -30,24 +33,22 @@ export class InstanceTableWidget {
 
         const {
             beanName = '',
-            contextId = '',
+            contextId = 'root',
             initDurationNanos = 0,
             scope = 'singleton',
             type = '',
             layer,
             createdAt = ''
-        } = inst || {};
+        } = beanInstance;
 
-        const resolvedLayer = layer || BeanMetadataRules.resolveBeanLayer(inst) || {};
-        const durationStyle = BeanMetadataRules.resolveDurationColor(initDurationNanos, maxDurationNanos, bottleneckThresholdNanos) || {};
-        const isSelected = selectedBeanName === beanName && selectedContextId === contextId;
-        const { typeStr, simpleType, packageName } = this._resolveTypeInfo(type);
-        const barColor = resolvedLayer.color || durationStyle.color || '#8b5cf6';
         const canonicalContextId = contextId || 'root';
-        const id = `${canonicalContextId}::${beanName}`;
+        const resolvedLayer = layer || BeanMetadataRules.resolveBeanLayer(beanInstance) || {};
+        const durationStyle = BeanMetadataRules.resolveDurationColor(initDurationNanos, maxDurationNanos, bottleneckThresholdNanos) || {};
+        const { typeStr, simpleType, packageName } = this._resolveTypeInfo(type);
+        const isSelected = selectedBeanName === beanName && (!selectedContextId || selectedContextId === canonicalContextId);
 
         return {
-            id,
+            id: `${canonicalContextId}::${beanName}`,
             beanName,
             displayName: GraphTreeBuilder._displayName(beanName),
             contextId: canonicalContextId,
@@ -63,11 +64,11 @@ export class InstanceTableWidget {
             durationNanos: `${(initDurationNanos || 0).toLocaleString()} ns`,
             durationStyle,
             layer: resolvedLayer,
-            layerColor: barColor,
+            layerColor: resolvedLayer.color || durationStyle.color || '#8b5cf6',
             layerIcon: resolvedLayer.icon || 'deployed_code',
             isSelected,
             isBottleneck: Boolean(durationStyle.isBottleneck),
-            raw: inst
+            raw: beanInstance
         };
     }
 
@@ -76,18 +77,29 @@ export class InstanceTableWidget {
         return sortDir === 'DESC' ? 'expand_more' : 'expand_less';
     }
 
-    _resolveTypeInfo(type) {
-        const typeStr = type || '-';
-        const lastDotIndex = typeStr.lastIndexOf('.');
-
-        if (lastDotIndex === -1) {
-            return { typeStr, simpleType: typeStr, packageName: 'default package' };
+    _normalizeOptions(optionsOrSelectedBeanName, selectedContextId, maxDurationNanos, bottleneckThresholdNanos) {
+        if (optionsOrSelectedBeanName && typeof optionsOrSelectedBeanName === 'object') {
+            return optionsOrSelectedBeanName;
         }
 
         return {
-            typeStr,
-            simpleType: typeStr.substring(lastDotIndex + 1),
-            packageName: typeStr.substring(0, lastDotIndex)
+            selectedBeanName: optionsOrSelectedBeanName,
+            selectedContextId,
+            maxDurationNanos,
+            bottleneckThresholdNanos
+        };
+    }
+
+    _resolveTypeInfo(type) {
+        if (Guard.isBlank(type) || type === '-') {
+            return { typeStr: '-', simpleType: '-', packageName: '' };
+        }
+
+        const lastDotIndex = type.lastIndexOf('.');
+        return {
+            typeStr: type,
+            simpleType: GraphTreeBuilder._displayName(type),
+            packageName: lastDotIndex !== -1 ? type.substring(0, lastDotIndex) : 'default package'
         };
     }
 }
