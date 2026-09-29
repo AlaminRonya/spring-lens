@@ -1,25 +1,14 @@
 import {
     GraphTreeBuilder,
     Formatter,
-    BeanMetadataRules
+    BeanMetadataRules,
+    QueryParam
 } from '../../helper/index.js';
 import Guard from "../../helper/guard.js";
 
 export class InstanceSidebarWidget {
-    formatDetails(instance, optionsOrMaxDurationNanos = 0, bottleneckThreshold = 500000) {
+    formatDetails(instance, maxDurationNanos = 0, bottleneckThresholdNanos = 500000) {
         if (Guard.isBlank(instance)) return null;
-
-        const options = (typeof optionsOrMaxDurationNanos === 'object' && optionsOrMaxDurationNanos !== null)
-            ? optionsOrMaxDurationNanos
-            : {
-                maxDurationNanos: optionsOrMaxDurationNanos,
-                bottleneckThreshold
-            };
-
-        const {
-            maxDurationNanos = 0,
-            bottleneckThresholdNanos = 500000
-        } = options;
  
         const {
             beanName = '',
@@ -34,15 +23,12 @@ export class InstanceSidebarWidget {
         const metadata = BeanMetadataRules.resolveBeanMetadata(instance) || { icon: 'schema', color: '#8b5cf6' };
         const durationStyle = BeanMetadataRules.resolveDurationColor(initDurationNanos, maxDurationNanos, bottleneckThresholdNanos) || {};
         const definitionHref = this._buildDefinitionHref(beanName, contextId);
-        const { simpleType, packageName } = this._resolveTypeInfo(type);
         const pctOfMax = this._calculatePctOfMax(initDurationNanos, maxDurationNanos);
 
         return {
             name: GraphTreeBuilder._displayName(beanName),
             fullName: beanName,
             type: type || 'N/A',
-            simpleType,
-            packageName,
             scope: Formatter.capitalize(scope || 'singleton'),
             duration: Formatter.formatDuration(initDurationNanos),
             initDurationNanos: initDurationNanos || 0,
@@ -63,93 +49,46 @@ export class InstanceSidebarWidget {
     }
 
     formatProxyInfo(proxyInfo) {
-        if (!proxyInfo) {
-            return {
-                isDirect: true,
-                proxyType: 'Direct',
-                badgeStyles: BeanMetadataRules.resolveProxyBadgeStyles('DIRECT'),
-                targetClass: 'N/A',
-                adviceFrozen: false,
-                adviceFrozenClass: BeanMetadataRules.resolveAdviceFrozenClass(false),
-                advices: [],
-                proxiedInterfaces: []
-            };
-        }
-
-        const rawAdvices = proxyInfo.advices || proxyInfo.advisors || [];
-        const rawInterfaces = proxyInfo.proxiedInterfaces || proxyInfo.interfaces || [];
-        const isDirect = Boolean(proxyInfo.isDirect) || (proxyInfo.proxyType === 'DIRECT' && !rawAdvices.length && !rawInterfaces.length);
-
-        if (isDirect) {
-            return {
-                isDirect: true,
-                proxyType: 'Direct',
-                badgeStyles: BeanMetadataRules.resolveProxyBadgeStyles('DIRECT'),
-                targetClass: proxyInfo.targetClass || 'N/A',
-                adviceFrozen: false,
-                adviceFrozenClass: BeanMetadataRules.resolveAdviceFrozenClass(false),
-                advices: [],
-                proxiedInterfaces: []
-            };
-        }
+        if (Guard.isBlank(proxyInfo)) return null;
 
         const {
             targetClass = 'N/A',
             adviceFrozen = false,
-            proxyType = 'CGLIB'
+            proxyType = 'CGLIB',
+            advices = [],
+            proxiedInterfaces = []
         } = proxyInfo;
 
         return {
-            isDirect: false,
             proxyType,
             badgeStyles: BeanMetadataRules.resolveProxyBadgeStyles(proxyType),
             targetClass: targetClass || 'N/A',
             adviceFrozen: Boolean(adviceFrozen),
             adviceFrozenClass: BeanMetadataRules.resolveAdviceFrozenClass(adviceFrozen),
-            advices: this._formatProxyMembers(rawAdvices, 'Advice'),
-            proxiedInterfaces: this._formatProxyMembers(rawInterfaces, 'Interface')
-        };
-    }
-
-    _buildDefinitionHref(beanName, contextId) {
-        return `#/definitions?beanName=${encodeURIComponent(beanName || '')}${contextId ? `&contextId=${encodeURIComponent(contextId)}` : ''}`;
-    }
-
-    _calculatePctOfMax(initDurationNanos, maxDurationNanos) {
-        if (!maxDurationNanos || maxDurationNanos <= 0) return 0;
-        return Math.min(100, Math.max(1, Math.round(((initDurationNanos || 0) / maxDurationNanos) * 100)));
-    }
-
-    _resolveTypeInfo(type) {
-        if (!type || type === 'N/A') {
-            return { simpleType: 'N/A', packageName: '' };
-        }
-
-        const lastDotIndex = type.lastIndexOf('.');
-        if (lastDotIndex === -1) {
-            return { simpleType: type, packageName: 'default package' };
-        }
-
-        return {
-            simpleType: type.substring(lastDotIndex + 1),
-            packageName: type.substring(0, lastDotIndex)
+            advices: this._formatProxyMembers(advices, 'Advice'),
+            proxiedInterfaces: this._formatProxyMembers(proxiedInterfaces, 'Interface')
         };
     }
 
     _formatProxyMembers(advicesOrProxiedInterfaces, badge) {
         if (!Array.isArray(advicesOrProxiedInterfaces)) return [];
         return advicesOrProxiedInterfaces.map((item, index) => {
-            const proxyOrAdviceName = item.includes('.')
-                ? item.split('.').pop()
-                : item;
-
             return {
                 id: `${badge ? badge.toLowerCase() : 'item'}-${index}`,
-                simpleName: proxyOrAdviceName,
+                simpleName: GraphTreeBuilder._displayName(item),
                 fullName: item,
                 badge
             };
         });
+    }
+
+    _buildDefinitionHref(beanName, contextId) {
+        return QueryParam.append('#/definitions', { beanName, contextId });
+    }
+
+    _calculatePctOfMax(initDurationNanos, maxDurationNanos) {
+        if (!maxDurationNanos || maxDurationNanos <= 0) return 0;
+        return Math.min(100, Math.max(1, Math.round(((initDurationNanos || 0) / maxDurationNanos) * 100)));
     }
 }
 
