@@ -3,10 +3,11 @@ import {
     Formatter,
     BeanMetadataRules
 } from '../../helper/index.js';
+import Guard from "../../helper/guard.js";
 
 export class InstanceSidebarWidget {
     formatDetails(instance, optionsOrMaxDurationNanos = 0, bottleneckThreshold = 500000) {
-        if (!instance) return null;
+        if (Guard.isBlank(instance)) return null;
 
         const options = (typeof optionsOrMaxDurationNanos === 'object' && optionsOrMaxDurationNanos !== null)
             ? optionsOrMaxDurationNanos
@@ -62,7 +63,7 @@ export class InstanceSidebarWidget {
     }
 
     formatProxyInfo(proxyInfo) {
-        if (!proxyInfo || proxyInfo.isDirect || proxyInfo.proxyType === 'DIRECT') {
+        if (!proxyInfo) {
             return {
                 isDirect: true,
                 proxyType: 'Direct',
@@ -75,10 +76,25 @@ export class InstanceSidebarWidget {
             };
         }
 
+        const rawAdvices = proxyInfo.advices || proxyInfo.advisors || [];
+        const rawInterfaces = proxyInfo.proxiedInterfaces || proxyInfo.interfaces || [];
+        const isDirect = Boolean(proxyInfo.isDirect) || (proxyInfo.proxyType === 'DIRECT' && !rawAdvices.length && !rawInterfaces.length);
+
+        if (isDirect) {
+            return {
+                isDirect: true,
+                proxyType: 'Direct',
+                badgeStyles: BeanMetadataRules.resolveProxyBadgeStyles('DIRECT'),
+                targetClass: proxyInfo.targetClass || 'N/A',
+                adviceFrozen: false,
+                adviceFrozenClass: BeanMetadataRules.resolveAdviceFrozenClass(false),
+                advices: [],
+                proxiedInterfaces: []
+            };
+        }
+
         const {
             targetClass = 'N/A',
-            advices = [],
-            proxiedInterfaces = [],
             adviceFrozen = false,
             proxyType = 'CGLIB'
         } = proxyInfo;
@@ -90,8 +106,8 @@ export class InstanceSidebarWidget {
             targetClass: targetClass || 'N/A',
             adviceFrozen: Boolean(adviceFrozen),
             adviceFrozenClass: BeanMetadataRules.resolveAdviceFrozenClass(adviceFrozen),
-            advices: this._formatProxyMembers(advices, 'Advice'),
-            proxiedInterfaces: this._formatProxyMembers(proxiedInterfaces, 'Interface')
+            advices: this._formatProxyMembers(rawAdvices, 'Advice'),
+            proxiedInterfaces: this._formatProxyMembers(rawInterfaces, 'Interface')
         };
     }
 
@@ -120,18 +136,17 @@ export class InstanceSidebarWidget {
         };
     }
 
-    _formatProxyMembers(advicesOrProxiedInterfaces = [], badge) {
+    _formatProxyMembers(advicesOrProxiedInterfaces, badge) {
         if (!Array.isArray(advicesOrProxiedInterfaces)) return [];
-        return advicesOrProxiedInterfaces.map((fullyQualifiedName, index) => {
-            const proxyOrAdviceName = fullyQualifiedName.includes('.')
-                ? fullyQualifiedName.split('.').pop()
-                : fullyQualifiedName;
+        return advicesOrProxiedInterfaces.map((item, index) => {
+            const proxyOrAdviceName = item.includes('.')
+                ? item.split('.').pop()
+                : item;
 
             return {
                 id: `${badge ? badge.toLowerCase() : 'item'}-${index}`,
-                proxyOrAdviceName,
-                proxyOradviceName: proxyOrAdviceName,
-                fullyQualifiedName,
+                simpleName: proxyOrAdviceName,
+                fullName: item,
                 badge
             };
         });
@@ -139,4 +154,3 @@ export class InstanceSidebarWidget {
 }
 
 export const instanceSidebarWidget = new InstanceSidebarWidget();
-export default instanceSidebarWidget;

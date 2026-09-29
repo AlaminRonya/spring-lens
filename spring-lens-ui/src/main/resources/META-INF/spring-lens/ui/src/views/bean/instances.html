@@ -1222,15 +1222,14 @@
                                             x-text="proxyInfo?.advices?.length || 0">0</span>
                                     </div>
                                     <div class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar pt-0.5">
-                                        <template x-for="(adv, index) in (proxyInfo?.advices || [])"
-                                            :key="adv.id || (adv.fullyQualifiedName ? adv.fullyQualifiedName + '-' + index : index)">
+                                        <template x-for="advice in (proxyInfo?.advices || [])" :key="advice.id">
                                             <div
                                                 class="flex items-center justify-between py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-gray-100 dark:border-slate-800/80 text-[10.5px] font-mono">
                                                 <span class="text-gray-800 dark:text-gray-200 truncate font-medium min-w-0 flex-1 mr-2"
-                                                    x-text="adv.proxyOrAdviceName || adv.shortName || adv.fullyQualifiedName || adv" :title="adv.fullyQualifiedName || adv.fullName || adv"></span>
+                                                    x-text="advice.simpleName" :title="advice.fullName"></span>
                                                 <span
                                                     class="text-[9px] text-gray-400 dark:text-gray-500 font-sans ml-1 flex-shrink-0"
-                                                    x-text="adv.badge || 'Advice'">Advice</span>
+                                                    x-text="advice.badge || 'Advice'">Advice</span>
                                             </div>
                                         </template>
                                         <div x-show="!proxyInfo?.advices?.length"
@@ -1255,12 +1254,11 @@
                                             x-text="proxyInfo?.proxiedInterfaces?.length || 0">0</span>
                                     </div>
                                     <div class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar pt-0.5">
-                                        <template x-for="(iface, index) in (proxyInfo?.proxiedInterfaces || [])"
-                                            :key="iface.id || (iface.fullyQualifiedName ? iface.fullyQualifiedName + '-' + index : index)">
+                                        <template x-for="iface in (proxyInfo?.proxiedInterfaces || [])" :key="iface.id">
                                             <div
                                                 class="flex items-center justify-between py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-gray-100 dark:border-slate-800/80 text-[10.5px] font-mono">
                                                 <span class="text-gray-800 dark:text-gray-200 truncate font-medium min-w-0 flex-1 mr-2"
-                                                    x-text="iface.proxyOrAdviceName || iface.shortName || iface.fullyQualifiedName || iface" :title="iface.fullyQualifiedName || iface.fullName || iface"></span>
+                                                    x-text="iface.simpleName" :title="iface.fullName"></span>
                                                 <span
                                                     class="text-[9px] text-gray-400 dark:text-gray-500 font-sans ml-1 flex-shrink-0"
                                                     x-text="iface.badge || 'Interface'">Interface</span>
